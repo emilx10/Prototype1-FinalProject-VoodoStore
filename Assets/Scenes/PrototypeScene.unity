@@ -1782,7 +1782,7 @@ MonoBehaviour:
     - Rock
     - Diamond
     - Obsidian
-    sellPrice: 12
+    sellPrice: 11
   coins: 100
 --- !u!4 &731473974
 Transform:
