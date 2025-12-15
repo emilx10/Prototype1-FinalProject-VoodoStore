@@ -1747,8 +1747,8 @@ MonoBehaviour:
     - itemName: Rock
       price: 3
     - itemName: Obsidian
-      price: 6
-  - marketName: Oil
+      price: 7
+  - marketName: Oils
     items:
     - itemName: Grape
       price: 8
@@ -1756,33 +1756,33 @@ MonoBehaviour:
       price: 5
     - itemName: Olive
       price: 4
-  - marketName: Nature
+  - marketName: Herbs
     items:
     - itemName: Leaf
-      price: 1
+      price: 4
     - itemName: Rose
       price: 7
     - itemName: Dandelion
       price: 9
   recipes:
-  - potionName: Defense
+  - potionName: Love potion
     ingredients:
     - Obsidian
-    - Diamond
+    - Rose
     - Avocado
     sellPrice: 15
-  - potionName: Health
+  - potionName: Voodoo doll
     ingredients:
     - Rose
     - Leaf
-    - Grape
+    - Olive
     sellPrice: 10
-  - potionName: Damage
+  - potionName: Good hair day charm
     ingredients:
-    - Rock
-    - Diamond
+    - Grape
+    - Leaf
     - Obsidian
-    sellPrice: 13
+    sellPrice: 20
   coins: 100
 --- !u!4 &731473974
 Transform:
