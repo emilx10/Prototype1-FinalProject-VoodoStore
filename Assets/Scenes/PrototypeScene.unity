@@ -136,7 +136,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &120843611
 RectTransform:
   m_ObjectHideFlags: 0
@@ -153,6 +153,7 @@ RectTransform:
   - {fileID: 2076313729}
   - {fileID: 645701330}
   - {fileID: 869728561}
+  - {fileID: 861392865}
   m_Father: {fileID: 749179732}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -819,7 +820,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
+    rgba: 4279611072
   m_fontColor: {r: 0.754717, g: 0.68347543, b: 0.08187969, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -1738,8 +1739,8 @@ MonoBehaviour:
   itemsButtonsParent: {fileID: 1105289407}
   craftingItemsParent: {fileID: 2076313729}
   sellItemsParent: {fileID: 210000545}
-  selectedItemsParent: {fileID: 0}
-  selectedItemTextPrefab: {fileID: 0}
+  selectedItemsParent: {fileID: 861392865}
+  selectedItemTextPrefab: {fileID: 1933840957925310353, guid: 8a12491297d090c46802897957f053d6, type: 3}
   buttonPrefab: {fileID: 1146517354664766705, guid: 6bd8b2ccaff8d5d40bea24e1527bd20d, type: 3}
   markets:
   - marketName: Gems
@@ -1891,6 +1892,68 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 749179731}
   m_CullTransparentMesh: 1
+--- !u!1 &861392864
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 861392865}
+  - component: {fileID: 861392866}
+  m_Layer: 5
+  m_Name: ItemsForMerge
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &861392865
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 861392864}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 120843611}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 781, y: -0.0013266}
+  m_SizeDelta: {x: 329.4031, y: 590.07}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &861392866
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 861392864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 0
+  m_Spacing: 2
+  m_ChildForceExpandWidth: 1
+  m_ChildForceExpandHeight: 1
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
+  m_ChildScaleWidth: 0
+  m_ChildScaleHeight: 0
+  m_ReverseArrangement: 0
 --- !u!1 &869728560
 GameObject:
   m_ObjectHideFlags: 0
@@ -3536,7 +3599,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
+    rgba: 4278255400
   m_fontColor: {r: 0.1551745, g: 1, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
