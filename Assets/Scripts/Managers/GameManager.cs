@@ -7,7 +7,8 @@ using UnityEngine.UI;
 public class MarketItem
 {
     public string itemName;
-    public int price;
+    public int price;      // buy price
+    public int sellPrice;  // sell price (Inspector)
 }
 
 [System.Serializable]
@@ -21,8 +22,8 @@ public class Market
 public class Recipe
 {
     public string potionName;
-    public List<string> ingredients; // Names of items needed
-    public int sellPrice = 10; // <-- NEW: editable in Inspector
+    public List<string> ingredients;
+    public int sellPrice; // potion sell price
 }
 
 [System.Serializable]
@@ -43,10 +44,16 @@ public class GameManager : MonoBehaviour
     [Header("TMP UI Elements")]
     public TMP_Text inventoryText;
     public TMP_Text coinsText;
+
     public Transform marketButtonsParent;
     public Transform itemsButtonsParent;
     public Transform craftingItemsParent;
     public Transform sellItemsParent;
+
+    [Header("Crafting Selection UI")]
+    public Transform selectedItemsParent;
+    public GameObject selectedItemTextPrefab;
+
     public GameObject buttonPrefab;
 
     [Header("Game Data")]
@@ -54,8 +61,8 @@ public class GameManager : MonoBehaviour
     public List<Recipe> recipes;
     public int coins = 100;
 
-    private List<InventoryItem> potions = new List<InventoryItem>(); // track counts at runtime
-    private Market currentMarket;
+    private List<InventoryItem> inventory = new List<InventoryItem>();
+    private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
 
     void Start()
     {
@@ -64,7 +71,8 @@ public class GameManager : MonoBehaviour
         UpdateCoinsUI();
     }
 
-    #region Market Phase
+    #region Market
+
     public void StartMarketPhase()
     {
         marketPanel.SetActive(true);
@@ -72,50 +80,48 @@ public class GameManager : MonoBehaviour
         craftingPanel.SetActive(false);
         sellPanel.SetActive(false);
 
-        foreach (Transform t in marketButtonsParent)
-            Destroy(t.gameObject);
+        ClearChildren(marketButtonsParent);
 
         foreach (Market market in markets)
         {
-            GameObject btnObj = Instantiate(buttonPrefab, marketButtonsParent);
-            TMP_Text btnText = btnObj.GetComponentInChildren<TMP_Text>();
-            btnText.text = market.marketName;
-            btnObj.GetComponent<Button>().onClick.AddListener(() => OpenMarket(market));
+            GameObject btn = Instantiate(buttonPrefab, marketButtonsParent);
+            btn.GetComponentInChildren<TMP_Text>().text = market.marketName;
+            btn.GetComponent<Button>().onClick.AddListener(() => OpenMarket(market));
         }
     }
 
-    public void OpenMarket(Market market)
+    void OpenMarket(Market market)
     {
-        currentMarket = market;
         marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
 
-        foreach (Transform t in itemsButtonsParent)
-            Destroy(t.gameObject);
+        ClearChildren(itemsButtonsParent);
 
         foreach (MarketItem item in market.items)
         {
-            GameObject btnObj = Instantiate(buttonPrefab, itemsButtonsParent);
-            TMP_Text btnText = btnObj.GetComponentInChildren<TMP_Text>();
-            btnText.text = item.itemName + " - " + item.price + " coins";
+            GameObject btn = Instantiate(buttonPrefab, itemsButtonsParent);
+            btn.GetComponentInChildren<TMP_Text>().text =
+                item.itemName + " - " + item.price + " coins";
 
-            btnObj.GetComponent<Button>().onClick.AddListener(() => BuyItem(item));
+            btn.GetComponent<Button>().onClick.AddListener(() => BuyItem(item));
         }
     }
 
     void BuyItem(MarketItem item)
     {
-        if (coins >= item.price)
-        {
-            coins -= item.price;
-            AddToInventory(item.itemName);
-            UpdateInventoryUI();
-            UpdateCoinsUI();
-        }
+        if (coins < item.price) return;
+
+        coins -= item.price;
+        AddToInventory(item.itemName);
+
+        UpdateInventoryUI();
+        UpdateCoinsUI();
     }
+
     #endregion
 
-    #region Crafting Phase
+    #region Crafting
+
     public void OpenCrafting()
     {
         marketPanel.SetActive(false);
@@ -123,39 +129,54 @@ public class GameManager : MonoBehaviour
         craftingPanel.SetActive(true);
         sellPanel.SetActive(false);
 
+        selectedCraftingItems.Clear();
+        RefreshSelectedItemsUI();
         RefreshCraftingUI();
     }
 
     void RefreshCraftingUI()
     {
-        foreach (Transform t in craftingItemsParent)
-            Destroy(t.gameObject);
+        ClearChildren(craftingItemsParent);
 
-        foreach (InventoryItem item in potions)
+        foreach (InventoryItem item in inventory)
         {
-            GameObject btnObj = Instantiate(buttonPrefab, craftingItemsParent);
-            TMP_Text btnText = btnObj.GetComponentInChildren<TMP_Text>();
-            btnText.text = item.itemName + " x" + item.count;
-            btnObj.GetComponent<Button>().onClick.AddListener(() => SelectCraftingItem(item));
+            GameObject btn = Instantiate(buttonPrefab, craftingItemsParent);
+            btn.GetComponentInChildren<TMP_Text>().text =
+                item.itemName + " x" + item.count;
+
+            btn.GetComponent<Button>().onClick.AddListener(() => SelectCraftingItem(item));
         }
     }
 
-    private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
-
     void SelectCraftingItem(InventoryItem item)
     {
-        if (!selectedCraftingItems.Contains(item) && selectedCraftingItems.Count < 3)
+        if (selectedCraftingItems.Contains(item)) return;
+        if (selectedCraftingItems.Count >= 3) return;
+
+        selectedCraftingItems.Add(item);
+        RefreshSelectedItemsUI();
+    }
+
+    void RefreshSelectedItemsUI()
+    {
+        ClearChildren(selectedItemsParent);
+
+        foreach (InventoryItem item in selectedCraftingItems)
         {
-            selectedCraftingItems.Add(item);
+            GameObject txt = Instantiate(selectedItemTextPrefab, selectedItemsParent);
+            txt.GetComponent<TMP_Text>().text = item.itemName;
         }
     }
 
     public void MergeItems()
     {
-        if (selectedCraftingItems.Count != 3) return;
+        if (selectedCraftingItems.Count < 2) return;
 
         foreach (Recipe recipe in recipes)
         {
+            if (recipe.ingredients.Count != selectedCraftingItems.Count)
+                continue;
+
             bool match = true;
             foreach (string ingredient in recipe.ingredients)
             {
@@ -168,22 +189,25 @@ public class GameManager : MonoBehaviour
 
             if (match)
             {
-                AddPotion(recipe.potionName);
+                AddToInventory(recipe.potionName);
                 break;
             }
         }
 
-        // Remove materials
         foreach (InventoryItem item in selectedCraftingItems)
             RemoveFromInventory(item.itemName);
 
         selectedCraftingItems.Clear();
+
+        RefreshSelectedItemsUI();
         RefreshCraftingUI();
         UpdateInventoryUI();
     }
+
     #endregion
 
-    #region Sell Phase
+    #region Sell
+
     public void OpenSell()
     {
         marketPanel.SetActive(false);
@@ -196,79 +220,71 @@ public class GameManager : MonoBehaviour
 
     void RefreshSellUI()
     {
-        foreach (Transform t in sellItemsParent)
-            Destroy(t.gameObject);
+        ClearChildren(sellItemsParent);
 
-        foreach (InventoryItem potion in potions)
+        foreach (InventoryItem item in inventory)
         {
-            Recipe recipe = recipes.Find(r => r.potionName == potion.itemName);
-            int price = recipe != null ? recipe.sellPrice : 10;
+            int price = GetSellPrice(item.itemName);
 
-            GameObject btnObj = Instantiate(buttonPrefab, sellItemsParent);
-            TMP_Text btnText = btnObj.GetComponentInChildren<TMP_Text>();
-            btnText.text = potion.itemName + " x" + potion.count + " - " + price + " coins";
+            GameObject btn = Instantiate(buttonPrefab, sellItemsParent);
+            btn.GetComponentInChildren<TMP_Text>().text =
+                item.itemName + " x" + item.count + " - " + price + " coins";
 
-            btnObj.GetComponent<Button>().onClick.AddListener(() => SellPotion(potion, price));
+            btn.GetComponent<Button>().onClick.AddListener(() => SellItem(item, price));
         }
     }
 
-    void SellPotion(InventoryItem potion, int price)
+    int GetSellPrice(string itemName)
+    {
+        Recipe recipe = recipes.Find(r => r.potionName == itemName);
+        if (recipe != null)
+            return recipe.sellPrice;
+
+        foreach (Market market in markets)
+        {
+            MarketItem item = market.items.Find(i => i.itemName == itemName);
+            if (item != null)
+                return item.sellPrice;
+        }
+
+        return 0;
+    }
+
+    void SellItem(InventoryItem item, int price)
     {
         coins += price;
-        RemovePotion(potion.itemName);
+        RemoveFromInventory(item.itemName);
+
         RefreshSellUI();
+        UpdateInventoryUI();
         UpdateCoinsUI();
     }
 
-    public void EndDay()
-    {
-        StartMarketPhase();
-    }
     #endregion
 
-    #region Inventory Management
-    void AddToInventory(string itemName)
+    #region Inventory
+
+    void AddToInventory(string name)
     {
-        InventoryItem existing = potions.Find(i => i.itemName == itemName);
-        if (existing != null)
-            existing.count++;
-        else
-            potions.Add(new InventoryItem() { itemName = itemName, count = 1 });
+        InventoryItem existing = inventory.Find(i => i.itemName == name);
+        if (existing != null) existing.count++;
+        else inventory.Add(new InventoryItem { itemName = name, count = 1 });
     }
 
-    void RemoveFromInventory(string itemName)
+    void RemoveFromInventory(string name)
     {
-        InventoryItem existing = potions.Find(i => i.itemName == itemName);
-        if (existing != null)
-        {
-            existing.count--;
-            if (existing.count <= 0) potions.Remove(existing);
-        }
-    }
+        InventoryItem existing = inventory.Find(i => i.itemName == name);
+        if (existing == null) return;
 
-    void AddPotion(string potionName)
-    {
-        InventoryItem existing = potions.Find(p => p.itemName == potionName);
-        if (existing != null)
-            existing.count++;
-        else
-            potions.Add(new InventoryItem() { itemName = potionName, count = 1 });
-    }
-
-    void RemovePotion(string potionName)
-    {
-        InventoryItem existing = potions.Find(p => p.itemName == potionName);
-        if (existing != null)
-        {
-            existing.count--;
-            if (existing.count <= 0) potions.Remove(existing);
-        }
+        existing.count--;
+        if (existing.count <= 0)
+            inventory.Remove(existing);
     }
 
     void UpdateInventoryUI()
     {
         inventoryText.text = "Inventory:\n";
-        foreach (InventoryItem item in potions)
+        foreach (InventoryItem item in inventory)
             inventoryText.text += item.itemName + " x" + item.count + "\n";
     }
 
@@ -276,5 +292,16 @@ public class GameManager : MonoBehaviour
     {
         coinsText.text = "Coins: " + coins;
     }
+
+    void ClearChildren(Transform t)
+    {
+        foreach (Transform c in t)
+            Destroy(c.gameObject);
+    }
+    public void EndDay()
+    {
+        StartMarketPhase();
+    }
+
     #endregion
 }
