@@ -50,6 +50,11 @@ public class GameManager : MonoBehaviour
     public Transform craftingItemsParent;
     public Transform sellItemsParent;
 
+    [Header("Crafting Triangle Layout")]
+    [SerializeField] private Vector2 triangleLeftTop;
+    [SerializeField] private Vector2 triangleRightTop;
+    [SerializeField] private Vector2 triangleCenterBottom;
+
     [Header("Crafting Selection UI")]
     public Transform selectedItemsParent;
     public GameObject selectedItemTextPrefab;
@@ -161,10 +166,28 @@ public class GameManager : MonoBehaviour
     {
         ClearChildren(selectedItemsParent);
 
-        foreach (InventoryItem item in selectedCraftingItems)
+        for (int i = 0; i < selectedCraftingItems.Count; i++)
         {
-            GameObject txt = Instantiate(selectedItemTextPrefab, selectedItemsParent);
-            txt.GetComponent<TMP_Text>().text = item.itemName;
+            GameObject txtObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
+            TMP_Text txt = txtObj.GetComponent<TMP_Text>();
+            txt.text = selectedCraftingItems[i].itemName;
+
+            RectTransform rt = txtObj.GetComponent<RectTransform>();
+
+            if (selectedCraftingItems.Count == 1)
+            {
+                rt.anchoredPosition = Vector2.zero;
+            }
+            else if (selectedCraftingItems.Count == 2)
+            {
+                rt.anchoredPosition = (i == 0) ? triangleLeftTop : triangleRightTop;
+            }
+            else // 3 items
+            {
+                if (i == 0) rt.anchoredPosition = triangleLeftTop;
+                if (i == 1) rt.anchoredPosition = triangleRightTop;
+                if (i == 2) rt.anchoredPosition = triangleCenterBottom;
+            }
         }
     }
 
