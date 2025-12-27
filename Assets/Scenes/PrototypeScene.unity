@@ -1748,10 +1748,10 @@ MonoBehaviour:
   markets:
   - marketName: Gems
     items:
-    - itemName: Diamond
+    - itemName: Ruby
       price: 10
       sellPrice: 5
-    - itemName: Rock
+    - itemName: Agate
       price: 3
       sellPrice: 2
     - itemName: Obsidian
@@ -1759,45 +1759,63 @@ MonoBehaviour:
       sellPrice: 4
   - marketName: Oils
     items:
-    - itemName: Grape
+    - itemName: Olive
       price: 8
       sellPrice: 4
-    - itemName: Avocado
+    - itemName: 'Eucalyptus Oil '
       price: 5
       sellPrice: 3
-    - itemName: Olive
+    - itemName: 'Floral Oil '
       price: 4
       sellPrice: 2
   - marketName: Herbs
     items:
-    - itemName: Leaf
+    - itemName: Mint
       price: 4
       sellPrice: 2
-    - itemName: Rose
+    - itemName: Lemon-grass
       price: 7
       sellPrice: 4
     - itemName: Dandelion
       price: 9
       sellPrice: 5
   recipes:
-  - potionName: Love potion
-    ingredients:
-    - Obsidian
-    - Rose
-    - Avocado
-    sellPrice: 15
   - potionName: Voodoo doll
     ingredients:
-    - Rose
-    - Leaf
-    - Olive
-    sellPrice: 10
+    - Lemon-grass
+    - Obsidian
+    - Floral Oil
+    sellPrice: 20
+  - potionName: Lie-detecting head
+    ingredients:
+    - Dandelion
+    - Mint
+    - Olive  Oil
+    sellPrice: 20
+  - potionName: Crystal ball
+    ingredients:
+    - Agate
+    - Ruby
+    - Eucalyptus oil
+    sellPrice: 30
   - potionName: Good hair day charm
     ingredients:
-    - Grape
-    - Leaf
-    - Obsidian
-    sellPrice: 20
+    - Eucalyptus oil
+    - Floral Oil
+    - Lemon-grass
+    sellPrice: 23
+  - potionName: Rings of pain relief
+    ingredients:
+    - Eucalyptus oil
+    - Floral Oil
+    - Lemon-grass
+    sellPrice: 27
+  - potionName: Happyness tiara
+    ingredients:
+    - Eucalyptus oil
+    - Floral Oil
+    - Lemon-grass
+    sellPrice: 24
   coins: 100
 --- !u!4 &731473974
 Transform:
