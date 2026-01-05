@@ -7,8 +7,11 @@ using UnityEngine.UI;
 public class MarketItem
 {
     public string itemName;
-    public int price;      // buy price
-    public int sellPrice;  // sell price (Inspector)
+    public int price; // buy price ONLY
+
+    [Header("Sell Price Limits")]
+    public int minSellPrice;
+    public int maxSellPrice;
 }
 
 [System.Serializable]
@@ -23,8 +26,13 @@ public class Recipe
 {
     public string potionName;
     public List<string> ingredients;
-    public int sellPrice; // potion sell price
+
+    [Header("Sell Price Limits")]
+    public int minSellPrice;
+    public int maxSellPrice;
 }
+
+
 
 [System.Serializable]
 public class InventoryItem
@@ -55,6 +63,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Vector2 triangleRightTop;
     [SerializeField] private Vector2 triangleCenterBottom;
 
+    [Header("Junk Settings")]
+    [SerializeField] private string junkItemName = "Junk";
+    [SerializeField] private int junkSellPrice = 1;
+
     [Header("Crafting Selection UI")]
     public Transform selectedItemsParent;
     public GameObject selectedItemTextPrefab;
@@ -65,6 +77,15 @@ public class GameManager : MonoBehaviour
     public List<Market> markets;
     public List<Recipe> recipes;
     public int coins = 100;
+
+    [Header("Sell Confirmation UI")]
+    [SerializeField] private GameObject sellConfirmPanel;
+    [SerializeField] private TMP_InputField priceInputField;
+    [SerializeField] private TMP_Text sellItemNameText;
+    [SerializeField] private Button confirmSellButton;
+
+    private InventoryItem pendingSellItem;
+
 
     private List<InventoryItem> inventory = new List<InventoryItem>();
     private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
@@ -195,12 +216,15 @@ public class GameManager : MonoBehaviour
     {
         if (selectedCraftingItems.Count < 2) return;
 
+        bool craftedSomething = false;
+
         foreach (Recipe recipe in recipes)
         {
             if (recipe.ingredients.Count != selectedCraftingItems.Count)
                 continue;
 
             bool match = true;
+
             foreach (string ingredient in recipe.ingredients)
             {
                 if (!selectedCraftingItems.Exists(i => i.itemName == ingredient))
@@ -213,10 +237,18 @@ public class GameManager : MonoBehaviour
             if (match)
             {
                 AddToInventory(recipe.potionName);
+                craftedSomething = true;
                 break;
             }
         }
 
+        // If no recipe matched  give exactly 1 Junk
+        if (!craftedSomething)
+        {
+            AddToInventory(junkItemName);
+        }
+
+        // Consume ingredients
         foreach (InventoryItem item in selectedCraftingItems)
             RemoveFromInventory(item.itemName);
 
@@ -226,6 +258,7 @@ public class GameManager : MonoBehaviour
         RefreshCraftingUI();
         UpdateInventoryUI();
     }
+
 
     #endregion
 
@@ -247,30 +280,12 @@ public class GameManager : MonoBehaviour
 
         foreach (InventoryItem item in inventory)
         {
-            int price = GetSellPrice(item.itemName);
-
             GameObject btn = Instantiate(buttonPrefab, sellItemsParent);
             btn.GetComponentInChildren<TMP_Text>().text =
-                item.itemName + " x" + item.count + " - " + price + " coins";
+                item.itemName + " x" + item.count;
 
-            btn.GetComponent<Button>().onClick.AddListener(() => SellItem(item, price));
+            btn.GetComponent<Button>().onClick.AddListener(() => OnSellClicked(item));
         }
-    }
-
-    int GetSellPrice(string itemName)
-    {
-        Recipe recipe = recipes.Find(r => r.potionName == itemName);
-        if (recipe != null)
-            return recipe.sellPrice;
-
-        foreach (Market market in markets)
-        {
-            MarketItem item = market.items.Find(i => i.itemName == itemName);
-            if (item != null)
-                return item.sellPrice;
-        }
-
-        return 0;
     }
 
     void SellItem(InventoryItem item, int price)
@@ -325,6 +340,84 @@ public class GameManager : MonoBehaviour
     {
         StartMarketPhase();
     }
+
+    void OnSellClicked(InventoryItem item)
+    {
+        // Junk sells instantly
+        if (item.itemName == junkItemName)
+        {
+            SellItem(item, junkSellPrice);
+            return;
+        }
+
+        pendingSellItem = item;
+
+        sellItemNameText.text = item.itemName;
+        priceInputField.text = "";
+
+        sellConfirmPanel.SetActive(true);
+    }
+
+
+    public void ConfirmSell()
+    {
+        if (pendingSellItem == null)
+            return;
+
+        if (!int.TryParse(priceInputField.text, out int price))
+            return;
+
+        // Junk ignores min/max
+        if (pendingSellItem.itemName == junkItemName)
+        {
+            SellItem(pendingSellItem, junkSellPrice);
+            pendingSellItem = null;
+            sellConfirmPanel.SetActive(false);
+            return;
+        }
+
+        if (!TryGetSellLimits(pendingSellItem.itemName, out int min, out int max))
+            return;
+
+        // Silent fail if outside range
+        if (price < min || price > max)
+            return;
+
+        SellItem(pendingSellItem, price);
+
+        pendingSellItem = null;
+        sellConfirmPanel.SetActive(false);
+    }
+
+
+
+    bool TryGetSellLimits(string itemName, out int min, out int max)
+    {
+        min = 0;
+        max = 0;
+
+        Recipe recipe = recipes.Find(r => r.potionName == itemName);
+        if (recipe != null)
+        {
+            min = recipe.minSellPrice;
+            max = recipe.maxSellPrice;
+            return true;
+        }
+
+        foreach (Market market in markets)
+        {
+            MarketItem item = market.items.Find(i => i.itemName == itemName);
+            if (item != null)
+            {
+                min = item.minSellPrice;
+                max = item.maxSellPrice;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
     #endregion
 }
