@@ -2065,6 +2065,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5807659f23e9818449b6b9bc401d8873, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
+  categoryStyles:
+  - category: 0
+    backgroundColor: {r: 0.5935769, g: 0.24056602, b: 1, a: 1}
+    textColor: {r: 0, g: 0, b: 0, a: 1}
+  - category: 1
+    backgroundColor: {r: 0.3160377, g: 1, b: 0.6082369, a: 1}
+    textColor: {r: 0, g: 0, b: 0, a: 1}
+  - category: 2
+    backgroundColor: {r: 0.3066038, g: 0.6854742, b: 1, a: 1}
+    textColor: {r: 0, g: 0, b: 0, a: 1}
+  - category: 3
+    backgroundColor: {r: 1, g: 0.94547594, b: 0.30588233, a: 1}
+    textColor: {r: 0, g: 0, b: 0, a: 1}
+  - category: 4
+    backgroundColor: {r: 0.5849056, g: 0.5849056, b: 0.5849056, a: 1}
+    textColor: {r: 0, g: 0, b: 0, a: 1}
   marketPanel: {fileID: 313281592}
   itemsPanel: {fileID: 933346100}
   craftingPanel: {fileID: 120843610}
@@ -2088,46 +2104,56 @@ MonoBehaviour:
     items:
     - itemName: Ruby
       price: 10
+      category: 0
       minSellPrice: 0
       maxSellPrice: 7
     - itemName: Agate
       price: 3
+      category: 0
       minSellPrice: 0
       maxSellPrice: 2
     - itemName: Obsidian
       price: 7
+      category: 0
       minSellPrice: 0
       maxSellPrice: 5
   - marketName: Oils
     items:
     - itemName: Olive Oil
       price: 8
+      category: 1
       minSellPrice: 0
       maxSellPrice: 0
     - itemName: 'Eucalyptus Oil '
       price: 5
+      category: 1
       minSellPrice: 0
       maxSellPrice: 0
     - itemName: 'Floral Oil '
       price: 4
+      category: 1
       minSellPrice: 0
       maxSellPrice: 0
   - marketName: Herbs
     items:
     - itemName: Mint
       price: 4
+      category: 2
       minSellPrice: 0
       maxSellPrice: 0
     - itemName: Lemon-grass
       price: 7
+      category: 2
       minSellPrice: 0
       maxSellPrice: 0
     - itemName: Dandelion
       price: 9
+      category: 2
       minSellPrice: 0
       maxSellPrice: 0
   recipes:
   - potionName: Voodoo doll
+    category: 0
     ingredients:
     - Lemon-grass
     - Obsidian
@@ -2135,6 +2161,7 @@ MonoBehaviour:
     minSellPrice: 0
     maxSellPrice: 0
   - potionName: Lie-detecting head
+    category: 0
     ingredients:
     - Dandelion
     - Mint
@@ -2142,6 +2169,7 @@ MonoBehaviour:
     minSellPrice: 25
     maxSellPrice: 30
   - potionName: Crystal ball
+    category: 0
     ingredients:
     - Agate
     - Ruby
@@ -2149,6 +2177,7 @@ MonoBehaviour:
     minSellPrice: 23
     maxSellPrice: 28
   - potionName: Good hair day charm
+    category: 0
     ingredients:
     - Eucalyptus oil
     - Floral Oil
@@ -2156,6 +2185,7 @@ MonoBehaviour:
     minSellPrice: 30
     maxSellPrice: 35
   - potionName: Rings of pain relief
+    category: 0
     ingredients:
     - Eucalyptus oil
     - Floral Oil
@@ -2163,6 +2193,7 @@ MonoBehaviour:
     minSellPrice: 27
     maxSellPrice: 32
   - potionName: Happyness tiara
+    category: 0
     ingredients:
     - Eucalyptus oil
     - Floral Oil
@@ -2170,6 +2201,7 @@ MonoBehaviour:
     minSellPrice: 24
     maxSellPrice: 29
   - potionName: Love Potion
+    category: 0
     ingredients:
     - Agate
     - Mint
@@ -2177,6 +2209,7 @@ MonoBehaviour:
     minSellPrice: 28
     maxSellPrice: 33
   - potionName: Sleep Potion
+    category: 0
     ingredients:
     - Dandelion
     - Olive Oil
@@ -2184,6 +2217,7 @@ MonoBehaviour:
     minSellPrice: 32
     maxSellPrice: 37
   - potionName: Bad Luck Potion
+    category: 0
     ingredients:
     - Obsidian
     - Olive Oil
