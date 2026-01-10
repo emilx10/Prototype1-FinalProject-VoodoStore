@@ -2100,7 +2100,7 @@ MonoBehaviour:
       maxSellPrice: 5
   - marketName: Oils
     items:
-    - itemName: Olive
+    - itemName: Olive Oil
       price: 8
       minSellPrice: 0
       maxSellPrice: 0
@@ -2139,36 +2139,57 @@ MonoBehaviour:
     - Dandelion
     - Mint
     - Olive  Oil
-    minSellPrice: 0
-    maxSellPrice: 0
+    minSellPrice: 25
+    maxSellPrice: 30
   - potionName: Crystal ball
     ingredients:
     - Agate
     - Ruby
     - Eucalyptus oil
-    minSellPrice: 0
-    maxSellPrice: 0
+    minSellPrice: 23
+    maxSellPrice: 28
   - potionName: Good hair day charm
     ingredients:
     - Eucalyptus oil
     - Floral Oil
     - Lemon-grass
-    minSellPrice: 0
-    maxSellPrice: 0
+    minSellPrice: 30
+    maxSellPrice: 35
   - potionName: Rings of pain relief
     ingredients:
     - Eucalyptus oil
     - Floral Oil
     - Lemon-grass
-    minSellPrice: 0
-    maxSellPrice: 0
+    minSellPrice: 27
+    maxSellPrice: 32
   - potionName: Happyness tiara
     ingredients:
     - Eucalyptus oil
     - Floral Oil
     - Lemon-grass
-    minSellPrice: 0
-    maxSellPrice: 0
+    minSellPrice: 24
+    maxSellPrice: 29
+  - potionName: Love Potion
+    ingredients:
+    - Agate
+    - Mint
+    - Floral oil
+    minSellPrice: 28
+    maxSellPrice: 33
+  - potionName: Sleep Potion
+    ingredients:
+    - Dandelion
+    - Olive Oil
+    - Eucalyptus Oil
+    minSellPrice: 32
+    maxSellPrice: 37
+  - potionName: Bad Luck Potion
+    ingredients:
+    - Obsidian
+    - Olive Oil
+    - Ruby
+    minSellPrice: 19
+    maxSellPrice: 24
   coins: 100
   sellConfirmPanel: {fileID: 2004838369}
   priceInputField: {fileID: 483198715}
