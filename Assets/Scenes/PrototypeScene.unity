@@ -389,23 +389,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 210000544}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 59f8146938fff824cb5fd77236b75775, type: 3}
+  m_Script: {fileID: 11500000, guid: 8a8695521f0d02e499659fee002a26c2, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.VerticalLayoutGroup
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GridLayoutGroup
   m_Padding:
     m_Left: 0
     m_Right: 0
     m_Top: 0
     m_Bottom: 0
-  m_ChildAlignment: 0
-  m_Spacing: 0
-  m_ChildForceExpandWidth: 1
-  m_ChildForceExpandHeight: 1
-  m_ChildControlWidth: 0
-  m_ChildControlHeight: 0
-  m_ChildScaleWidth: 0
-  m_ChildScaleHeight: 0
-  m_ReverseArrangement: 0
+  m_ChildAlignment: 4
+  m_StartCorner: 0
+  m_StartAxis: 0
+  m_CellSize: {x: 100, y: 100}
+  m_Spacing: {x: 57, y: 57}
+  m_Constraint: 1
+  m_ConstraintCount: 2
 --- !u!1 &259820447
 GameObject:
   m_ObjectHideFlags: 0
@@ -1240,7 +1238,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 401}
+  m_AnchoredPosition: {x: 0, y: 440}
   m_SizeDelta: {x: 422.7579, y: 148.4824}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &583819588
@@ -2153,7 +2151,7 @@ MonoBehaviour:
       maxSellPrice: 0
   recipes:
   - potionName: Voodoo doll
-    category: 0
+    category: 3
     ingredients:
     - Lemon-grass
     - Obsidian
@@ -2161,7 +2159,7 @@ MonoBehaviour:
     minSellPrice: 0
     maxSellPrice: 0
   - potionName: Lie-detecting head
-    category: 0
+    category: 3
     ingredients:
     - Dandelion
     - Mint
@@ -2169,7 +2167,7 @@ MonoBehaviour:
     minSellPrice: 25
     maxSellPrice: 30
   - potionName: Crystal ball
-    category: 0
+    category: 3
     ingredients:
     - Agate
     - Ruby
@@ -2177,7 +2175,7 @@ MonoBehaviour:
     minSellPrice: 23
     maxSellPrice: 28
   - potionName: Good hair day charm
-    category: 0
+    category: 3
     ingredients:
     - Eucalyptus oil
     - Floral Oil
@@ -2185,7 +2183,7 @@ MonoBehaviour:
     minSellPrice: 30
     maxSellPrice: 35
   - potionName: Rings of pain relief
-    category: 0
+    category: 3
     ingredients:
     - Eucalyptus oil
     - Floral Oil
@@ -2193,7 +2191,7 @@ MonoBehaviour:
     minSellPrice: 27
     maxSellPrice: 32
   - potionName: Happyness tiara
-    category: 0
+    category: 3
     ingredients:
     - Eucalyptus oil
     - Floral Oil
@@ -2201,7 +2199,7 @@ MonoBehaviour:
     minSellPrice: 24
     maxSellPrice: 29
   - potionName: Love Potion
-    category: 0
+    category: 3
     ingredients:
     - Agate
     - Mint
@@ -2209,7 +2207,7 @@ MonoBehaviour:
     minSellPrice: 28
     maxSellPrice: 33
   - potionName: Sleep Potion
-    category: 0
+    category: 3
     ingredients:
     - Dandelion
     - Olive Oil
@@ -2217,7 +2215,7 @@ MonoBehaviour:
     minSellPrice: 32
     maxSellPrice: 37
   - potionName: Bad Luck Potion
-    category: 0
+    category: 3
     ingredients:
     - Obsidian
     - Olive Oil
@@ -4958,7 +4956,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 731473973}
         m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
-        m_MethodName: ConfirmSell
+        m_MethodName: ConfirmSale
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

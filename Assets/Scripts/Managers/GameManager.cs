@@ -237,7 +237,8 @@ public class GameManager : MonoBehaviour
 
     public void MergeItems()
     {
-        if (selectedCraftingItems.Count < 2) return;
+        if (selectedCraftingItems.Count < 2)
+            return;
 
         bool craftedSomething = false;
 
@@ -246,11 +247,33 @@ public class GameManager : MonoBehaviour
             if (recipe.ingredients.Count != selectedCraftingItems.Count)
                 continue;
 
+            Dictionary<string, int> needed = new Dictionary<string, int>();
+            foreach (string ing in recipe.ingredients)
+            {
+                string key = ing.Trim().ToLower();
+
+                if (!needed.ContainsKey(key))
+                    needed[key] = 0;
+
+                needed[key]++;
+            }
+
+            Dictionary<string, int> provided = new Dictionary<string, int>();
+            foreach (InventoryItem item in selectedCraftingItems)
+            {
+                string key = item.itemName.Trim().ToLower();
+
+                if (!provided.ContainsKey(key))
+                    provided[key] = 0;
+
+                provided[key]++;
+            }
+
             bool match = true;
 
-            foreach (string ingredient in recipe.ingredients)
+            foreach (var pair in needed)
             {
-                if (!selectedCraftingItems.Exists(i => i.itemName == ingredient))
+                if (!provided.TryGetValue(pair.Key, out int count) || count != pair.Value)
                 {
                     match = false;
                     break;
@@ -406,6 +429,29 @@ public class GameManager : MonoBehaviour
 
         if (bg != null) bg.color = style.backgroundColor;
         if (txt != null) txt.color = style.textColor;
+    }
+
+    public void ConfirmSale()
+    {
+        if (pendingSellItem == null)
+            return;
+
+        if (!int.TryParse(priceInputField.text, out int price))
+            return;
+
+        // Enforce min/max from MarketItem or Recipe if needed later
+        SellItem(pendingSellItem, price);
+
+        pendingSellItem = null;
+        sellConfirmPanel.SetActive(false);
+    }
+
+    public void EndDay()
+    {
+        sellConfirmPanel.SetActive(false);
+        pendingSellItem = null;
+
+        StartMarketPhase();
     }
 
     #endregion
