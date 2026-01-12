@@ -125,18 +125,9 @@ public class GameManager : MonoBehaviour
         itemsPanel.SetActive(false);
         craftingPanel.SetActive(false);
         sellPanel.SetActive(false);
-
-        ClearChildren(marketButtonsParent);
-
-        foreach (Market market in markets)
-        {
-            GameObject btn = Instantiate(buttonPrefab, marketButtonsParent);
-            btn.GetComponentInChildren<TMP_Text>().text = market.marketName;
-            btn.GetComponent<Button>().onClick.AddListener(() => OpenMarket(market));
-        }
     }
 
-    void OpenMarket(Market market)
+    public void OpenMarket(Market market)
     {
         marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
@@ -452,6 +443,17 @@ public class GameManager : MonoBehaviour
         pendingSellItem = null;
 
         StartMarketPhase();
+    }
+
+    public void OpenMarketByIndex(int marketIndex)
+    {
+        if (marketIndex < 0 || marketIndex >= markets.Count)
+        {
+            Debug.LogError($"Invalid market index: {marketIndex}");
+            return;
+        }
+
+        OpenMarket(markets[marketIndex]);
     }
 
     #endregion
