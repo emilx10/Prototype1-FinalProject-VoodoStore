@@ -2156,14 +2156,14 @@ MonoBehaviour:
     - Lemon-grass
     - Obsidian
     - Floral Oil
-    minSellPrice: 0
-    maxSellPrice: 0
+    minSellPrice: 20
+    maxSellPrice: 25
   - potionName: Lie-detecting head
     category: 3
     ingredients:
     - Dandelion
     - Mint
-    - Olive  Oil
+    - Olive Oil
     minSellPrice: 25
     maxSellPrice: 30
   - potionName: Crystal ball
