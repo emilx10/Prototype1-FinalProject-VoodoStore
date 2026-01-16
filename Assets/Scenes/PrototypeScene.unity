@@ -2070,13 +2070,13 @@ MonoBehaviour:
     backgroundColor: {r: 0.5935769, g: 0.24056602, b: 1, a: 1}
     textColor: {r: 0, g: 0, b: 0, a: 1}
   - category: 1
-    backgroundColor: {r: 0.3160377, g: 1, b: 0.6082369, a: 1}
+    backgroundColor: {r: 1, g: 0.86058205, b: 0.3443396, a: 1}
     textColor: {r: 0, g: 0, b: 0, a: 1}
   - category: 2
-    backgroundColor: {r: 0.3066038, g: 0.6854742, b: 1, a: 1}
+    backgroundColor: {r: 0.30588233, g: 1, b: 0.42738584, a: 1}
     textColor: {r: 0, g: 0, b: 0, a: 1}
   - category: 3
-    backgroundColor: {r: 1, g: 0.94547594, b: 0.30588233, a: 1}
+    backgroundColor: {r: 1, g: 0.30588233, b: 0.84724957, a: 1}
     textColor: {r: 0, g: 0, b: 0, a: 1}
   - category: 4
     backgroundColor: {r: 0.5849056, g: 0.5849056, b: 0.5849056, a: 1}
@@ -3302,7 +3302,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 759.79297, y: 464.43414}
+  m_AnchoredPosition: {x: 752, y: 390.46844}
   m_SizeDelta: {x: 368.8269, y: 59.1316}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1107490858
@@ -3709,8 +3709,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -762.3795, y: 393.9657}
-  m_SizeDelta: {x: 317.241, y: 200.0685}
+  m_AnchoredPosition: {x: -619, y: 320}
+  m_SizeDelta: {x: 457.9201, y: 200.0685}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1292800251
 MonoBehaviour:
@@ -3743,8 +3743,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4278190335
-  m_fontColor: {r: 1, g: 0, b: 0, a: 1}
+    rgba: 4280641279
+  m_fontColor: {r: 1, g: 0.39960438, b: 0.1462264, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -3774,7 +3774,7 @@ MonoBehaviour:
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
   m_wordSpacing: 0
-  m_lineSpacing: 0
+  m_lineSpacing: 50
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
