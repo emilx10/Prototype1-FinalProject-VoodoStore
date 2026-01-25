@@ -6015,9 +6015,9 @@ MonoBehaviour:
   objectives:
   - potionDisplayName: Love
     ingredients:
-    - Ruby
-    - Ruby
-    - Obsidian
+    - Agate
+    - Mint
+    - Floral oil
     discovered: 
   ledgerPanel: {fileID: 371987218}
   objectivesTextParent: {fileID: 576459574}
