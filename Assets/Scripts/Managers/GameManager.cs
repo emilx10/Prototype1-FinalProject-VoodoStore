@@ -496,13 +496,16 @@ public class GameManager : MonoBehaviour
         if (pendingSellItem == null) return;
         if (!int.TryParse(priceInputField.text, out int price)) return;
 
-        if (TryGetSellPriceLimits(pendingSellItem.itemName, out int min, out int max))
+        if (!TryGetSellPriceLimits(pendingSellItem.itemName, out int min, out int max))
         {
-            if (price < min || price > max)
-            {
-                Debug.Log($"Price must be between {min} and {max}");
-                return; //  Block the sale
-            }
+            Debug.Log("Item has no sell price limits set!");
+            return;
+        }
+
+        if (price < min || price > max)
+        {
+            Debug.Log($"Price must be between {min} and {max}");
+            return; // BLOCK SALE
         }
 
         SellItem(pendingSellItem, price);
@@ -510,9 +513,10 @@ public class GameManager : MonoBehaviour
         sellConfirmPanel.SetActive(false);
     }
 
+
     bool TryGetSellPriceLimits(string itemName, out int min, out int max)
     {
-        // Check Recipes first (potions & crafted items)
+        // Check crafted potions (Recipes)
         foreach (var recipe in recipes)
         {
             if (recipe.potionName == itemName)
@@ -523,12 +527,26 @@ public class GameManager : MonoBehaviour
             }
         }
 
-        // If needed later: you could also check MarketItems here
+        // Check raw ingredients (Market items)
+        foreach (var market in markets)
+        {
+            foreach (var item in market.items)
+            {
+                if (item.itemName == itemName)
+                {
+                    min = item.minSellPrice;
+                    max = item.maxSellPrice;
+                    return true;
+                }
+            }
+        }
 
+        // If no limits found, block the sale
         min = 0;
-        max = int.MaxValue;
+        max = 0;
         return false;
     }
+
 
 
     public void ShowObjectiveDiscoveryStar()

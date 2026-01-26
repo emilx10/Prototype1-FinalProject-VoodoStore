@@ -81,51 +81,32 @@ public class ObjectiveManager : MonoBehaviour
         if (gameManager.coins < investigationCost)
             return false;
 
+        investigationsLeftToday--;
+        gameManager.coins -= investigationCost;
+        gameManager.UpdateCoinsUI();
+
         string key = itemName.ToLower().Trim();
         bool revealedSomething = false;
 
         foreach (var obj in objectives)
         {
-            bool ingredientExists = false;
-            bool alreadyDiscovered = true;
-
             for (int i = 0; i < obj.ingredients.Count; i++)
             {
-                if (obj.ingredients[i].ToLower().Trim() == key)
+                if (obj.ingredients[i].ToLower().Trim() == key && !obj.discovered[i])
                 {
-                    ingredientExists = true;
-                    if (!obj.discovered[i])
-                        alreadyDiscovered = false;
+                    obj.discovered[i] = true;
+                    revealedSomething = true;
                 }
-            }
-
-            if (ingredientExists && !alreadyDiscovered)
-            {
-                investigationsLeftToday--;
-                gameManager.coins -= investigationCost;
-                gameManager.UpdateCoinsUI();
-                gameManager.ShowFloatingCoins(-investigationCost);
-                for (int i = 0; i < obj.ingredients.Count; i++)
-                {
-                    if (obj.ingredients[i].ToLower().Trim() == key)
-                        obj.discovered[i] = true;
-                }
-
-                revealedSomething = true;
-                break;
             }
         }
 
+        // Only refresh ledger if something was revealed
         if (revealedSomething)
-        {
             RefreshLedgerUI();
-
-            if (gameManager != null)
-                gameManager.ShowObjectiveDiscoveryStar();
-        }
 
         return revealedSomething;
     }
+
     public void ResetDailyInvestigations()
     {
         investigationsLeftToday = investigationsPerDay;
