@@ -75,6 +75,8 @@ public class ObjectiveManager : MonoBehaviour
 
     public bool InvestigateItem(string itemName)
     {
+        Debug.Log($"Investigate {itemName} | LeftToday:{investigationsLeftToday} | Coins:{gameManager.coins}");
+
         if (investigationsLeftToday <= 0)
             return false;
 
@@ -100,12 +102,13 @@ public class ObjectiveManager : MonoBehaviour
             }
         }
 
-        // Only refresh ledger if something was revealed
         if (revealedSomething)
             RefreshLedgerUI();
 
+        gameManager.PopulateInventoryPanel(); // refresh buttons
         return revealedSomething;
     }
+
 
     public void ResetDailyInvestigations()
     {

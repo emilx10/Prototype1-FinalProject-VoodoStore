@@ -399,7 +399,7 @@ public class GameManager : MonoBehaviour
         PopulateInventoryPanel();
     }
 
-    void PopulateInventoryPanel()
+    public void PopulateInventoryPanel()
     {
         foreach (Transform child in inventoryListParent)
             Destroy(child.gameObject);
