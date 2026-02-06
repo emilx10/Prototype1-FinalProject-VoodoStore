@@ -2,15 +2,56 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
+[System.Serializable]
+public class TaskRow
+{
+    public TMP_Text taskText;       // Text for the task
+    public GameObject strikeLine;   // Strike line over text
+}
+
+[System.Serializable]
+public class ObjectiveRow
+{
+    public TMP_Text objectiveText;  // Text for ingredients or title
+}
+
+public enum MissionType
+{
+    BuyItems,
+    MergeItems,
+    SellItems
+}
+
+[System.Serializable]
+public class Mission
+{
+    public string missionText;      // e.g. "Buy Agate, Mint, Floral Oil" or "Merge items"
+    public MissionType type;
+    public bool completed = false;  // Strike line state
+}
+
+[System.Serializable]
+public class Objective
+{
+    public string potionDisplayName;       // Name of potion
+    public List<string> ingredients;       // Ingredient names
+    public List<Mission> missions;         // Missions for this objective
+    public List<bool> discovered;          // Ingredient discovery
+}
+
 public class ObjectiveManager : MonoBehaviour
 {
     [Header("Objectives List")]
-    public List<Objective> objectives;
+    [SerializeField] public List<Objective> objectives;
 
     [Header("Ledger UI")]
-    public GameObject ledgerPanel;
-    public Transform objectivesTextParent;
-    public GameObject objectiveTextPrefab;
+    [SerializeField] public GameObject ledgerPanel;
+
+    [Header("Objectives Section")]
+    [SerializeField] public List<ObjectiveRow> objectiveRows; // Assign manually
+
+    [Header("Tasks Section")]
+    [SerializeField] public List<TaskRow> taskRows;           // Assign manually
 
     [Header("Daily Limit")]
     [SerializeField] private int investigationsPerDay = 1;
@@ -25,62 +66,168 @@ public class ObjectiveManager : MonoBehaviour
     {
         gameManager = FindObjectOfType<GameManager>();
     }
+
     void Start()
     {
-        ledgerPanel.SetActive(false);
         investigationsLeftToday = investigationsPerDay;
 
-        // Initialize discovery tracking
+        // Initialize discovery and missions
         foreach (var obj in objectives)
         {
             obj.discovered = new List<bool>();
             for (int i = 0; i < obj.ingredients.Count; i++)
                 obj.discovered.Add(false);
+
+            foreach (var m in obj.missions)
+                m.completed = false;
         }
 
-        RefreshLedgerUI();
+        RefreshObjectivesUI();
+        RefreshTasksUI();
     }
 
-    public bool CanInvestigateToday()
-    {
-        return investigationsLeftToday > 0;
-    }
+    #region Ledger Toggle / Daily Limit
 
     public void ToggleLedger()
     {
         ledgerPanel.SetActive(!ledgerPanel.activeSelf);
+        // Update tasks every time player opens ledger
+        UpdateTasksFromInventory(gameManager.GetInventoryItems());
     }
 
-    public void RefreshLedgerUI()
+    public bool CanInvestigateToday() => investigationsLeftToday > 0;
+    public bool CanAffordInvestigation() => gameManager != null && gameManager.coins >= investigationCost;
+    public void ResetDailyInvestigations() => investigationsLeftToday = investigationsPerDay;
+
+    #endregion
+
+    #region Objectives (Ingredients)
+
+    public void RefreshObjectivesUI()
     {
-        foreach (Transform child in objectivesTextParent)
-            Destroy(child.gameObject);
+        if (objectives.Count == 0 || objectiveRows.Count == 0) return;
 
-        foreach (Objective obj in objectives)
+        Objective obj = objectives[0];
+
+        for (int i = 0; i < objectiveRows.Count; i++)
         {
-            GameObject entry = Instantiate(objectiveTextPrefab, objectivesTextParent);
-            TMP_Text txt = entry.GetComponent<TMP_Text>();
+            ObjectiveRow row = objectiveRows[i];
+            if (row.objectiveText == null) continue;
 
-            string text = "Make a " + obj.potionDisplayName + " Potion\n";
-
-            for (int i = 0; i < obj.ingredients.Count; i++)
+            if (i == 0)
             {
-                text += obj.discovered[i] ? "• " + obj.ingredients[i] + "\n"
-                                          : "• ?\n";
+                // First row = Potion title
+                row.objectiveText.text = $"Craft a {obj.potionDisplayName} Potion";
             }
-
-            txt.text = text;
+            else
+            {
+                int ingIndex = i - 1;
+                if (ingIndex < obj.ingredients.Count)
+                    row.objectiveText.text = obj.discovered[ingIndex] ? obj.ingredients[ingIndex] : "???";
+                else
+                    row.objectiveText.text = ""; // hide extra rows
+            }
         }
     }
 
+    #endregion
+
+    #region Tasks (Missions)
+
+    public void RefreshTasksUI()
+    {
+        if (objectives.Count == 0 || taskRows.Count == 0) return;
+
+        Objective obj = objectives[0];
+
+        for (int i = 0; i < taskRows.Count && i < obj.missions.Count; i++)
+        {
+            TaskRow row = taskRows[i];
+            Mission mission = obj.missions[i];
+
+            if (row.taskText != null)
+                row.taskText.text = mission.missionText;
+
+            if (row.strikeLine != null)
+                row.strikeLine.SetActive(mission.completed);
+        }
+    }
+
+    /// <summary>
+    /// Check all missions against player's inventory and updates strike lines.
+    /// Call this when opening ledger or after buying/merging items.
+    /// </summary>
+    public void UpdateTasksFromInventory(List<InventoryItem> playerInventory)
+    {
+        if (objectives.Count == 0 || taskRows.Count == 0) return;
+
+        Objective obj = objectives[0];
+
+        for (int i = 0; i < obj.missions.Count && i < taskRows.Count; i++)
+        {
+            Mission mission = obj.missions[i];
+            TaskRow row = taskRows[i];
+
+            switch (mission.type)
+            {
+                case MissionType.BuyItems:
+                    string cleaned = mission.missionText
+                      .ToLower()
+                      .Replace("buy", "")
+                      .Replace("sell", "")
+                      .Trim();
+
+                    string[] requiredItems = cleaned
+                        .Split(new string[] { ",", "and" }, System.StringSplitOptions.RemoveEmptyEntries);
+
+
+                    bool allOwned = true;
+                    foreach (string req in requiredItems)
+                    {
+                        string r = req.Trim();
+                        bool found = false;
+
+                        foreach (var inv in playerInventory)
+                        {
+                            if (inv.count > 0 && inv.itemName.Trim().ToLower() == r)
+                            {
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        if (!found)
+                        {
+                            allOwned = false;
+                            break;
+                        }
+                    }
+
+                    mission.completed = allOwned;
+                    break;
+
+                case MissionType.MergeItems:
+                    // For merge items, you must set mission.completed = true manually when merge occurs
+                    break;
+            }
+
+            // Update StrikeLine
+            if (row.strikeLine != null)
+                row.strikeLine.SetActive(mission.completed);
+
+            // Update text just in case
+            if (row.taskText != null)
+                row.taskText.text = mission.missionText;
+        }
+    }
+
+    #endregion
+
+    #region Investigate
+
     public bool InvestigateItem(string itemName)
     {
-        Debug.Log($"Investigate {itemName} | LeftToday:{investigationsLeftToday} | Coins:{gameManager.coins}");
-
-        if (investigationsLeftToday <= 0)
-            return false;
-
-        if (gameManager.coins < investigationCost)
+        if (investigationsLeftToday <= 0 || gameManager.coins < investigationCost)
             return false;
 
         investigationsLeftToday--;
@@ -94,7 +241,7 @@ public class ObjectiveManager : MonoBehaviour
         {
             for (int i = 0; i < obj.ingredients.Count; i++)
             {
-                if (obj.ingredients[i].ToLower().Trim() == key && !obj.discovered[i])
+                if (!obj.discovered[i] && obj.ingredients[i].ToLower().Trim() == key)
                 {
                     obj.discovered[i] = true;
                     revealedSomething = true;
@@ -103,20 +250,27 @@ public class ObjectiveManager : MonoBehaviour
         }
 
         if (revealedSomething)
-            RefreshLedgerUI();
+            RefreshObjectivesUI();
 
-        gameManager.PopulateInventoryPanel(); // refresh buttons
+        gameManager.PopulateInventoryPanel();
         return revealedSomething;
     }
-
-
-    public void ResetDailyInvestigations()
+    public void CompleteMission(MissionType type)
     {
-        investigationsLeftToday = investigationsPerDay;
-    }
+        if (objectives.Count == 0) return;
 
-    public bool CanAffordInvestigation()
-    {
-        return gameManager != null && gameManager.coins >= investigationCost;
+        Objective obj = objectives[0];
+
+        foreach (var mission in obj.missions)
+        {
+            if (mission.type == type && !mission.completed)
+            {
+                mission.completed = true;
+                break; // complete only the first matching one
+            }
+        }
+
+        RefreshTasksUI();
     }
+    #endregion
 }
