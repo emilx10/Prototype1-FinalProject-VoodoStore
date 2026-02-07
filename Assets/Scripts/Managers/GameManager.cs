@@ -101,7 +101,8 @@ public class GameManager : MonoBehaviour
 
     [Header("Sell Confirmation UI")]
     [SerializeField] private GameObject sellConfirmPanel;
-    [SerializeField] private TMP_InputField priceInputField;
+    [SerializeField] private Slider priceSlider;
+    [SerializeField] private TMP_Text priceValueText;
     [SerializeField] private TMP_Text sellItemNameText;
     [SerializeField] private Button confirmSellButton;
 
@@ -123,7 +124,10 @@ public class GameManager : MonoBehaviour
     private InventoryItem pendingSellItem;
     private List<InventoryItem> inventory = new List<InventoryItem>();
     private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
-
+    public List<InventoryItem> GetInventoryItems()
+    {
+        return inventory;
+    }
     public ObjectiveManager objectiveManager;
 
     // ------------------- START -------------------
@@ -132,6 +136,13 @@ public class GameManager : MonoBehaviour
         StartMarketPhase();
         PopulateInventoryPanel();
         UpdateCoinsUI();
+        priceSlider.minValue = 0;
+        priceSlider.maxValue = 100;
+        priceSlider.wholeNumbers = true;
+
+        priceSlider.onValueChanged.RemoveAllListeners();
+        priceSlider.onValueChanged.AddListener(OnPriceSliderChanged);
+
     }
 
     // ------------------- MARKET -------------------
@@ -177,6 +188,9 @@ public class GameManager : MonoBehaviour
         ShowFloatingCoins(-item.price);
         if (inventoryPanel.activeSelf)
             PopulateInventoryPanel();
+        // Check if any tasks are now completed
+        objectiveManager.UpdateTasksFromInventory(inventory);
+
     }
 
     // ------------------- CRAFTING -------------------
@@ -304,6 +318,8 @@ public class GameManager : MonoBehaviour
         RefreshSelectedItemsUI();
         RefreshCraftingUI();
         PopulateInventoryPanel();
+        FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.MergeItems);
+
         if (inventoryPanel.activeSelf)
             PopulateInventoryPanel();
     }
@@ -330,6 +346,19 @@ public class GameManager : MonoBehaviour
         ReturnCraftingItemsToInventory();
         RefreshSellUI();
     }
+    void SellItem(InventoryItem item, int price)
+    {
+        coins += price;
+        RemoveFromInventory(item.itemName);
+
+        RefreshSellUI();
+        PopulateInventoryPanel();
+        ShowFloatingCoins(price);
+        UpdateCoinsUI();
+        FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.SellItems);
+        if (inventoryPanel.activeSelf)
+            PopulateInventoryPanel();
+    }
 
     void RefreshSellUI()
     {
@@ -345,6 +374,11 @@ public class GameManager : MonoBehaviour
             btn.GetComponent<Button>().onClick.AddListener(() => OnSellClicked(item));
         }
     }
+    void OnPriceSliderChanged(float value)
+    {
+        int price = Mathf.RoundToInt(value);
+        priceValueText.text = price.ToString();
+    }
 
     void OnSellClicked(InventoryItem item)
     {
@@ -356,22 +390,15 @@ public class GameManager : MonoBehaviour
 
         pendingSellItem = item;
         sellItemNameText.text = item.itemName;
-        priceInputField.text = "";
+
+        // Reset slider to something sensible
+        priceSlider.value = 0;
+        priceValueText.text = "0";
+
         sellConfirmPanel.SetActive(true);
     }
 
-    void SellItem(InventoryItem item, int price)
-    {
-        coins += price;
-        RemoveFromInventory(item.itemName);
 
-        RefreshSellUI();
-        PopulateInventoryPanel();
-        ShowFloatingCoins(price);
-        UpdateCoinsUI();
-        if (inventoryPanel.activeSelf)
-            PopulateInventoryPanel();
-    }
 
     // ------------------- INVENTORY -------------------
     void AddToInventory(string name, ItemCategory category)
@@ -494,24 +521,23 @@ public class GameManager : MonoBehaviour
     public void ConfirmSale()
     {
         if (pendingSellItem == null) return;
-        if (!int.TryParse(priceInputField.text, out int price)) return;
+
+        int price = Mathf.RoundToInt(priceSlider.value);
 
         if (!TryGetSellPriceLimits(pendingSellItem.itemName, out int min, out int max))
-        {
-            Debug.Log("Item has no sell price limits set!");
             return;
-        }
 
         if (price < min || price > max)
         {
-            Debug.Log($"Price must be between {min} and {max}");
-            return; // BLOCK SALE
+            Debug.Log($"Blocked sale: {price} not in range {min}-{max}");
+            return;
         }
 
         SellItem(pendingSellItem, price);
         pendingSellItem = null;
         sellConfirmPanel.SetActive(false);
     }
+
 
 
     bool TryGetSellPriceLimits(string itemName, out int min, out int max)
