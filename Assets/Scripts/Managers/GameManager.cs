@@ -444,14 +444,8 @@ public class GameManager : MonoBehaviour
             itemCountText.text = "x" + item.count;
 
             // Setup investigate button
-            investigateBtn.onClick.RemoveAllListeners();
-            investigateBtn.onClick.AddListener(() =>
-            {
-                bool success = objectiveManager.InvestigateItem(item.itemName);
-
-                if (success)
-                    PopulateInventoryPanel(); // Refresh all buttons
-            });
+            FillInvestigateButton fillScript = investigateBtn.GetComponent<FillInvestigateButton>();
+            fillScript.itemName = item.itemName;
 
             // Disable if daily limit reached
             investigateBtn.interactable = objectiveManager.CanInvestigateToday() && objectiveManager.CanAffordInvestigation();

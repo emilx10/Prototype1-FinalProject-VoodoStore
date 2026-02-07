@@ -1,48 +1,114 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
-public class FillInvestigateButton : MonoBehaviour
+public class FillInvestigateButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 {
     public Image fillImage;
+    public Image outLineImage;
+    public Button button;
+
+    [HideInInspector] public string itemName; // assigned by GameManager
     public float holdTime = 1f;
 
     private float timer = 0f;
     private bool isHolding = false;
 
+    private ObjectiveManager objectiveManager;
+    private GameManager gameManager;
+
     private void Start()
     {
-        fillImage = GetComponent<Image>();
+        if (fillImage == null)
+            fillImage = GetComponent<Image>();
+
+        if (button == null)
+            button = GetComponent<Button>();
+        if(outLineImage == null)
+            outLineImage = GetComponent<Image>();
+
         fillImage.fillAmount = 0f;
+
+        objectiveManager = FindObjectOfType<ObjectiveManager>();
+        gameManager = FindObjectOfType<GameManager>();
+
+        UpdateButtonState();
     }
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
-        {
-            isHolding = true;
-            timer = 0f;
-        }
+        if (objectiveManager == null)
+            return;
 
-        if (Input.GetMouseButton(0) && isHolding)
+        UpdateButtonState();
+
+        if (isHolding)
         {
             timer += Time.deltaTime;
             fillImage.fillAmount = timer / holdTime;
 
             if (timer >= holdTime)
             {
-                fillImage.fillAmount = 1f;
                 isHolding = false;
+                fillImage.fillAmount = 1f;
 
-                // Action after full hold
-                Debug.Log("Investigate complete");
+                TryInvestigate();
             }
         }
+    }
 
-        if (Input.GetMouseButtonUp(0))
+    void UpdateButtonState()
+    {
+        if (button == null || objectiveManager == null)
+            return;
+
+        bool canUse =
+            objectiveManager.CanInvestigateToday() &&
+            objectiveManager.CanAffordInvestigation();
+        if (!canUse)
         {
-            isHolding = false;
-            timer = 0f;
-            fillImage.fillAmount = 0f;
+            Color c = outLineImage.color;
+            c.a = 0.5f;
+            outLineImage.color = c;
         }
+        button.interactable = canUse;
+    }
+
+    void TryInvestigate()
+    {
+        if (!objectiveManager.CanInvestigateToday())
+            return;
+
+        if (!objectiveManager.CanAffordInvestigation())
+            return;
+
+        bool success = objectiveManager.InvestigateItem(itemName);
+
+        if (success && gameManager != null)
+            gameManager.PopulateInventoryPanel();
+
+        ResetFill();
+        UpdateButtonState();
+    }
+
+    void ResetFill()
+    {
+        timer = 0f;
+        fillImage.fillAmount = 0f;
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        if (button == null || !button.interactable)
+            return;
+
+        isHolding = true;
+        timer = 0f;
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        isHolding = false;
+        ResetFill();
     }
 }
