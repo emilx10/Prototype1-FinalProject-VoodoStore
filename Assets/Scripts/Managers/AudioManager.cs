@@ -13,10 +13,12 @@ public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
 
+
+    //Instance.AudioManager.Playsfx(volume, SFX.EnumName, pitch)   This is how you call it anywhere
+
     [Header("Settings")]
     [SerializeField] public AudioMixer audioMixer; //Unused yet
     [SerializeField] public AudioPool sfxPool;
-
 
 
     //Add any sound you need here!!!!!!
