@@ -250,9 +250,12 @@ public class GameManager : MonoBehaviour
         {
             GameObject txtObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
             TMP_Text txt = txtObj.GetComponent<TMP_Text>();
-            txt.text = selectedCraftingItems[i].itemName;
-
+            //txt.text = selectedCraftingItems[i].itemName;
+            txt.text = "";
             RectTransform rt = txtObj.GetComponent<RectTransform>();
+            updateText tag = txtObj.GetComponent<updateText>();
+
+            tag.updateTheText(selectedCraftingItems[i].itemName);
 
             if (selectedCraftingItems.Count == 1)
                 rt.anchoredPosition = Vector2.zero;
