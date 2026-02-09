@@ -1,6 +1,7 @@
 using System.Collections.Generic;
-using UnityEngine;
 using TMPro;
+using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 public enum ItemCategory
@@ -61,6 +62,10 @@ public struct CategoryStyle
 
 public class GameManager : MonoBehaviour
 {
+    [Header("SoundManager")]
+    public AudioManager ad;
+    [SerializeField] float vol,pitch;
+
     [Header("Category Styles")]
     [SerializeField] private List<CategoryStyle> categoryStyles;
 
@@ -139,7 +144,7 @@ public class GameManager : MonoBehaviour
         priceSlider.minValue = 0;
         priceSlider.maxValue = 100;
         priceSlider.wholeNumbers = true;
-
+        
         priceSlider.onValueChanged.RemoveAllListeners();
         priceSlider.onValueChanged.AddListener(OnPriceSliderChanged);
 
@@ -158,7 +163,7 @@ public class GameManager : MonoBehaviour
     {
         marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
-
+        ad.PlaySfx(vol, SFX.EnteredShop, pitch);
         ClearChildren(itemsButtonsParent);
 
         foreach (MarketItem item in market.items)
@@ -186,6 +191,7 @@ public class GameManager : MonoBehaviour
         PopulateInventoryPanel();
         UpdateCoinsUI();
         ShowFloatingCoins(-item.price);
+        ad.PlaySfx(vol, SFX.Buying, pitch);
         if (inventoryPanel.activeSelf)
             PopulateInventoryPanel();
         // Check if any tasks are now completed
@@ -250,9 +256,12 @@ public class GameManager : MonoBehaviour
         {
             GameObject txtObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
             TMP_Text txt = txtObj.GetComponent<TMP_Text>();
-            txt.text = selectedCraftingItems[i].itemName;
-
+            //txt.text = selectedCraftingItems[i].itemName;
+            txt.text = "";
             RectTransform rt = txtObj.GetComponent<RectTransform>();
+            updateText tag = txtObj.GetComponent<updateText>();
+
+            tag.updateTheText(selectedCraftingItems[i].itemName);
 
             if (selectedCraftingItems.Count == 1)
                 rt.anchoredPosition = Vector2.zero;
@@ -305,13 +314,18 @@ public class GameManager : MonoBehaviour
 
             if (match)
             {
+                ad.PlaySfx(vol, SFX.MergePotion, pitch);
                 AddToInventory(recipe.potionName, recipe.category);
                 craftedSomething = true;
                 break;
             }
         }
 
-        if (!craftedSomething) AddToInventory(junkItemName, ItemCategory.Junk);
+        if (!craftedSomething)
+        {
+            AddToInventory(junkItemName, ItemCategory.Junk);
+            ad.PlaySfx(vol, SFX.JunkMerge, pitch);
+        }
 
         selectedCraftingItems.Clear();
 
@@ -355,6 +369,7 @@ public class GameManager : MonoBehaviour
         PopulateInventoryPanel();
         ShowFloatingCoins(price);
         UpdateCoinsUI();
+        ad.PlaySfx(vol,SFX.Selling,pitch);
         FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.SellItems);
         if (inventoryPanel.activeSelf)
             PopulateInventoryPanel();
@@ -403,6 +418,7 @@ public class GameManager : MonoBehaviour
     // ------------------- INVENTORY -------------------
     void AddToInventory(string name, ItemCategory category)
     {
+        ShowObjectiveDiscoveryStar();
         InventoryItem existing = inventory.Find(i => i.itemName == name);
         if (existing != null) existing.count++;
         else inventory.Add(new InventoryItem { itemName = name, count = 1, category = category });
@@ -444,14 +460,8 @@ public class GameManager : MonoBehaviour
             itemCountText.text = "x" + item.count;
 
             // Setup investigate button
-            investigateBtn.onClick.RemoveAllListeners();
-            investigateBtn.onClick.AddListener(() =>
-            {
-                bool success = objectiveManager.InvestigateItem(item.itemName);
-
-                if (success)
-                    PopulateInventoryPanel(); // Refresh all buttons
-            });
+            FillInvestigateButton fillScript = investigateBtn.GetComponent<FillInvestigateButton>();
+            fillScript.itemName = item.itemName;
 
             // Disable if daily limit reached
             investigateBtn.interactable = objectiveManager.CanInvestigateToday() && objectiveManager.CanAffordInvestigation();
