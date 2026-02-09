@@ -7,6 +7,7 @@ public class SetActiveBool : MonoBehaviour
 {
     [SerializeField] GameObject mergePanel;
     [SerializeField] GameObject sellPanel;
+    [SerializeField] GameObject insideShop;
     [SerializeField] List<GameObject> objectsToClose;
 
     public void CheckActiveMerge()
@@ -15,6 +16,24 @@ public class SetActiveBool : MonoBehaviour
         if (mergePanel.activeSelf)
         {
             foreach(var o in objectsToClose)
+            {
+                o.SetActive(false);
+            }
+        }
+        else
+        {
+            foreach (var o in objectsToClose)
+            {
+                o.SetActive(true);
+            }
+        }
+    }
+    public void CheckActiveMarket()
+    {
+
+        if (insideShop.activeSelf)
+        {
+            foreach (var o in objectsToClose)
             {
                 o.SetActive(false);
             }

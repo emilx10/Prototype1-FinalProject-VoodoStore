@@ -976,6 +976,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
+      - m_Target: {fileID: 205740144}
+        m_TargetAssemblyTypeName: SetActiveBool, Assembly-CSharp
+        m_MethodName: CheckActiveMarket
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
 --- !u!114 &205740142
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1028,6 +1040,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SetActiveBool
   mergePanel: {fileID: 120843610}
   sellPanel: {fileID: 951949498}
+  insideShop: {fileID: 933346100}
   objectsToClose:
   - {fileID: 1183229662}
   - {fileID: 759490815}
