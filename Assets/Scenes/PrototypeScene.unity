@@ -2177,6 +2177,7 @@ GameObject:
   - component: {fileID: 406426639}
   - component: {fileID: 406426638}
   - component: {fileID: 406426637}
+  - component: {fileID: 406426640}
   m_Layer: 5
   m_Name: CloseMenu
   m_TagString: Untagged
@@ -2368,6 +2369,42 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
+      - m_Target: {fileID: 406426640}
+        m_TargetAssemblyTypeName: SetActiveBool, Assembly-CSharp
+        m_MethodName: CheckActiveMerge
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 406426640}
+        m_TargetAssemblyTypeName: SetActiveBool, Assembly-CSharp
+        m_MethodName: CheckActiveSell
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 406426640}
+        m_TargetAssemblyTypeName: SetActiveBool, Assembly-CSharp
+        m_MethodName: CheckActiveMarket
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
 --- !u!114 &406426638
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2406,6 +2443,25 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 406426635}
   m_CullTransparentMesh: 1
+--- !u!114 &406426640
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 406426635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 28332563616702b4d9d8965033c3da08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SetActiveBool
+  mergePanel: {fileID: 120843610}
+  sellPanel: {fileID: 951949498}
+  insideShop: {fileID: 933346100}
+  objectsToClose:
+  - {fileID: 1183229662}
+  - {fileID: 759490815}
+  - {fileID: 1346269645}
 --- !u!1 &450290811
 GameObject:
   m_ObjectHideFlags: 0
