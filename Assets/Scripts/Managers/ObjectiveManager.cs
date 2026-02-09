@@ -60,6 +60,10 @@ public class ObjectiveManager : MonoBehaviour
     [Header("Investigation Cost")]
     [SerializeField] private int investigationCost = 5;
 
+    [Header("SoundManager")]
+    public AudioManager ad;
+    [SerializeField] float vol, pitch;
+
     private GameManager gameManager;
 
     void Awake()
@@ -266,6 +270,7 @@ public class ObjectiveManager : MonoBehaviour
             if (mission.type == type && !mission.completed)
             {
                 mission.completed = true;
+                ad.PlaySfx(vol, SFX.Objective, pitch);
                 break; // complete only the first matching one
             }
         }

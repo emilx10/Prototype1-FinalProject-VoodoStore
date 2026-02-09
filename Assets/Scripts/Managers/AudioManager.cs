@@ -6,7 +6,12 @@ using UnityEngine.Audio;
 //For each sound make a name inside this Enum!!!!!!
 public enum SFX
 {
-    Test,
+    Selling,
+    JunkMerge,
+    Objective,
+    MergePotion,
+    EnteredShop,
+    Buying
 }
 
 public class AudioManager : MonoBehaviour
@@ -24,8 +29,13 @@ public class AudioManager : MonoBehaviour
     //Add any sound you need here!!!!!!
     [Header("Sounds")]
     [Header("SFX")]
-    [SerializeField] public AudioClip anySound;
-    
+    [SerializeField] public AudioClip Selling;
+    [SerializeField] public AudioClip Buying;
+    [SerializeField] public AudioClip JunkMerge;
+    [SerializeField] public AudioClip Objective;
+    [SerializeField] public AudioClip MergePotion;
+    [SerializeField] public AudioClip EnteredShop;
+
 
     public void Awake()
     {
@@ -50,8 +60,23 @@ public class AudioManager : MonoBehaviour
         //Here you make switch for each sfx you have added and it plays it that's it!
         switch (sfx)
         {
-            case SFX.Test:
-                PlaySfx(volume, anySound, pitch);
+            case SFX.Selling:
+                PlaySfx(volume, Selling, pitch);
+                break;
+            case SFX.JunkMerge:
+                PlaySfx(volume, JunkMerge, pitch);
+                break;
+            case SFX.Objective:
+                PlaySfx(volume, Objective, pitch);
+                break;
+            case SFX.MergePotion:
+                PlaySfx(volume, MergePotion, pitch);
+                break;
+            case SFX.EnteredShop:
+                PlaySfx(volume, EnteredShop, pitch);
+                break;
+            case SFX.Buying:
+                PlaySfx(volume, Buying, pitch);
                 break;
             default:
                 break;
