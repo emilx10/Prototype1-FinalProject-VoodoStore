@@ -9225,51 +9225,51 @@ MonoBehaviour:
       price: 10
       category: 0
       minSellPrice: 0
-      maxSellPrice: 7
+      maxSellPrice: 8
     - itemName: Agate
       price: 5
       category: 0
       minSellPrice: 0
-      maxSellPrice: 2
+      maxSellPrice: 4
     - itemName: Obsidian
       price: 9
       category: 0
       minSellPrice: 0
-      maxSellPrice: 4
+      maxSellPrice: 7
   - marketName: Oils
     items:
     - itemName: Olive Oil
       price: 8
       category: 1
       minSellPrice: 0
-      maxSellPrice: 5
+      maxSellPrice: 6
     - itemName: 'Eucalyptus Oil '
       price: 6
       category: 1
       minSellPrice: 0
-      maxSellPrice: 3
+      maxSellPrice: 4
     - itemName: 'Floral Oil '
       price: 5
       category: 1
       minSellPrice: 0
-      maxSellPrice: 2
+      maxSellPrice: 4
   - marketName: Herbs
     items:
     - itemName: Mint
       price: 3
       category: 2
       minSellPrice: 0
-      maxSellPrice: 1
+      maxSellPrice: 2
     - itemName: Lemon-grass
       price: 5
       category: 2
       minSellPrice: 0
-      maxSellPrice: 2
+      maxSellPrice: 4
     - itemName: Dandelion
       price: 7
       category: 2
       minSellPrice: 0
-      maxSellPrice: 4
+      maxSellPrice: 5
   recipes:
   - potionName: Voodoo doll
     category: 3
