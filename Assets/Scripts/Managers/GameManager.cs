@@ -20,6 +20,9 @@ public class MarketItem
     public int price;
     public ItemCategory category;
 
+    [TextArea(2, 5)]
+    public string description;
+
     [Header("Sell Price Limits")]
     public int minSellPrice;
     public int maxSellPrice;
@@ -50,6 +53,7 @@ public class InventoryItem
     public string itemName;
     public int count;
     public ItemCategory category;
+    public string description;
 }
 
 [System.Serializable]
@@ -169,6 +173,11 @@ public class GameManager : MonoBehaviour
         foreach (MarketItem item in market.items)
         {
             GameObject btn = Instantiate(buttonPrefab, itemsButtonsParent);
+
+            // Assign tooltip
+            var tooltip = btn.GetComponent<ItemHoverTooltip>();
+            tooltip.marketItem = item;
+
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
             txt.text = $"{item.itemName} - {item.price} coins";
 
@@ -218,11 +227,19 @@ public class GameManager : MonoBehaviour
 
         foreach (InventoryItem item in inventory)
         {
+            if (item.count <= 0) continue;
+
             GameObject btn = Instantiate(buttonPrefab, craftingItemsParent);
+
+            // Assign tooltip
+            var tooltip = btn.GetComponent<ItemHoverTooltip>();
+            tooltip.inventoryItem = item;
+
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
             txt.text = $"{item.itemName} x{item.count}";
 
             ApplyCategoryStyle(btn, item.category);
+
             btn.GetComponent<Button>().onClick.AddListener(() => SelectCraftingItem(item));
         }
     }
@@ -382,10 +399,16 @@ public class GameManager : MonoBehaviour
         foreach (InventoryItem item in inventory)
         {
             GameObject btn = Instantiate(buttonPrefab, sellItemsParent);
+
+            // Assign tooltip
+            var tooltip = btn.GetComponent<ItemHoverTooltip>();
+            tooltip.inventoryItem = item;
+
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
             txt.text = $"{item.itemName} x{item.count}";
 
             ApplyCategoryStyle(btn, item.category);
+
             btn.GetComponent<Button>().onClick.AddListener(() => OnSellClicked(item));
         }
     }
