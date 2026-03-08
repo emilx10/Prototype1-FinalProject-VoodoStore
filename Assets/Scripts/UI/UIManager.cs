@@ -10,6 +10,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject marketPanel;
     [SerializeField] private GameObject itemsPanel;
     [SerializeField] private List<GameObject> objectsToClose;
+    [SerializeField] private GameManager gameManager;
 
     void CloseAll()
     {
@@ -24,6 +25,8 @@ public class UIManager : MonoBehaviour
     {
         CloseAll();
         sellPanel.SetActive(true);
+
+        gameManager.OpenSell(); // refresh sell items
     }
 
     public void OpenInventory()
@@ -36,6 +39,8 @@ public class UIManager : MonoBehaviour
     {
         CloseAll();
         mergePanel.SetActive(true);
+
+        gameManager.OpenCrafting(); // refresh crafting items
     }
 
     public void OpenMarket()

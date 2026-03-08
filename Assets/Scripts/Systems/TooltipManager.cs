@@ -25,6 +25,8 @@ public class TooltipManager : MonoBehaviour
 
     void Update()
     {
+        if (!container.activeSelf) return;
+
         Vector2 pos;
 
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
@@ -39,6 +41,9 @@ public class TooltipManager : MonoBehaviour
 
     public void Show(string text)
     {
+        if (string.IsNullOrEmpty(text))
+            return;
+
         tooltipText.text = text;
         container.SetActive(true);
     }

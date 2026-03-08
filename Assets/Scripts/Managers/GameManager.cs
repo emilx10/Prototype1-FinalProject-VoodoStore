@@ -195,7 +195,7 @@ public class GameManager : MonoBehaviour
         if (coins < item.price) return;
 
         coins -= item.price;
-        AddToInventory(item.itemName, item.category);
+        AddToInventory(item.itemName, item.category, item.description);
         ShowInventoryStar();
         PopulateInventoryPanel();
         UpdateCoinsUI();
@@ -213,12 +213,14 @@ public class GameManager : MonoBehaviour
     {
         marketPanel.SetActive(false);
         itemsPanel.SetActive(false);
-        craftingPanel.SetActive(true);
         sellPanel.SetActive(false);
 
+        craftingPanel.SetActive(true);
+
         selectedCraftingItems.Clear();
-        RefreshSelectedItemsUI();
+
         RefreshCraftingUI();
+        RefreshSelectedItemsUI();
     }
 
     void RefreshCraftingUI()
@@ -246,6 +248,7 @@ public class GameManager : MonoBehaviour
 
     void SelectCraftingItem(InventoryItem item)
     {
+        TooltipManager.Instance.Hide();
         if (selectedCraftingItems.Count >= 3) return;
         if (item.count <= 0) return;
 
@@ -332,7 +335,7 @@ public class GameManager : MonoBehaviour
             if (match)
             {
                 ad.PlaySfx(vol, SFX.MergePotion, pitch);
-                AddToInventory(recipe.potionName, recipe.category);
+                AddToInventory(recipe.potionName, recipe.category, "");
                 craftedSomething = true;
                 break;
             }
@@ -420,6 +423,7 @@ public class GameManager : MonoBehaviour
 
     void OnSellClicked(InventoryItem item)
     {
+        TooltipManager.Instance.Hide();
         if (item.itemName == junkItemName)
         {
             SellItem(item, junkSellPrice);
@@ -439,12 +443,26 @@ public class GameManager : MonoBehaviour
 
 
     // ------------------- INVENTORY -------------------
-    void AddToInventory(string name, ItemCategory category)
+    void AddToInventory(string name, ItemCategory category, string description = "")
     {
         ShowObjectiveDiscoveryStar();
+
         InventoryItem existing = inventory.Find(i => i.itemName == name);
-        if (existing != null) existing.count++;
-        else inventory.Add(new InventoryItem { itemName = name, count = 1, category = category });
+
+        if (existing != null)
+        {
+            existing.count++;
+        }
+        else
+        {
+            inventory.Add(new InventoryItem
+            {
+                itemName = name,
+                count = 1,
+                category = category,
+                description = description
+            });
+        }
     }
 
     void RemoveFromInventory(string name)

@@ -12,12 +12,17 @@ public class ItemHoverTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExi
     {
         string text = "";
 
-        if (marketItem != null)
+        if (marketItem != null && !string.IsNullOrEmpty(marketItem.itemName))
+        {
             text = $"{marketItem.itemName}\n{marketItem.price} coins\n{marketItem.description}";
-        else if (inventoryItem != null)
+        }
+        else if (inventoryItem != null && !string.IsNullOrEmpty(inventoryItem.itemName))
+        {
             text = $"{inventoryItem.itemName}\n{inventoryItem.count} x\n{inventoryItem.description}";
+        }
 
-        TooltipManager.Instance.Show(text);
+        if (!string.IsNullOrEmpty(text))
+            TooltipManager.Instance.Show(text);
     }
 
     public void OnPointerExit(PointerEventData eventData)
