@@ -29,17 +29,29 @@ public class SellItems : MonoBehaviour
     {
         GameManager.OnItemSold += SellItemSell;
         GameManager.OnSuccessfulMerge += SuccessfullItem;
+        GameManager.OnFailedMerge += badCraft;
+        GameManager.OnItemBought += TakeCoinsEffect;
     }
 
     private void OnDisable()
     {
         GameManager.OnItemSold -= SellItemSell;
         GameManager.OnSuccessfulMerge -= SuccessfullItem;
+        GameManager.OnFailedMerge -= badCraft;
+        GameManager.OnItemBought -= TakeCoinsEffect;
     }
 
-    private void SuccessfullItem()
+    public void SuccessfullItem()
     {
-        fader.FadeOut(myImage, 0.13f, 1f);
+        Debug.Log("EVENT: OnSuccessfulMerge triggered");
+
+        fader.FadeOut(myImage, 0.3f, 1f, UIFader.FadeColor.Green);
+    }
+
+    public void badCraft()
+    {
+        Debug.Log("EVENT: badCraft triggered");
+        fader.FadeOut(myImage, 0.3f, 1f, UIFader.FadeColor.Purple);
     }
 
     /// <summary>
@@ -49,7 +61,7 @@ public class SellItems : MonoBehaviour
     public void SellItemSell(bool isCheap)
     {
         // Fade some UI image (like a coin indicator)
-        fader.FadeOut(myImage, 0.13f, 1f);
+        fader.FadeOut(myImage, 0.13f, 1f, UIFader.FadeColor.Yellow);
 
         if (itemImagePrefab != null && spawnTransform != null && targetTransform != null && canvas != null)
         {
@@ -57,6 +69,58 @@ public class SellItems : MonoBehaviour
             int imagesToSpawn = isCheap ? spawnCount : spawnCount * 2; // Expensive spawns more
             StartCoroutine(SpawnAndFlyMultiple(itemImagePrefab, spawnTransform.position, imagesToSpawn, isCheap));
         }
+    }
+
+    public void TakeCoinsEffect()
+    {
+        if (itemImagePrefab != null && spawnTransform != null && targetTransform != null && canvas != null)
+        {
+            StartCoroutine(SpawnAndFlyBack(itemImagePrefab, targetTransform.position, 10));
+        }
+    }
+
+    private IEnumerator SpawnAndFlyBack(Image prefab, Vector3 startPos, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            Vector2 offset = Random.insideUnitCircle * radius;
+
+            Image img = Instantiate(prefab, canvas.transform);
+            img.transform.position = startPos;
+            img.transform.localScale = Vector3.one * endScale;
+
+            Vector3 randomEnd = spawnTransform.position + (Vector3)offset;
+
+            StartCoroutine(FlyBack(img, randomEnd));
+
+            yield return new WaitForSeconds(delayBetween);
+        }
+    }
+
+    private IEnumerator FlyBack(Image img, Vector3 endPos)
+    {
+        float elapsed = 0f;
+
+        Vector3 startPos = img.transform.position;
+        Vector3 startScaleVector = Vector3.one * endScale;
+        Vector3 endScaleVector = Vector3.one * startScale;
+
+        while (elapsed < flyDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / flyDuration;
+            t = Mathf.SmoothStep(0f, 1f, t);
+
+            img.transform.position = Vector3.Lerp(startPos, endPos, t);
+            img.transform.localScale = Vector3.Lerp(startScaleVector, endScaleVector, t);
+
+            yield return null;
+        }
+
+        img.transform.position = endPos;
+        img.transform.localScale = endScaleVector;
+
+        Destroy(img.gameObject);
     }
 
     private IEnumerator SpawnAndFlyMultiple(Image prefab, Vector3 spawnPos, int imagesToSpawn, bool isCheap)

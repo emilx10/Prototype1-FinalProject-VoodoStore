@@ -4,23 +4,27 @@ using UnityEngine.UI;
 
 public class UIFader : MonoBehaviour
 {
-    /// <summary>
-    /// Fades the image from startAlpha to 0 over fadeTime seconds.
-    /// </summary>
-    /// <param name="image">The UI Image to fade.</param>
-    /// <param name="startAlpha">The starting alpha (0-1).</param>
-    /// <param name="fadeTime">Time in seconds to fade out.</param>
-    public void FadeOut(Image image, float startAlpha, float fadeTime)
+    public enum FadeColor
+    {
+        Yellow,
+        Purple,
+        Green
+    }
+
+    public void FadeOut(Image image, float startAlpha, float fadeTime, FadeColor fadeColor)
     {
         if (image == null) return;
+
+        Color color = GetColorFromHex(fadeColor);
+        color.a = startAlpha;
+        image.color = color;
+
         StartCoroutine(FadeRoutine(image, startAlpha, fadeTime));
     }
 
     private IEnumerator FadeRoutine(Image image, float startAlpha, float fadeTime)
     {
         Color color = image.color;
-        color.a = startAlpha;
-        image.color = color;
 
         float elapsed = 0f;
 
@@ -33,8 +37,30 @@ public class UIFader : MonoBehaviour
             yield return null;
         }
 
-        // Ensure fully transparent at the end
         color.a = 0f;
         image.color = color;
+    }
+
+    private Color GetColorFromHex(FadeColor fadeColor)
+    {
+        string hex = "#FFFFFF";
+
+        switch (fadeColor)
+        {
+            case FadeColor.Yellow:
+                hex = "#FFD26D";
+                break;
+
+            case FadeColor.Green:
+                hex = "#3BFF6A";
+                break;
+
+            case FadeColor.Purple:
+                hex = "#D26EFF";
+                break;
+        }
+
+        ColorUtility.TryParseHtmlString(hex, out Color color);
+        return color;
     }
 }

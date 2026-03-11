@@ -131,7 +131,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Transform floatingTextSpawnPoint;
 
 
-    public static UnityAction<MarketItem> OnItemBought;
+    public static UnityAction OnItemBought;
     public static UnityAction OnSuccessfulMerge;
     public static UnityAction OnFailedMerge;
     public static UnityAction <bool> OnItemSold;
@@ -209,12 +209,15 @@ public class GameManager : MonoBehaviour
         UpdateCoinsUI();
         ShowFloatingCoins(-item.price);
         ad.PlaySfx(vol, SFX.Buying, pitch);
+
+        OnItemBought?.Invoke();
+
         if (inventoryPanel.activeSelf)
             PopulateInventoryPanel();
         // Check if any tasks are now completed
         objectiveManager.UpdateTasksFromInventory(inventory);
 
-        OnItemBought?.Invoke(item);
+        
     }
 
     // ------------------- CRAFTING -------------------
