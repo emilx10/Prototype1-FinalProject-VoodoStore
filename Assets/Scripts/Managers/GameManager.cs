@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
 
@@ -130,6 +131,13 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Transform floatingTextSpawnPoint;
 
 
+    public static UnityAction<MarketItem> OnItemBought;
+    public static UnityAction OnSuccessfulMerge;
+    public static UnityAction OnFailedMerge;
+    public static UnityAction <bool> OnItemSold;
+    public static UnityAction<string, ItemCategory> OnItemAdded;
+
+
     private InventoryItem pendingSellItem;
     private List<InventoryItem> inventory = new List<InventoryItem>();
     private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
@@ -206,6 +214,7 @@ public class GameManager : MonoBehaviour
         // Check if any tasks are now completed
         objectiveManager.UpdateTasksFromInventory(inventory);
 
+        OnItemBought?.Invoke(item);
     }
 
     // ------------------- CRAFTING -------------------
@@ -337,6 +346,7 @@ public class GameManager : MonoBehaviour
                 ad.PlaySfx(vol, SFX.MergePotion, pitch);
                 AddToInventory(recipe.potionName, recipe.category, "");
                 craftedSomething = true;
+                OnSuccessfulMerge?.Invoke();
                 break;
             }
         }
@@ -345,6 +355,7 @@ public class GameManager : MonoBehaviour
         {
             AddToInventory(junkItemName, ItemCategory.Junk);
             ad.PlaySfx(vol, SFX.JunkMerge, pitch);
+            OnFailedMerge?.Invoke();
         }
 
         selectedCraftingItems.Clear();
@@ -390,7 +401,17 @@ public class GameManager : MonoBehaviour
         ShowFloatingCoins(price);
         UpdateCoinsUI();
         ad.PlaySfx(vol,SFX.Selling,pitch);
-        FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.SellItems);
+        
+        if (price > 10)
+        {
+            OnItemSold?.Invoke(true);
+        }
+        else
+        {
+            OnItemSold?.Invoke(false);
+        }
+
+            FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.SellItems);
         if (inventoryPanel.activeSelf)
             PopulateInventoryPanel();
     }
@@ -463,6 +484,8 @@ public class GameManager : MonoBehaviour
                 description = description
             });
         }
+
+        OnItemAdded?.Invoke(name, category);
     }
 
     void RemoveFromInventory(string name)
