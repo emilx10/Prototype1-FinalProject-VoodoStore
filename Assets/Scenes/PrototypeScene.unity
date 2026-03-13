@@ -3605,6 +3605,7 @@ GameObject:
   - component: {fileID: 619927769}
   - component: {fileID: 619927768}
   - component: {fileID: 619927767}
+  - component: {fileID: 619927771}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -3699,6 +3700,32 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 1920, y: 1080}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &619927771
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 619927766}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b372ad5f4d83914b8ce6264a226e093, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SellItems
+  canvas: {fileID: 619927769}
+  itemImagePrefab: {fileID: 8830116921061908317, guid: fbe7ef2c8735e914b84b0a4fd2efbafe, type: 3}
+  spawnCount: 5
+  radius: 1
+  flyDuration: 0.5
+  delayBetween: 0.01
+  startScale: 0.3
+  endScale: 0.01
+  myImage: {fileID: 1980171007}
+  fader: {fileID: 1980171009}
+  spawnTransform: {fileID: 382821126}
+  targetTransform: {fileID: 588726950}
+  cheapCoins: 5
+  expensiveCoins: 20
 --- !u!1 &636488571
 GameObject:
   m_ObjectHideFlags: 0
@@ -15640,7 +15667,6 @@ GameObject:
   - component: {fileID: 951949499}
   - component: {fileID: 951949501}
   - component: {fileID: 951949500}
-  - component: {fileID: 951949502}
   m_Layer: 5
   m_Name: SellPanel
   m_TagString: Untagged
@@ -15716,32 +15742,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 951949498}
   m_CullTransparentMesh: 1
---- !u!114 &951949502
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 951949498}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b372ad5f4d83914b8ce6264a226e093, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: '::'
-  canvas: {fileID: 619927769}
-  itemImagePrefab: {fileID: 8830116921061908317, guid: fbe7ef2c8735e914b84b0a4fd2efbafe, type: 3}
-  spawnCount: 5
-  radius: 1
-  flyDuration: 0.5
-  delayBetween: 0.01
-  startScale: 0.3
-  endScale: 0.01
-  myImage: {fileID: 1980171007}
-  fader: {fileID: 1980171009}
-  spawnTransform: {fileID: 382821126}
-  targetTransform: {fileID: 588726950}
-  cheapCoins: 5
-  expensiveCoins: 20
 --- !u!1 &968055277
 GameObject:
   m_ObjectHideFlags: 0
