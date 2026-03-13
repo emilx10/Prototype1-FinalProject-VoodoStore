@@ -14,6 +14,7 @@ public enum ItemCategory
     Junk
 }
 
+
 [System.Serializable]
 public class MarketItem
 {
@@ -141,6 +142,8 @@ public class GameManager : MonoBehaviour
     private InventoryItem pendingSellItem;
     private List<InventoryItem> inventory = new List<InventoryItem>();
     private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
+    private int konamiIndex = 0;
+
     public List<InventoryItem> GetInventoryItems()
     {
         return inventory;
@@ -697,4 +700,42 @@ public class GameManager : MonoBehaviour
             floatText.SetText("+" + amount.ToString(), Color.yellow);
     }
 
+    private KeyCode[] konamiCode = new KeyCode[]
+    {
+     KeyCode.UpArrow,
+     KeyCode.UpArrow,
+     KeyCode.DownArrow,
+     KeyCode.DownArrow,
+     KeyCode.LeftArrow,
+     KeyCode.RightArrow,
+     KeyCode.LeftArrow,
+     KeyCode.RightArrow
+    };
+    private void Update()
+    {
+        CheckKonamiCode();
+    }
+    void CheckKonamiCode()
+    {
+        if (Input.GetKeyDown(konamiCode[konamiIndex]))
+        {
+            konamiIndex++;
+
+            if (konamiIndex >= konamiCode.Length)
+            {
+                ActivateKonamiReward();
+                konamiIndex = 0;
+            }
+        }
+        else if (Input.anyKeyDown)
+        {
+            konamiIndex = 0;
+        }
+    }
+    void ActivateKonamiReward()
+    {
+        coins += 100;
+        UpdateCoinsUI();
+        ShowFloatingCoins(100);
+    }
 }
