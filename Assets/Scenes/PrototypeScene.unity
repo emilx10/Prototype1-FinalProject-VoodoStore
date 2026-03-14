@@ -9545,7 +9545,7 @@ MonoBehaviour:
   markets:
   - marketName: Gems
     items:
-    - itemName: Ruby
+    - itemName: Blood Garnet
       price: 10
       category: 0
       description: Red Gem
@@ -9571,7 +9571,7 @@ MonoBehaviour:
       description: 
       minSellPrice: 0
       maxSellPrice: 6
-    - itemName: 'Eucalyptus Oil '
+    - itemName: Leech oil
       price: 6
       category: 1
       description: 
@@ -9591,7 +9591,7 @@ MonoBehaviour:
       description: 
       minSellPrice: 0
       maxSellPrice: 2
-    - itemName: Lemon-grass
+    - itemName: Human eye
       price: 5
       category: 2
       description: 
