@@ -28,6 +28,10 @@ public class MarketItem
     [Header("Sell Price Limits")]
     public int minSellPrice;
     public int maxSellPrice;
+
+    [Header("Random Amount Between Min->Max")]
+    public int minAmount;
+    public int maxAmount;
 }
 
 [System.Serializable]
@@ -143,6 +147,7 @@ public class GameManager : MonoBehaviour
     private List<InventoryItem> inventory = new List<InventoryItem>();
     private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
     private int konamiIndex = 0;
+    private Dictionary<MarketItem, int> marketStock = new Dictionary<MarketItem, int>();
 
     public List<InventoryItem> GetInventoryItems()
     {
@@ -153,6 +158,7 @@ public class GameManager : MonoBehaviour
     // ------------------- START -------------------
     void Start()
     {
+        RandomizeMarketStock();
         StartMarketPhase();
         PopulateInventoryPanel();
         UpdateCoinsUI();
@@ -179,34 +185,55 @@ public class GameManager : MonoBehaviour
         marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
         ad.PlaySfx(vol, SFX.EnteredShop, pitch);
+
         ClearChildren(itemsButtonsParent);
 
         foreach (MarketItem item in market.items)
         {
             GameObject btn = Instantiate(buttonPrefab, itemsButtonsParent);
 
-            // Assign tooltip
             var tooltip = btn.GetComponent<ItemHoverTooltip>();
             tooltip.marketItem = item;
 
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
-            txt.text = $"{item.itemName} - {item.price} coins";
+
+            int stock = marketStock[item];
+            txt.text = $"{item.itemName} - {item.price} coins ({stock})";
 
             ApplyCategoryStyle(btn, item.category);
 
-            btn.GetComponent<Button>().onClick.AddListener(() =>
+            Button button = btn.GetComponent<Button>();
+            button.interactable = stock > 0;
+
+            button.onClick.AddListener(() =>
             {
                 BuyItem(item);
             });
         }
     }
+    void RandomizeMarketStock()
+    {
+        marketStock.Clear();
 
+        foreach (Market market in markets)
+        {
+            foreach (MarketItem item in market.items)
+            {
+                int amount = Random.Range(item.minAmount, item.maxAmount + 1);
+                marketStock[item] = amount;
+            }
+        }
+    }
     void BuyItem(MarketItem item)
     {
         if (coins < item.price) return;
+        if (marketStock[item] <= 0) return;
 
         coins -= item.price;
+        marketStock[item]--;
+
         AddToInventory(item.itemName, item.category, item.description);
+
         ShowInventoryStar();
         PopulateInventoryPanel();
         UpdateCoinsUI();
@@ -214,13 +241,7 @@ public class GameManager : MonoBehaviour
         ad.PlaySfx(vol, SFX.Buying, pitch);
 
         OnItemBought?.Invoke();
-
-        if (inventoryPanel.activeSelf)
-            PopulateInventoryPanel();
-        // Check if any tasks are now completed
-        objectiveManager.UpdateTasksFromInventory(inventory);
-
-        
+        OpenMarketByIndex(0);
     }
 
     // ------------------- CRAFTING -------------------
@@ -542,6 +563,7 @@ public class GameManager : MonoBehaviour
     // ------------------- END DAY -------------------
     public void EndDay()
     {
+        RandomizeMarketStock();
         marketPanel.SetActive(false);
         itemsPanel.SetActive(false);
         craftingPanel.SetActive(false);

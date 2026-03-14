@@ -12,13 +12,15 @@ public class TooltipManager : MonoBehaviour
     RectTransform canvasRect;
     Camera cam;
 
+    [SerializeField] Vector2 mouseOffset = new Vector2(40, -40); // right + down
+
     void Awake()
     {
         Instance = this;
 
         rect = container.GetComponent<RectTransform>();
         canvasRect = GetComponentInParent<Canvas>().GetComponent<RectTransform>();
-        cam = Camera.main; // camera rendering the world space canvas
+        cam = Camera.main;
 
         container.SetActive(false);
     }
@@ -36,7 +38,7 @@ public class TooltipManager : MonoBehaviour
             out pos
         );
 
-        rect.anchoredPosition = pos;
+        rect.anchoredPosition = pos + mouseOffset;
     }
 
     public void Show(string text)

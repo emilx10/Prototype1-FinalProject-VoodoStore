@@ -1658,9 +1658,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 542564990}
-        m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
-        m_MethodName: OpenMarket
+      - m_Target: {fileID: 731473973}
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+        m_MethodName: EndDay
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1957,6 +1957,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TooltipManager
   container: {fileID: 308942585}
   tooltipText: {fileID: 693712303}
+  mouseOffset: {x: 150, y: -120}
 --- !u!1 &313281592
 GameObject:
   m_ObjectHideFlags: 0
@@ -9281,8 +9282,8 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
-  m_VerticalAlignment: 256
+  m_HorizontalAlignment: 2
+  m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -9551,18 +9552,24 @@ MonoBehaviour:
       description: Red Gem
       minSellPrice: 0
       maxSellPrice: 8
+      minAmount: 0
+      maxAmount: 4
     - itemName: Agate
       price: 5
       category: 0
       description: 
       minSellPrice: 0
       maxSellPrice: 4
+      minAmount: 0
+      maxAmount: 4
     - itemName: Obsidian
       price: 9
       category: 0
       description: 
       minSellPrice: 0
       maxSellPrice: 7
+      minAmount: 0
+      maxAmount: 4
   - marketName: Oils
     items:
     - itemName: Olive Oil
@@ -9571,18 +9578,24 @@ MonoBehaviour:
       description: 
       minSellPrice: 0
       maxSellPrice: 6
+      minAmount: 0
+      maxAmount: 4
     - itemName: 'Eucalyptus Oil '
       price: 6
       category: 1
       description: 
       minSellPrice: 0
       maxSellPrice: 4
+      minAmount: 0
+      maxAmount: 4
     - itemName: 'Floral Oil '
       price: 5
       category: 1
       description: 
       minSellPrice: 0
       maxSellPrice: 4
+      minAmount: 0
+      maxAmount: 4
   - marketName: Herbs
     items:
     - itemName: Mint
@@ -9591,18 +9604,24 @@ MonoBehaviour:
       description: 
       minSellPrice: 0
       maxSellPrice: 2
+      minAmount: 0
+      maxAmount: 4
     - itemName: Lemon-grass
       price: 5
       category: 2
       description: 
       minSellPrice: 0
       maxSellPrice: 4
+      minAmount: 0
+      maxAmount: 4
     - itemName: Dandelion
       price: 7
       category: 2
       description: 
       minSellPrice: 0
       maxSellPrice: 5
+      minAmount: 0
+      maxAmount: 4
   recipes:
   - potionName: Voodoo doll
     category: 3
@@ -15530,8 +15549,8 @@ RectTransform:
   m_GameObject: {fileID: 929683083}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 308942586}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -15560,7 +15579,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 77b799bb643146d49a10e2d16c1658ff, type: 3}
+  m_Sprite: {fileID: 21300000, guid: c2166b0b8c1f74e418ff801f1af2b618, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
