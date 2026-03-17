@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
+using static UnityEditor.Progress;
 
 public enum ItemCategory
 {
@@ -20,6 +21,7 @@ public class MarketItem
     public string itemName;
     public int price;
     public ItemCategory category;
+    public Sprite Icon;
 
     [TextArea(2, 5)]
     public string description;
@@ -42,6 +44,7 @@ public class Recipe
     public string potionName;
     public ItemCategory category;
     public List<string> ingredients;
+    public Sprite Icon;
 
     [Header("Sell Price Limits")]
     public int minSellPrice;
@@ -55,6 +58,7 @@ public class InventoryItem
     public int count;
     public ItemCategory category;
     public string description;
+    public Sprite Icon;
 }
 
 [System.Serializable]
@@ -191,6 +195,8 @@ public class GameManager : MonoBehaviour
 
             ApplyCategoryStyle(btn, item.category);
 
+
+
             btn.GetComponent<Button>().onClick.AddListener(() =>
             {
                 BuyItem(item);
@@ -203,7 +209,7 @@ public class GameManager : MonoBehaviour
         if (coins < item.price) return;
 
         coins -= item.price;
-        AddToInventory(item.itemName, item.category, item.description);
+        AddToInventory(item.itemName, item.category, item.description, item.Icon);
         ShowInventoryStar();
         PopulateInventoryPanel();
         UpdateCoinsUI();
@@ -242,19 +248,35 @@ public class GameManager : MonoBehaviour
         foreach (InventoryItem item in inventory)
         {
             if (item.count <= 0) continue;
+            
+            GameObject btn = Instantiate(selectedItemTextPrefab, craftingItemsParent);
+            UpdateItemButton updateItemButton = btn.GetComponent<UpdateItemButton>();
 
-            GameObject btn = Instantiate(buttonPrefab, craftingItemsParent);
+            updateItemButton.UpdateItemData(item.itemName, item.Icon);
 
             // Assign tooltip
             var tooltip = btn.GetComponent<ItemHoverTooltip>();
-            tooltip.inventoryItem = item;
+            if (tooltip != null)
+            {
+                tooltip.inventoryItem = item;
+            }
 
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
             txt.text = $"{item.itemName} x{item.count}";
 
-            ApplyCategoryStyle(btn, item.category);
+            var style = GetCategoryStyle(item.category);
 
-            btn.GetComponent<Button>().onClick.AddListener(() => SelectCraftingItem(item));
+            if (style.HasValue)
+            {
+                updateItemButton.ApplyStyle(
+                    style.Value.backgroundColor,
+                    style.Value.textColor
+                );
+            }
+
+            Button button = updateItemButton.GetButton();
+
+            button.onClick.AddListener(() => SelectCraftingItem(item));
         }
     }
 
@@ -269,7 +291,9 @@ public class GameManager : MonoBehaviour
         {
             itemName = item.itemName,
             category = item.category,
-            count = 1
+            Icon = item.Icon,
+            count = 1,
+            description = item.description
         });
 
         // Remove one from inventory stack
@@ -287,11 +311,39 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < selectedCraftingItems.Count; i++)
         {
             GameObject txtObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
+            UpdateItemButton buttonHandler = txtObj.GetComponent<UpdateItemButton>();
+
+            buttonHandler.UpdateItemData(selectedCraftingItems[i].itemName, selectedCraftingItems[i].Icon);
+            RectTransform rt = txtObj.GetComponent<RectTransform>();
+            UpdateItemButton tag = txtObj.GetComponent<UpdateItemButton>();
+
+            var style = GetCategoryStyle(selectedCraftingItems[i].category);
+
+            if (style.HasValue)
+            {
+                buttonHandler.ApplyStyle(
+                    style.Value.backgroundColor,
+                    style.Value.textColor
+                );
+            }
+
+            if (selectedCraftingItems.Count == 1)
+                rt.anchoredPosition = Vector2.zero;
+            else if (selectedCraftingItems.Count == 2)
+                rt.anchoredPosition = (i == 0) ? triangleLeftTop : triangleRightTop;
+            else
+            {
+                if (i == 0) rt.anchoredPosition = triangleLeftTop;
+                if (i == 1) rt.anchoredPosition = triangleRightTop;
+                if (i == 2) rt.anchoredPosition = triangleCenterBottom;
+            }
+
+            /*GameObject txtObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
             TMP_Text txt = txtObj.GetComponent<TMP_Text>();
             //txt.text = selectedCraftingItems[i].itemName;
             txt.text = "";
             RectTransform rt = txtObj.GetComponent<RectTransform>();
-            updateText tag = txtObj.GetComponent<updateText>();
+            UpdateItemButton tag = txtObj.GetComponent<UpdateItemButton>();
 
             tag.updateTheText(selectedCraftingItems[i].itemName);
 
@@ -304,7 +356,7 @@ public class GameManager : MonoBehaviour
                 if (i == 0) rt.anchoredPosition = triangleLeftTop;
                 if (i == 1) rt.anchoredPosition = triangleRightTop;
                 if (i == 2) rt.anchoredPosition = triangleCenterBottom;
-            }
+            }*/
         }
     }
 
@@ -347,7 +399,7 @@ public class GameManager : MonoBehaviour
             if (match)
             {
                 ad.PlaySfx(vol, SFX.MergePotion, pitch);
-                AddToInventory(recipe.potionName, recipe.category, "");
+                AddToInventory(recipe.potionName, recipe.category, "", recipe.Icon);
                 craftedSomething = true;
                 OnSuccessfulMerge?.Invoke();
                 break;
@@ -356,7 +408,7 @@ public class GameManager : MonoBehaviour
 
         if (!craftedSomething)
         {
-            AddToInventory(junkItemName, ItemCategory.Junk);
+            AddToInventory(junkItemName, ItemCategory.Junk, "", null);
             ad.PlaySfx(vol, SFX.JunkMerge, pitch);
             OnFailedMerge?.Invoke();
         }
@@ -376,7 +428,7 @@ public class GameManager : MonoBehaviour
     {
         foreach (var item in selectedCraftingItems)
         {
-            AddToInventory(item.itemName, item.category);
+            AddToInventory(item.itemName, item.category, "",item.Icon);
         }
 
         selectedCraftingItems.Clear();
@@ -425,6 +477,36 @@ public class GameManager : MonoBehaviour
 
         foreach (InventoryItem item in inventory)
         {
+
+            GameObject btn = Instantiate(selectedItemTextPrefab, sellItemsParent);
+            UpdateItemButton updateItemButton = btn.GetComponent<UpdateItemButton>();
+
+            updateItemButton.UpdateItemData(item.itemName, item.Icon);
+
+            // Assign tooltip
+            var tooltip = btn.GetComponent<ItemHoverTooltip>();
+            if (tooltip != null)
+            {
+                tooltip.inventoryItem = item;
+            }
+
+            TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
+            txt.text = $"{item.itemName} x{item.count}";
+
+            var style = GetCategoryStyle(item.category);
+
+            if (style.HasValue)
+            {
+                updateItemButton.ApplyStyle(
+                    style.Value.backgroundColor,
+                    style.Value.textColor
+                );
+            }
+
+            Button button = updateItemButton.GetButton();
+
+            button.onClick.AddListener(() => OnSellClicked(item));
+            /*
             GameObject btn = Instantiate(buttonPrefab, sellItemsParent);
 
             // Assign tooltip
@@ -436,7 +518,8 @@ public class GameManager : MonoBehaviour
 
             ApplyCategoryStyle(btn, item.category);
 
-            btn.GetComponent<Button>().onClick.AddListener(() => OnSellClicked(item));
+            btn.GetComponent<Button>().onClick.AddListener(() => OnSellClicked(item));*/
+
         }
     }
     void OnPriceSliderChanged(float value)
@@ -467,7 +550,7 @@ public class GameManager : MonoBehaviour
 
 
     // ------------------- INVENTORY -------------------
-    void AddToInventory(string name, ItemCategory category, string description = "")
+    void AddToInventory(string name, ItemCategory category, string description = "", Sprite icon = null)
     {
         ShowObjectiveDiscoveryStar();
 
@@ -476,6 +559,10 @@ public class GameManager : MonoBehaviour
         if (existing != null)
         {
             existing.count++;
+
+            // OPTIONAL: update icon if missing
+            if (existing.Icon == null && icon != null)
+                existing.Icon = icon;
         }
         else
         {
@@ -484,7 +571,8 @@ public class GameManager : MonoBehaviour
                 itemName = name,
                 count = 1,
                 category = category,
-                description = description
+                description = description,
+                Icon = icon
             });
         }
 
@@ -565,6 +653,16 @@ public class GameManager : MonoBehaviour
 
         style = default;
         return false;
+    }
+
+    CategoryStyle? GetCategoryStyle(ItemCategory category)
+    {
+        foreach (var s in categoryStyles)
+        {
+            if (s.category == category)
+                return s;
+        }
+        return null;
     }
 
     void ApplyCategoryStyle(GameObject button, ItemCategory category)
