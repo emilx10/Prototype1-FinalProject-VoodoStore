@@ -3724,6 +3724,7 @@ MonoBehaviour:
   fader: {fileID: 1980171009}
   spawnTransform: {fileID: 382821126}
   targetTransform: {fileID: 588726950}
+  targetInvItem: {x: 886.7, y: -630}
   cheapCoins: 5
   expensiveCoins: 20
 --- !u!1 &636488571
@@ -9548,18 +9549,21 @@ MonoBehaviour:
     - itemName: Ruby
       price: 10
       category: 0
+      Icon: {fileID: 233420453304070832, guid: d3ab0ec8da5af684fb08574a62eb4e2d, type: 3}
       description: Red Gem
       minSellPrice: 0
       maxSellPrice: 8
     - itemName: Agate
       price: 5
       category: 0
+      Icon: {fileID: 0}
       description: 
       minSellPrice: 0
       maxSellPrice: 4
     - itemName: Obsidian
       price: 9
       category: 0
+      Icon: {fileID: 21300000, guid: 940f33dec0db82648837fd98e2d2a14f, type: 3}
       description: 
       minSellPrice: 0
       maxSellPrice: 7
@@ -9568,18 +9572,21 @@ MonoBehaviour:
     - itemName: Olive Oil
       price: 8
       category: 1
+      Icon: {fileID: 21300000, guid: 35436ca97f4494d419b7798ed1f6606b, type: 3}
       description: 
       minSellPrice: 0
       maxSellPrice: 6
     - itemName: 'Eucalyptus Oil '
       price: 6
       category: 1
+      Icon: {fileID: 0}
       description: 
       minSellPrice: 0
       maxSellPrice: 4
     - itemName: 'Floral Oil '
       price: 5
       category: 1
+      Icon: {fileID: 21300000, guid: c3a0f320a0569894295b574f12bcda03, type: 3}
       description: 
       minSellPrice: 0
       maxSellPrice: 4
@@ -9588,18 +9595,21 @@ MonoBehaviour:
     - itemName: Mint
       price: 3
       category: 2
+      Icon: {fileID: 21300000, guid: 3d07657ea4350934981630373d7c5ccf, type: 3}
       description: 
       minSellPrice: 0
       maxSellPrice: 2
     - itemName: Lemon-grass
       price: 5
       category: 2
+      Icon: {fileID: 0}
       description: 
       minSellPrice: 0
       maxSellPrice: 4
     - itemName: Dandelion
       price: 7
       category: 2
+      Icon: {fileID: 21300000, guid: 5b221193bcdb5ce4394bc84b67fce2de, type: 3}
       description: 
       minSellPrice: 0
       maxSellPrice: 5
@@ -9610,6 +9620,7 @@ MonoBehaviour:
     - Lemon-grass
     - Obsidian
     - Floral Oil
+    Icon: {fileID: 21300000, guid: 67677ebca4a741b46951fd44ceae6591, type: 3}
     minSellPrice: 10
     maxSellPrice: 65
   - potionName: Lie-detecting head
@@ -9618,6 +9629,7 @@ MonoBehaviour:
     - Dandelion
     - Mint
     - Olive Oil
+    Icon: {fileID: 21300000, guid: afc0f55252b58774ca480f637fbe4b99, type: 3}
     minSellPrice: 10
     maxSellPrice: 70
   - potionName: Crystal ball
@@ -9626,6 +9638,7 @@ MonoBehaviour:
     - Agate
     - Ruby
     - Eucalyptus oil
+    Icon: {fileID: 21300000, guid: dac8986068e4214479e3a87db7dac25a, type: 3}
     minSellPrice: 10
     maxSellPrice: 65
   - potionName: Good hair day charm
@@ -9634,6 +9647,7 @@ MonoBehaviour:
     - Eucalyptus oil
     - Floral Oil
     - Lemon-grass
+    Icon: {fileID: 21300000, guid: 2479ed480044ebe4b83f8825af9f04b4, type: 3}
     minSellPrice: 10
     maxSellPrice: 55
   - potionName: Rings of pain relief
@@ -9642,6 +9656,7 @@ MonoBehaviour:
     - Eucalyptus oil
     - Floral Oil
     - Lemon-grass
+    Icon: {fileID: 21300000, guid: 99b7a31754c765147976d1d29eb3164d, type: 3}
     minSellPrice: 10
     maxSellPrice: 62
   - potionName: Happyness tiara
@@ -9650,6 +9665,7 @@ MonoBehaviour:
     - Eucalyptus oil
     - Floral Oil
     - Lemon-grass
+    Icon: {fileID: 21300000, guid: e29fe189e32ec0545a9889d43b5b8800, type: 3}
     minSellPrice: 10
     maxSellPrice: 50
   - potionName: Love Potion
@@ -9658,6 +9674,7 @@ MonoBehaviour:
     - Agate
     - Mint
     - Floral oil
+    Icon: {fileID: 21300000, guid: 3861fd851f5c2bd408fffe632bed52c5, type: 3}
     minSellPrice: 10
     maxSellPrice: 80
   - potionName: Sleep Potion
@@ -9666,6 +9683,7 @@ MonoBehaviour:
     - Dandelion
     - Olive Oil
     - Eucalyptus Oil
+    Icon: {fileID: 21300000, guid: 808a97d5511c08c48b127e4e3504f703, type: 3}
     minSellPrice: 10
     maxSellPrice: 58
   - potionName: Bad Luck Potion
@@ -9674,6 +9692,7 @@ MonoBehaviour:
     - Obsidian
     - Olive Oil
     - Ruby
+    Icon: {fileID: 21300000, guid: ceb57b43a9a5c6c46aac9dfd58164bda, type: 3}
     minSellPrice: 10
     maxSellPrice: 72
   coins: 80
@@ -15608,6 +15627,7 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 1009632908}
   - {fileID: 1497190843}
   - {fileID: 1105289407}
   - {fileID: 206825335}
@@ -15631,7 +15651,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 0.34117648, g: 0.34117648, b: 0.34117648, a: 0.77254903}
   m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -15878,6 +15898,81 @@ CanvasRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 968055277}
+  m_CullTransparentMesh: 1
+--- !u!1 &1009632907
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1009632908}
+  - component: {fileID: 1009632910}
+  - component: {fileID: 1009632909}
+  m_Layer: 5
+  m_Name: Background
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1009632908
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1009632907}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 933346101}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 1920, y: 1080}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1009632909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1009632907}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 21300000, guid: 3303c3469e00dc24aa29b393c613bec2, type: 3}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &1009632910
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1009632907}
   m_CullTransparentMesh: 1
 --- !u!1 &1039927702
 GameObject:

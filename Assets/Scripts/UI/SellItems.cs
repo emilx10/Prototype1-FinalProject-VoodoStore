@@ -20,6 +20,7 @@ public class SellItems : MonoBehaviour
     [Header("Transforms")]
     public Transform spawnTransform;
     public Transform targetTransform;
+    public Vector2 targetInvItem;
 
     [Header("Coin Settings")]
     public int cheapCoins = 5;
@@ -30,7 +31,7 @@ public class SellItems : MonoBehaviour
         GameManager.OnItemSold += SellItemSell;
         GameManager.OnSuccessfulMerge += SuccessfullItem;
         GameManager.OnFailedMerge += badCraft;
-        GameManager.OnItemBought += TakeCoinsEffect;
+        GameManager.OnItemBought += GiveItem;
     }
 
     private void OnDisable()
@@ -38,7 +39,7 @@ public class SellItems : MonoBehaviour
         GameManager.OnItemSold -= SellItemSell;
         GameManager.OnSuccessfulMerge -= SuccessfullItem;
         GameManager.OnFailedMerge -= badCraft;
-        GameManager.OnItemBought -= TakeCoinsEffect;
+        GameManager.OnItemBought -= GiveItem;
     }
 
     public void SuccessfullItem()
@@ -76,6 +77,53 @@ public class SellItems : MonoBehaviour
         {
             StartCoroutine(SpawnAndFlyBack(itemImagePrefab, targetTransform.position, 10));
         }
+    }
+
+    public void GiveItem(Sprite icon)
+    {
+        if (icon == null || itemImagePrefab == null || canvas == null) return;
+
+        Image img = Instantiate(itemImagePrefab, canvas.transform);
+        img.sprite = icon;
+
+        // Start at center of screen
+        RectTransform rt = img.rectTransform;
+        rt.anchoredPosition = Vector2.zero;
+        rt.localScale = Vector3.one * 1.2f;
+
+        // Target = below screen
+        float screenHeight = ((RectTransform)canvas.transform).rect.height;
+        Vector2 targetPos = new Vector2(0, -screenHeight * 0.7f);
+
+        StartCoroutine(FlyItemToInventory(rt, targetInvItem));
+    }
+
+    private IEnumerator FlyItemToInventory(RectTransform rt, Vector2 targetPos)
+    {
+        float duration = 0.6f;
+        float elapsed = 0f;
+
+        Vector2 startPos = rt.anchoredPosition;
+        Vector3 startScale = rt.localScale;
+        Vector3 endScale = Vector3.one * 0.5f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+
+            t = Mathf.SmoothStep(0f, 1f, t);
+
+            rt.anchoredPosition = Vector2.Lerp(startPos, targetPos, t);
+            rt.localScale = Vector3.Lerp(startScale, endScale, t);
+
+            yield return null;
+        }
+
+        rt.anchoredPosition = targetPos;
+        rt.localScale = endScale;
+
+        Destroy(rt.gameObject);
     }
 
     private IEnumerator SpawnAndFlyBack(Image prefab, Vector3 startPos, int count)

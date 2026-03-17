@@ -136,7 +136,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Transform floatingTextSpawnPoint;
 
     private List<UpdateItemButton> selectedItemUI = new List<UpdateItemButton>();
-    public static UnityAction OnItemBought;
+    public static UnityAction <Sprite>OnItemBought;
     public static UnityAction OnSuccessfulMerge;
     public static UnityAction OnFailedMerge;
     public static UnityAction <bool> OnItemSold;
@@ -217,7 +217,7 @@ public class GameManager : MonoBehaviour
         ShowFloatingCoins(-item.price);
         ad.PlaySfx(vol, SFX.Buying, pitch);
 
-        OnItemBought?.Invoke();
+        OnItemBought?.Invoke(item.Icon);
 
         if (inventoryPanel.activeSelf)
             PopulateInventoryPanel();
