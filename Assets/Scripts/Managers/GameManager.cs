@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -134,7 +135,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject floatingCoinTextPrefab;
     [SerializeField] private Transform floatingTextSpawnPoint;
 
-
+    private List<UpdateItemButton> selectedItemUI = new List<UpdateItemButton>();
     public static UnityAction OnItemBought;
     public static UnityAction OnSuccessfulMerge;
     public static UnityAction OnFailedMerge;
@@ -306,13 +307,14 @@ public class GameManager : MonoBehaviour
 
     void RefreshSelectedItemsUI()
     {
+        selectedItemUI.Clear();
         ClearChildren(selectedItemsParent);
 
         for (int i = 0; i < selectedCraftingItems.Count; i++)
         {
             GameObject txtObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
             UpdateItemButton buttonHandler = txtObj.GetComponent<UpdateItemButton>();
-
+            selectedItemUI.Add(buttonHandler);
             buttonHandler.UpdateItemData(selectedCraftingItems[i].itemName, selectedCraftingItems[i].Icon);
             RectTransform rt = txtObj.GetComponent<RectTransform>();
             UpdateItemButton tag = txtObj.GetComponent<UpdateItemButton>();
@@ -413,15 +415,33 @@ public class GameManager : MonoBehaviour
             OnFailedMerge?.Invoke();
         }
 
-        selectedCraftingItems.Clear();
+        //selectedCraftingItems.Clear();
+        //RefreshSelectedItemsUI();
+        //RefreshCraftingUI();
+        StartCoroutine(MergeRoutine(craftedSomething));
 
-        RefreshSelectedItemsUI();
-        RefreshCraftingUI();
         PopulateInventoryPanel();
         FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.MergeItems);
 
         if (inventoryPanel.activeSelf)
             PopulateInventoryPanel();
+    }
+
+    IEnumerator MergeRoutine(bool craftedSomething)
+    {
+        // play dissolve
+        foreach (var ui in selectedItemUI)
+        {
+            ui.PlayDissolve(1f);
+        }
+
+        yield return new WaitForSeconds(1.3f);
+
+        selectedCraftingItems.Clear();
+
+        RefreshSelectedItemsUI();
+        RefreshCraftingUI();
+        PopulateInventoryPanel();
     }
 
     void ReturnCraftingItemsToInventory()
