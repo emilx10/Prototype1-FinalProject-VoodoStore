@@ -43,14 +43,13 @@ public class SellItems : MonoBehaviour
 
     public void SuccessfullItem()
     {
-        Debug.Log("EVENT: OnSuccessfulMerge triggered");
 
         fader.FadeOut(myImage, 0.3f, 1f, UIFader.FadeColor.Green);
     }
 
     public void badCraft()
     {
-        Debug.Log("EVENT: badCraft triggered");
+        
         fader.FadeOut(myImage, 0.3f, 1f, UIFader.FadeColor.Purple);
     }
 
