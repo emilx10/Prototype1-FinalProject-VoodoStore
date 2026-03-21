@@ -1084,7 +1084,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 381, y: -373}
+  m_AnchoredPosition: {x: 381, y: 254}
   m_SizeDelta: {x: 131, y: 136}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &206825336
@@ -1301,6 +1301,143 @@ MonoBehaviour:
   m_Spacing: {x: 57, y: 57}
   m_Constraint: 1
   m_ConstraintCount: 2
+--- !u!1 &238509044
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 238509045}
+  - component: {fileID: 238509047}
+  - component: {fileID: 238509046}
+  m_Layer: 5
+  m_Name: Text
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &238509045
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238509044}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 286116346}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0.000015259, y: -1.4}
+  m_SizeDelta: {x: 131.09, y: 17.76}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &238509046
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238509044}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.TextMeshPro::TMPro.TextMeshProUGUI
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: Buy
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: -1183493901
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 10
+  m_fontSizeBase: 10
+  m_fontWeight: 400
+  m_enableAutoSizing: 0
+  m_fontSizeMin: 18
+  m_fontSizeMax: 72
+  m_fontStyle: 1
+  m_HorizontalAlignment: 1
+  m_VerticalAlignment: 256
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_characterHorizontalScale: 1
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_TextWrappingMode: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 0
+  m_ActiveFontFeatures: 6e72656b
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_EmojiFallbackSupport: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!222 &238509047
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 238509044}
+  m_CullTransparentMesh: 1
 --- !u!1 &255225047
 GameObject:
   m_ObjectHideFlags: 0
@@ -1658,9 +1795,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 731473973}
-        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
-        m_MethodName: EndDay
+      - m_Target: {fileID: 542564990}
+        m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
+        m_MethodName: OpenMarket
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1803,7 +1940,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5015209, y: 0.5}
   m_AnchorMax: {x: 0.5015209, y: 0.5}
-  m_AnchoredPosition: {x: -2.65, y: 5.3}
+  m_AnchoredPosition: {x: -2.35, y: 4.3}
   m_SizeDelta: {x: 140.3302, y: 18.7631}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &279105290
@@ -1813,6 +1950,67 @@ Canvas:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 279105288}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_RenderMode: 2
+  m_Camera: {fileID: 0}
+  m_PlaneDistance: 100
+  m_PixelPerfect: 0
+  m_ReceivesEvents: 1
+  m_OverrideSorting: 1
+  m_OverridePixelPerfect: 0
+  m_SortingBucketNormalizedSize: 0
+  m_VertexColorAlwaysGammaSpace: 0
+  m_AdditionalShaderChannelsFlag: 25
+  m_UpdateRectTransformForStandalone: 0
+  m_SortingLayerID: 0
+  m_SortingOrder: 101
+  m_TargetDisplay: 0
+--- !u!1 &286116345
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 286116346}
+  - component: {fileID: 286116347}
+  m_Layer: 5
+  m_Name: TaskRow (3)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &286116346
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 286116345}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.038893092, y: 0.038893092, z: 0.038893092}
+  m_ConstrainProportionsScale: 1
+  m_Children:
+  - {fileID: 238509045}
+  - {fileID: 558663715}
+  m_Father: {fileID: 7750209170044255561}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5015209, y: 0.5}
+  m_AnchorMax: {x: 0.5015209, y: 0.5}
+  m_AnchoredPosition: {x: -2.35, y: 5.97}
+  m_SizeDelta: {x: 140.3302, y: 18.7631}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!223 &286116347
+Canvas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 286116345}
   m_Enabled: 1
   serializedVersion: 3
   m_RenderMode: 2
@@ -1957,7 +2155,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TooltipManager
   container: {fileID: 308942585}
   tooltipText: {fileID: 693712303}
-  mouseOffset: {x: 150, y: -120}
 --- !u!1 &313281592
 GameObject:
   m_ObjectHideFlags: 0
@@ -2789,7 +2986,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: sell
+  m_text: Sell
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3061,6 +3258,81 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &558663714
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 558663715}
+  - component: {fileID: 558663717}
+  - component: {fileID: 558663716}
+  m_Layer: 5
+  m_Name: StrikeLine
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!224 &558663715
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 558663714}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 286116346}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0.5}
+  m_AnchorMax: {x: 1, y: 0.5}
+  m_AnchoredPosition: {x: 0.000015258789, y: -0.00000071526}
+  m_SizeDelta: {x: -0.000022888, y: 3}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &558663716
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 558663714}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
+  m_Material: {fileID: 0}
+  m_Color: {r: 0, g: 0, b: 0, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_Sprite: {fileID: 0}
+  m_Type: 0
+  m_PreserveAspect: 0
+  m_FillCenter: 1
+  m_FillMethod: 4
+  m_FillAmount: 1
+  m_FillClockwise: 1
+  m_FillOrigin: 0
+  m_UseSpriteMesh: 0
+  m_PixelsPerUnitMultiplier: 1
+--- !u!222 &558663717
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 558663714}
+  m_CullTransparentMesh: 1
 --- !u!1 &569229675
 GameObject:
   m_ObjectHideFlags: 0
@@ -3096,7 +3368,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5015209, y: 0.5}
   m_AnchorMax: {x: 0.5015209, y: 0.5}
-  m_AnchoredPosition: {x: -2.65, y: 5.8}
+  m_AnchoredPosition: {x: -2.35, y: 4.8}
   m_SizeDelta: {x: 140.3302, y: 18.7631}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &569229677
@@ -3828,7 +4100,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 746.69, y: -337.92}
+  m_AnchoredPosition: {x: 689, y: -236}
   m_SizeDelta: {x: 236, y: 105}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &645701331
@@ -9282,8 +9554,8 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 2
-  m_VerticalAlignment: 512
+  m_HorizontalAlignment: 1
+  m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
   m_characterHorizontalScale: 1
@@ -9546,30 +9818,24 @@ MonoBehaviour:
   markets:
   - marketName: Gems
     items:
-    - itemName: Ruby
+    - itemName: Blood Garnet
       price: 10
       category: 0
       description: Red Gem
       minSellPrice: 0
       maxSellPrice: 8
-      minAmount: 0
-      maxAmount: 4
     - itemName: Agate
       price: 5
       category: 0
       description: 
       minSellPrice: 0
       maxSellPrice: 4
-      minAmount: 0
-      maxAmount: 4
     - itemName: Obsidian
       price: 9
       category: 0
       description: 
       minSellPrice: 0
       maxSellPrice: 7
-      minAmount: 0
-      maxAmount: 4
   - marketName: Oils
     items:
     - itemName: Olive Oil
@@ -9578,24 +9844,18 @@ MonoBehaviour:
       description: 
       minSellPrice: 0
       maxSellPrice: 6
-      minAmount: 0
-      maxAmount: 4
-    - itemName: 'Eucalyptus Oil '
+    - itemName: Leech oil
       price: 6
       category: 1
       description: 
       minSellPrice: 0
       maxSellPrice: 4
-      minAmount: 0
-      maxAmount: 4
     - itemName: 'Floral Oil '
       price: 5
       category: 1
       description: 
       minSellPrice: 0
       maxSellPrice: 4
-      minAmount: 0
-      maxAmount: 4
   - marketName: Herbs
     items:
     - itemName: Mint
@@ -9604,24 +9864,18 @@ MonoBehaviour:
       description: 
       minSellPrice: 0
       maxSellPrice: 2
-      minAmount: 0
-      maxAmount: 4
-    - itemName: Lemon-grass
+    - itemName: Human eye
       price: 5
       category: 2
       description: 
       minSellPrice: 0
       maxSellPrice: 4
-      minAmount: 0
-      maxAmount: 4
     - itemName: Dandelion
       price: 7
       category: 2
       description: 
       minSellPrice: 0
       maxSellPrice: 5
-      minAmount: 0
-      maxAmount: 4
   recipes:
   - potionName: Voodoo doll
     category: 3
@@ -9695,7 +9949,7 @@ MonoBehaviour:
     - Ruby
     minSellPrice: 10
     maxSellPrice: 72
-  coins: 80
+  coins: 30
   sellConfirmPanel: {fileID: 2004838369}
   priceSlider: {fileID: 1459339995}
   priceValueText: {fileID: 1564996937}
@@ -15549,8 +15803,8 @@ RectTransform:
   m_GameObject: {fileID: 929683083}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
-  m_ConstrainProportionsScale: 1
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 308942586}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -15579,7 +15833,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: c2166b0b8c1f74e418ff801f1af2b618, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 77b799bb643146d49a10e2d16c1658ff, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -18039,7 +18293,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColor: {r: 0.9098039, g: 0.8862745, b: 0.8862745, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -18056,8 +18310,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 10
-  m_fontSizeBase: 10
+  m_fontSize: 8
+  m_fontSizeBase: 8
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -23417,7 +23671,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColor: {r: 0.9098039, g: 0.8862745, b: 0.8862745, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -23434,8 +23688,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 10
-  m_fontSizeBase: 10
+  m_fontSize: 8
+  m_fontSizeBase: 8
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -28893,7 +29147,13 @@ MonoBehaviour:
     - Mint
     - Floral oil
     missions:
-    - missionText: Buy Agate,Mint and Floral Oil
+    - missionText: Agate
+      type: 0
+      completed: 0
+    - missionText: Floral Oil
+      type: 0
+      completed: 0
+    - missionText: Mint
       type: 0
       completed: 0
     - missionText: Merge 3 items
@@ -29993,7 +30253,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5015209, y: 0.5}
   m_AnchorMax: {x: 0.5015209, y: 0.5}
-  m_AnchoredPosition: {x: -2.65, y: 6.3}
+  m_AnchoredPosition: {x: -2.35, y: 5.3}
   m_SizeDelta: {x: 140.3302, y: 18.7631}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!4 &447372301398495785
@@ -32796,7 +33056,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColor: {r: 0.9098039, g: 0.8862745, b: 0.8862745, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -32813,8 +33073,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 10
-  m_fontSizeBase: 10
+  m_fontSize: 8
+  m_fontSizeBase: 8
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -36123,6 +36383,7 @@ RectTransform:
   - {fileID: 8448017510003188646}
   - {fileID: 133852299}
   - {fileID: 427414487595121370}
+  - {fileID: 286116346}
   - {fileID: 569229676}
   - {fileID: 279105289}
   - {fileID: 2073011043}
