@@ -4144,6 +4144,7 @@ MonoBehaviour:
   fader: {fileID: 1980171009}
   spawnTransform: {fileID: 382821126}
   targetTransform: {fileID: 588726950}
+  targetInvItem: {x: 887, y: 467}
   cheapCoins: 5
   expensiveCoins: 20
 --- !u!1 &636488571
