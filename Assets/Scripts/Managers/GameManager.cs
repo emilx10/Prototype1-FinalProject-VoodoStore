@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -329,15 +330,22 @@ public class GameManager : MonoBehaviour
 
         for (int i = 0; i < selectedCraftingItems.Count; i++)
         {
-            GameObject txtObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
-            TMP_Text txt = txtObj.GetComponent<TMP_Text>();
-            //txt.text = selectedCraftingItems[i].itemName;
-            txt.text = "";
-            RectTransform rt = txtObj.GetComponent<RectTransform>();
-            updateText tag = txtObj.GetComponent<updateText>();
+            GameObject btnObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
 
-            tag.updateTheText(selectedCraftingItems[i].itemName);
+            // Get the Icon inside Button child
+            Image iconImage = btnObj.transform.Find("Button/Icon")?.GetComponent<Image>();
+            if (iconImage != null && selectedCraftingItems[i].icon != null)
+            {
+                iconImage.sprite = selectedCraftingItems[i].icon;
+                iconImage.enabled = true;
+            }
+            else
+            {
+                Debug.LogWarning($"Icon missing for item {selectedCraftingItems[i].itemName}");
+            }
 
+            // Position button
+            RectTransform rt = btnObj.GetComponent<RectTransform>();
             if (selectedCraftingItems.Count == 1)
                 rt.anchoredPosition = Vector2.zero;
             else if (selectedCraftingItems.Count == 2)
@@ -354,7 +362,76 @@ public class GameManager : MonoBehaviour
     public void MergeItems()
     {
         if (selectedCraftingItems.Count < 2) return;
+        StartCoroutine(MergeAnimationCoroutine());
+    }
 
+    private IEnumerator MergeAnimationCoroutine()
+    {
+        // Collect all images to animate
+        List<Image> imagesToAnimate = new List<Image>();
+
+        foreach (Transform buttonTransform in selectedItemsParent)
+        {
+
+            // Icon child Image
+            Transform bTransform = buttonTransform.Find("Button");
+            if (bTransform != null)
+            {
+                Image iconImg = bTransform.GetComponent<Image>();
+                if (iconImg != null)
+                {
+                    Material iconMat = new Material(iconImg.material); // unique material
+                    iconImg.material = iconMat;
+                    iconMat.SetFloat("_LifeTime", -2f);
+                    imagesToAnimate.Add(iconImg);
+                }
+            }
+            Transform iconTransform = buttonTransform.Find("Button/Icon");
+            if (iconTransform != null)
+            {
+                Image iconImg = iconTransform.GetComponent<Image>();
+                if (iconImg != null)
+                {
+                    Material iconMat = new Material(iconImg.material); // unique material
+                    iconImg.material = iconMat;
+                    iconMat.SetFloat("_LifeTime", -2f);
+                    imagesToAnimate.Add(iconImg);
+                }
+            }
+        }
+
+        float duration = 1f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float value = Mathf.Lerp(-2f, 1f, elapsed / duration);
+
+            foreach (Image img in imagesToAnimate)
+            {
+                img.material.SetFloat("_LifeTime", value);
+                img.SetMaterialDirty(); // force Canvas to redraw
+                Debug.Log($"Animating {img.name} _LifeTime = {value}");
+            }
+
+            yield return null;
+        }
+
+        // Ensure final value
+        foreach (Image img in imagesToAnimate)
+        {
+            img.material.SetFloat("_LifeTime", 1f);
+            img.SetMaterialDirty();
+            Debug.Log($"Final _LifeTime for {img.name} = 1");
+        }
+
+        // After animation finishes, give the item
+        CraftSelectedItems();
+    }
+
+    private void CraftSelectedItems()
+    {
         bool craftedSomething = false;
 
         foreach (Recipe recipe in recipes)
@@ -410,9 +487,6 @@ public class GameManager : MonoBehaviour
         RefreshCraftingUI();
         PopulateInventoryPanel();
         FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.MergeItems);
-
-        if (inventoryPanel.activeSelf)
-            PopulateInventoryPanel();
     }
 
     void ReturnCraftingItemsToInventory()
