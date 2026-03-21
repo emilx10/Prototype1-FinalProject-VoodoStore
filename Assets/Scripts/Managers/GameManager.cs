@@ -25,6 +25,9 @@ public class MarketItem
     [TextArea(2, 5)]
     public string description;
 
+    [Header("Icon")]
+    public Sprite icon;
+
     [Header("Sell Price Limits")]
     public int minSellPrice;
     public int maxSellPrice;
@@ -48,6 +51,9 @@ public class Recipe
     public ItemCategory category;
     public List<string> ingredients;
 
+    [Header("Icon")]
+    public Sprite icon;
+
     [Header("Sell Price Limits")]
     public int minSellPrice;
     public int maxSellPrice;
@@ -60,6 +66,7 @@ public class InventoryItem
     public int count;
     public ItemCategory category;
     public string description;
+    public Sprite icon;
 }
 
 [System.Serializable]
@@ -148,6 +155,7 @@ public class GameManager : MonoBehaviour
     private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
     private int konamiIndex = 0;
     private Dictionary<MarketItem, int> marketStock = new Dictionary<MarketItem, int>();
+    private Market currentMarket;
 
     public List<InventoryItem> GetInventoryItems()
     {
@@ -182,6 +190,7 @@ public class GameManager : MonoBehaviour
 
     public void OpenMarket(Market market)
     {
+        currentMarket = market;
         marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
         ad.PlaySfx(vol, SFX.EnteredShop, pitch);
@@ -196,14 +205,16 @@ public class GameManager : MonoBehaviour
             tooltip.marketItem = item;
 
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
-
             int stock = marketStock[item];
-            txt.text = $"{item.itemName} - {item.price} coins ({stock})";
-
+            txt.text = "x " + stock;
             ApplyCategoryStyle(btn, item.category);
 
             Button button = btn.GetComponent<Button>();
             button.interactable = stock > 0;
+
+            Image iconImage = btn.transform.Find("Icon").GetComponent<Image>();
+            iconImage.sprite = item.icon;
+            iconImage.enabled = item.icon != null;
 
             button.onClick.AddListener(() =>
             {
@@ -232,7 +243,7 @@ public class GameManager : MonoBehaviour
         coins -= item.price;
         marketStock[item]--;
 
-        AddToInventory(item.itemName, item.category, item.description);
+        AddToInventory(item.itemName, item.category, item.description, item.icon);
 
         ShowInventoryStar();
         PopulateInventoryPanel();
@@ -241,7 +252,9 @@ public class GameManager : MonoBehaviour
         ad.PlaySfx(vol, SFX.Buying, pitch);
 
         OnItemBought?.Invoke();
-        OpenMarketByIndex(0);
+        objectiveManager.UpdateTasksFromInventory(GetInventoryItems());
+
+        OpenMarket(currentMarket); 
     }
 
     // ------------------- CRAFTING -------------------
@@ -274,9 +287,14 @@ public class GameManager : MonoBehaviour
             tooltip.inventoryItem = item;
 
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
-            txt.text = $"{item.itemName} x{item.count}";
+            if (txt != null)
+                txt.gameObject.SetActive(false);
 
             ApplyCategoryStyle(btn, item.category);
+
+            Image iconImage = btn.transform.Find("Icon").GetComponent<Image>();
+            iconImage.sprite = item.icon;
+            iconImage.enabled = item.icon != null;
 
             btn.GetComponent<Button>().onClick.AddListener(() => SelectCraftingItem(item));
         }
@@ -293,7 +311,8 @@ public class GameManager : MonoBehaviour
         {
             itemName = item.itemName,
             category = item.category,
-            count = 1
+            count = 1,
+            icon = item.icon
         });
 
         // Remove one from inventory stack
@@ -371,7 +390,7 @@ public class GameManager : MonoBehaviour
             if (match)
             {
                 ad.PlaySfx(vol, SFX.MergePotion, pitch);
-                AddToInventory(recipe.potionName, recipe.category, "");
+                AddToInventory(recipe.potionName, recipe.category, "", recipe.icon);
                 craftedSomething = true;
                 OnSuccessfulMerge?.Invoke();
                 break;
@@ -380,7 +399,7 @@ public class GameManager : MonoBehaviour
 
         if (!craftedSomething)
         {
-            AddToInventory(junkItemName, ItemCategory.Junk);
+            AddToInventory(junkItemName, ItemCategory.Junk, "", null);
             ad.PlaySfx(vol, SFX.JunkMerge, pitch);
             OnFailedMerge?.Invoke();
         }
@@ -451,14 +470,37 @@ public class GameManager : MonoBehaviour
         {
             GameObject btn = Instantiate(buttonPrefab, sellItemsParent);
 
-            // Assign tooltip
             var tooltip = btn.GetComponent<ItemHoverTooltip>();
             tooltip.inventoryItem = item;
 
+            // HIDE old text
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
-            txt.text = $"{item.itemName} x{item.count}";
+            if (txt != null)
+                txt.gameObject.SetActive(false);
 
             ApplyCategoryStyle(btn, item.category);
+
+            // ICON
+            Transform iconTransform = btn.transform.Find("Icon");
+            if (iconTransform != null)
+            {
+                Image iconImage = iconTransform.GetComponent<Image>();
+                iconImage.sprite = item.icon;
+                iconImage.enabled = item.icon != null;
+                iconImage.raycastTarget = false; 
+            }
+
+            // COUNT TEXT
+            Transform countTransform = btn.transform.Find("CountText");
+            if (countTransform != null)
+            {
+                TMP_Text countText = countTransform.GetComponent<TMP_Text>();
+
+                if (item.count > 1)
+                    countText.text = "x " + item.count;
+                else
+                    countText.text = "";
+            }
 
             btn.GetComponent<Button>().onClick.AddListener(() => OnSellClicked(item));
         }
@@ -491,7 +533,7 @@ public class GameManager : MonoBehaviour
 
 
     // ------------------- INVENTORY -------------------
-    void AddToInventory(string name, ItemCategory category, string description = "")
+    void AddToInventory(string name, ItemCategory category, string description = "", Sprite icon = null)
     {
         ShowObjectiveDiscoveryStar();
 
@@ -508,7 +550,8 @@ public class GameManager : MonoBehaviour
                 itemName = name,
                 count = 1,
                 category = category,
-                description = description
+                description = description,
+                icon = icon   
             });
         }
 
@@ -543,11 +586,12 @@ public class GameManager : MonoBehaviour
             GameObject row = Instantiate(inventoryRowPrefab, inventoryListParent);
 
             // Assign texts properly
-            TMP_Text itemNameText = row.transform.Find("ItemNameText").GetComponent<TMP_Text>();
+            Image iconImage = row.transform.Find("Icon").GetComponent<Image>();
             TMP_Text itemCountText = row.transform.Find("ItemCountText").GetComponent<TMP_Text>();
             Button investigateBtn = row.transform.Find("InvestigateButton").GetComponent<Button>();
 
-            itemNameText.text = item.itemName;
+            iconImage.sprite = item.icon;
+            iconImage.enabled = item.icon != null;
             itemCountText.text = "x" + item.count;
 
             // Setup investigate button

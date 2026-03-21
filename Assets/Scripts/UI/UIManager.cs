@@ -46,7 +46,7 @@ public class UIManager : MonoBehaviour
     public void OpenMarket()
     {
         CloseAll();
-        marketPanel.SetActive(true);
+        gameManager.EndDay();
     }
 
     public void OpenItems()

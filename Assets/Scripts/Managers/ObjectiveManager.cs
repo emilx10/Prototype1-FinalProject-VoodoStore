@@ -175,40 +175,24 @@ public class ObjectiveManager : MonoBehaviour
             switch (mission.type)
             {
                 case MissionType.BuyItems:
-                    string cleaned = mission.missionText
-                      .ToLower()
-                      .Replace("buy", "")
-                      .Replace("sell", "")
-                      .Trim();
-
-                    string[] requiredItems = cleaned
-                        .Split(new string[] { ",", "and" }, System.StringSplitOptions.RemoveEmptyEntries);
-
-
-                    bool allOwned = true;
-                    foreach (string req in requiredItems)
                     {
-                        string r = req.Trim();
+                        string requiredItem = mission.missionText.Trim().ToLower();
+
                         bool found = false;
 
                         foreach (var inv in playerInventory)
                         {
-                            if (inv.count > 0 && inv.itemName.Trim().ToLower() == r)
+                            if (inv.count > 0 &&
+                                inv.itemName.Trim().ToLower() == requiredItem)
                             {
                                 found = true;
                                 break;
                             }
                         }
 
-                        if (!found)
-                        {
-                            allOwned = false;
-                            break;
-                        }
+                        mission.completed = found;
+                        break;
                     }
-
-                    mission.completed = allOwned;
-                    break;
 
                 case MissionType.MergeItems:
                     // For merge items, you must set mission.completed = true manually when merge occurs
