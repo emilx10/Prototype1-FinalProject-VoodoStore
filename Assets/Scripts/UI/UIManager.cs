@@ -32,7 +32,7 @@ public class UIManager : MonoBehaviour
     public void OpenInventory()
     {
         marketPanel.SetActive(false);
-        inventoryPanel.SetActive(true);
+        gameManager.OpenInventoryPanel();
     }
 
     public void OpenMerge()

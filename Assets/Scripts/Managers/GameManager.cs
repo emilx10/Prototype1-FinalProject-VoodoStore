@@ -110,6 +110,7 @@ public class GameManager : MonoBehaviour
     [Header("Junk Settings")]
     [SerializeField] private string junkItemName = "Junk";
     [SerializeField] private int junkSellPrice = 1;
+    [SerializeField] private Sprite junkIcon;
 
     [Header("Crafting Selection UI")]
     public Transform selectedItemsParent;
@@ -158,6 +159,15 @@ public class GameManager : MonoBehaviour
     private Dictionary<MarketItem, int> marketStock = new Dictionary<MarketItem, int>();
     private Market currentMarket;
 
+
+    private HashSet<string> discoveredItems = new HashSet<string>();
+    private bool hasUnseenNewItem = false;
+    private HashSet<string> lockedItemsToday = new HashSet<string>();
+
+    [Header("Inventory Button")]
+    [SerializeField] private Button inventoryButton;
+    public ButtonBreather inventoryBreather;
+
     public List<InventoryItem> GetInventoryItems()
     {
         return inventory;
@@ -168,7 +178,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         RandomizeMarketStock();
-        StartMarketPhase();
+        inventoryBreather = inventoryButton.GetComponent<ButtonBreather>();
         PopulateInventoryPanel();
         UpdateCoinsUI();
         priceSlider.minValue = 0;
@@ -476,7 +486,7 @@ public class GameManager : MonoBehaviour
 
         if (!craftedSomething)
         {
-            AddToInventory(junkItemName, ItemCategory.Junk, "", null);
+            AddToInventory(junkItemName, ItemCategory.Junk, "", junkIcon);
             ad.PlaySfx(vol, SFX.JunkMerge, pitch);
             OnFailedMerge?.Invoke();
         }
@@ -576,7 +586,17 @@ public class GameManager : MonoBehaviour
                     countText.text = "";
             }
 
-            btn.GetComponent<Button>().onClick.AddListener(() => OnSellClicked(item));
+            Button button = btn.GetComponent<Button>();
+
+            if (lockedItemsToday.Contains(item.itemName))
+            {
+                button.interactable = false;
+            }
+            else
+            {
+                button.interactable = true;
+                button.onClick.AddListener(() => OnSellClicked(item));
+            }
         }
     }
     void OnPriceSliderChanged(float value)
@@ -609,6 +629,8 @@ public class GameManager : MonoBehaviour
     // ------------------- INVENTORY -------------------
     void AddToInventory(string name, ItemCategory category, string description = "", Sprite icon = null)
     {
+        bool isNewItem = !discoveredItems.Contains(name);
+
         ShowObjectiveDiscoveryStar();
 
         InventoryItem existing = inventory.Find(i => i.itemName == name);
@@ -625,8 +647,18 @@ public class GameManager : MonoBehaviour
                 count = 1,
                 category = category,
                 description = description,
-                icon = icon   
+                icon = icon
             });
+        }
+
+        if (isNewItem)
+        {
+            discoveredItems.Add(name);
+
+            hasUnseenNewItem = true;
+
+            if (inventoryBreather != null)
+                inventoryBreather.StartBreathing();
         }
 
         OnItemAdded?.Invoke(name, category);
@@ -648,6 +680,14 @@ public class GameManager : MonoBehaviour
     {
         inventoryPanel.SetActive(true);
         PopulateInventoryPanel();
+
+        if (hasUnseenNewItem)
+        {
+            hasUnseenNewItem = false;
+
+            if (inventoryBreather != null)
+                inventoryBreather.StopBreathing();
+        }
     }
 
     public void PopulateInventoryPanel()
@@ -687,7 +727,7 @@ public class GameManager : MonoBehaviour
         craftingPanel.SetActive(false);
         sellPanel.SetActive(false);
         inventoryPanel.SetActive(false);
-
+        lockedItemsToday.Clear();
         objectiveManager.ResetDailyInvestigations();
         PopulateInventoryPanel();
 
@@ -750,6 +790,13 @@ public class GameManager : MonoBehaviour
         if (price < min || price > max)
         {
             Debug.Log($"Blocked sale: {price} not in range {min}-{max}");
+
+            lockedItemsToday.Add(pendingSellItem.itemName);
+
+            pendingSellItem = null;
+            sellConfirmPanel.SetActive(false);
+
+            RefreshSellUI(); // update buttons immediately
             return;
         }
 
