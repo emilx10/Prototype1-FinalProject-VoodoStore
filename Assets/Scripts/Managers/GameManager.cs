@@ -503,14 +503,34 @@ public class GameManager : MonoBehaviour
     {
         foreach (var item in selectedCraftingItems)
         {
-            AddToInventory(item.itemName, item.category);
+            // Add one unit back to inventory, preserving icon and description
+            InventoryItem existing = inventory.Find(i => i.itemName == item.itemName);
+            if (existing != null)
+            {
+                existing.count += 1; // increment count
+            }
+            else
+            {
+                inventory.Add(new InventoryItem
+                {
+                    itemName = item.itemName,
+                    count = 1,
+                    category = item.category,
+                    description = item.description, // keep original description
+                    icon = item.icon              // keep original icon
+                });
+            }
         }
 
+        // Clear the selected list
         selectedCraftingItems.Clear();
+
+        // Refresh the UI safely
         RefreshSelectedItemsUI();
         RefreshCraftingUI();
         PopulateInventoryPanel();
     }
+
     // ------------------- SELL -------------------
     public void OpenSell()
     {
