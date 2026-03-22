@@ -265,7 +265,34 @@ public class GameManager : MonoBehaviour
         OnItemBought?.Invoke(item.icon);
         objectiveManager.UpdateTasksFromInventory(GetInventoryItems());
 
-        OpenMarket(currentMarket); 
+        RefreshMarketItemsUI(); // <-- just refresh buttons and counts
+    }
+
+    void RefreshMarketItemsUI()
+    {
+        ClearChildren(itemsButtonsParent);
+
+        foreach (MarketItem item in currentMarket.items)
+        {
+            GameObject btn = Instantiate(buttonPrefab, itemsButtonsParent);
+
+            var tooltip = btn.GetComponent<ItemHoverTooltip>();
+            tooltip.marketItem = item;
+
+            TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
+            int stock = marketStock[item];
+            txt.text = "x " + stock;
+            ApplyCategoryStyle(btn, item.category);
+
+            Button button = btn.GetComponent<Button>();
+            button.interactable = stock > 0;
+
+            Image iconImage = btn.transform.Find("Icon").GetComponent<Image>();
+            iconImage.sprite = item.icon;
+            iconImage.enabled = item.icon != null;
+
+            button.onClick.AddListener(() => BuyItem(item));
+        }
     }
 
     // ------------------- CRAFTING -------------------
