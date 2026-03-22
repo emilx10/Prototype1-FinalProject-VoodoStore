@@ -8,20 +8,13 @@ public class TooltipManager : MonoBehaviour
     public GameObject container;
     public TMP_Text tooltipText;
 
-    RectTransform rect;
-    RectTransform canvasRect;
-    Camera cam;
-
-    [SerializeField] Vector2 mouseOffset = new Vector2(40, -40); // right + down
+    private RectTransform rect;
+    [SerializeField] private Vector3 mouseOffset = new Vector3(0.5f, -0.5f, 0f); // offset from mouse in world units
 
     void Awake()
     {
         Instance = this;
-
         rect = container.GetComponent<RectTransform>();
-        canvasRect = GetComponentInParent<Canvas>().GetComponent<RectTransform>();
-        cam = Camera.main;
-
         container.SetActive(false);
     }
 
@@ -29,27 +22,30 @@ public class TooltipManager : MonoBehaviour
     {
         if (!container.activeSelf) return;
 
-        Vector2 pos;
+        // Convert mouse screen position to world position
+        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
-        RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            canvasRect,
-            Input.mousePosition,
-            cam,
-            out pos
-        );
+        // Set Z to match the tooltip's canvas (so it renders properly)
+        mouseWorldPos.z = rect.position.z;
 
-        rect.anchoredPosition = pos + mouseOffset;
+        // Apply offset
+        rect.position = mouseWorldPos + mouseOffset;
     }
 
+    /// <summary>
+    /// Show the tooltip with a text
+    /// </summary>
     public void Show(string text)
     {
-        if (string.IsNullOrEmpty(text))
-            return;
+        if (string.IsNullOrEmpty(text)) return;
 
         tooltipText.text = text;
         container.SetActive(true);
     }
 
+    /// <summary>
+    /// Hide the tooltip
+    /// </summary>
     public void Hide()
     {
         container.SetActive(false);

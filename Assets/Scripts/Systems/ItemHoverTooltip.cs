@@ -1,5 +1,4 @@
 using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -22,7 +21,10 @@ public class ItemHoverTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExi
         }
 
         if (!string.IsNullOrEmpty(text))
+        {
+            // Pass the RectTransform of the UI element this script is on
             TooltipManager.Instance.Show(text);
+        }
     }
 
     public void OnPointerExit(PointerEventData eventData)
