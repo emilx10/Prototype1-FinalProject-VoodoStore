@@ -1270,8 +1270,8 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+    rgba: 4291231845
+  m_fontColor: {r: 0.39607844, g: 0, b: 0.78039217, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -1294,7 +1294,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 1
+  m_fontStyle: 5
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -2018,7 +2018,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.9098039, g: 0.8862745, b: 0.8862745, a: 1}
+  m_fontColor: {r: 0.39607844, g: 0, b: 0.78039217, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -2041,7 +2041,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -3847,7 +3847,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5015209, y: 0.5}
   m_AnchorMax: {x: 0.5015209, y: 0.5}
-  m_AnchoredPosition: {x: -2.35, y: 3.6}
+  m_AnchoredPosition: {x: -2.35, y: 3}
   m_SizeDelta: {x: 140.3302, y: 18.7631}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &618557759
@@ -9933,28 +9933,28 @@ MonoBehaviour:
       category: 0
       description: Red Gem
       icon: {fileID: 21300000, guid: bdbdb0f6b4442c54bb79807aaa7f77b4, type: 3}
-      minSellPrice: 0
+      minSellPrice: 1
       maxSellPrice: 8
       minAmount: 1
-      maxAmount: 5
+      maxAmount: 3
     - itemName: Agate
       price: 5
       category: 0
       description: 
       icon: {fileID: 21300000, guid: 5ff25c09f0b24cd4b864baa77b4e33fb, type: 3}
-      minSellPrice: 0
+      minSellPrice: 1
       maxSellPrice: 4
       minAmount: 1
-      maxAmount: 5
+      maxAmount: 3
     - itemName: Obsidian
       price: 9
       category: 0
       description: 
       icon: {fileID: 21300000, guid: d982b9844857e99408e39ff906d81f25, type: 3}
-      minSellPrice: 0
+      minSellPrice: 1
       maxSellPrice: 7
       minAmount: 1
-      maxAmount: 5
+      maxAmount: 3
   - marketName: Oils
     items:
     - itemName: Olive Oil
@@ -9962,28 +9962,28 @@ MonoBehaviour:
       category: 1
       description: 
       icon: {fileID: 21300000, guid: ad5f505d018245b45a9228d68a94b1cd, type: 3}
-      minSellPrice: 0
+      minSellPrice: 1
       maxSellPrice: 6
       minAmount: 1
-      maxAmount: 1
+      maxAmount: 3
     - itemName: Leech oil
       price: 6
       category: 1
       description: 
       icon: {fileID: 21300000, guid: 6fe7bff5df3eb4a4fb50d41b81109f05, type: 3}
-      minSellPrice: 0
+      minSellPrice: 1
       maxSellPrice: 4
       minAmount: 1
-      maxAmount: 1
+      maxAmount: 3
     - itemName: 'Floral Oil '
       price: 5
       category: 1
       description: 
       icon: {fileID: 21300000, guid: 0532ad759cd31d0409b011c7369d39c2, type: 3}
-      minSellPrice: 0
+      minSellPrice: 1
       maxSellPrice: 4
       minAmount: 1
-      maxAmount: 1
+      maxAmount: 3
   - marketName: Herbs
     items:
     - itemName: Mint
@@ -9991,33 +9991,33 @@ MonoBehaviour:
       category: 2
       description: 
       icon: {fileID: 21300000, guid: 1ebb43585d0c8cf47a51a21e37f9a8ba, type: 3}
-      minSellPrice: 0
+      minSellPrice: 1
       maxSellPrice: 2
       minAmount: 1
-      maxAmount: 1
+      maxAmount: 4
     - itemName: Human eye
       price: 5
       category: 2
       description: 
       icon: {fileID: 21300000, guid: b7bcf4bd7e6510f45a907e081f263344, type: 3}
-      minSellPrice: 0
+      minSellPrice: 1
       maxSellPrice: 4
       minAmount: 1
-      maxAmount: 1
+      maxAmount: 4
     - itemName: Dandelion
       price: 7
       category: 2
       description: 
       icon: {fileID: 21300000, guid: 01db5f9ead012c248b7bfe11097dd62d, type: 3}
-      minSellPrice: 0
+      minSellPrice: 1
       maxSellPrice: 5
       minAmount: 1
-      maxAmount: 1
+      maxAmount: 4
   recipes:
   - potionName: Voodoo doll
     category: 3
     ingredients:
-    - Lemon-grass
+    - Human eye
     - Obsidian
     - Floral Oil
     icon: {fileID: 21300000, guid: 4beb192d09314414e9ebb7fea2e38577, type: 3}
@@ -10027,7 +10027,7 @@ MonoBehaviour:
     category: 3
     ingredients:
     - Dandelion
-    - Mint
+    - Human eye
     - Olive Oil
     icon: {fileID: 21300000, guid: 9f348e0c1b653d2408d39ee3770b0d0e, type: 3}
     minSellPrice: 10
@@ -10035,36 +10035,36 @@ MonoBehaviour:
   - potionName: Crystal ball
     category: 3
     ingredients:
-    - Agate
-    - Ruby
-    - Eucalyptus oil
+    - Human eye
+    - Blood Garnet
+    - Leech oil
     icon: {fileID: 21300000, guid: da70e09bab853d94fab52c0b1d005314, type: 3}
     minSellPrice: 10
     maxSellPrice: 65
   - potionName: Good hair day charm
     category: 3
     ingredients:
-    - Eucalyptus oil
+    - Leech oil
     - Floral Oil
-    - Lemon-grass
+    - Human eye
     icon: {fileID: 21300000, guid: e405629e37801e543835cac9ebe04da3, type: 3}
     minSellPrice: 10
     maxSellPrice: 55
   - potionName: Rings of pain relief
     category: 3
     ingredients:
-    - Eucalyptus oil
+    - Leech oil
     - Floral Oil
-    - Lemon-grass
+    - Mint
     icon: {fileID: 21300000, guid: f47e888d280dacf438c912017c1c152c, type: 3}
     minSellPrice: 10
     maxSellPrice: 62
   - potionName: Happyness tiara
     category: 3
     ingredients:
-    - Eucalyptus oil
+    - Leech oil
     - Floral Oil
-    - Lemon-grass
+    - Human eye
     icon: {fileID: 21300000, guid: 48cfed2aa22ba7441945bb8d7eaf7387, type: 3}
     minSellPrice: 10
     maxSellPrice: 50
@@ -10076,13 +10076,13 @@ MonoBehaviour:
     - Floral oil
     icon: {fileID: 21300000, guid: b0886d7341fba3845a0cf6eb5ab05e34, type: 3}
     minSellPrice: 10
-    maxSellPrice: 80
+    maxSellPrice: 50
   - potionName: Sleep Potion
     category: 3
     ingredients:
     - Dandelion
     - Olive Oil
-    - Eucalyptus Oil
+    - Leech oil
     icon: {fileID: 21300000, guid: 4fa62c45a9d46154bb554bfc536221e5, type: 3}
     minSellPrice: 10
     maxSellPrice: 58
@@ -10091,7 +10091,7 @@ MonoBehaviour:
     ingredients:
     - Obsidian
     - Olive Oil
-    - Ruby
+    - Blood Garnet
     icon: {fileID: 21300000, guid: 290f01ab1bd32ea469480b6c0daad555, type: 3}
     minSellPrice: 10
     maxSellPrice: 72
@@ -17514,7 +17514,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5015209, y: 0.5}
   m_AnchorMax: {x: 0.5015209, y: 0.5}
-  m_AnchoredPosition: {x: -2.35, y: 3}
+  m_AnchoredPosition: {x: -2.35, y: 3.6}
   m_SizeDelta: {x: 140.3302, y: 18.7631}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &1316930277
@@ -29984,7 +29984,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 0.9098039, g: 0.8862745, b: 0.8862745, a: 1}
+  m_fontColor: {r: 0.39607844, g: 0, b: 0.78039217, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -30007,7 +30007,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -30117,7 +30117,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 199, y: 0}
+  m_AnchoredPosition: {x: -173, y: -13}
   m_SizeDelta: {x: 236, y: 105}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1970753006
@@ -30552,7 +30552,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -201.7, y: 0}
+  m_AnchoredPosition: {x: 199, y: 0}
   m_SizeDelta: {x: 146, y: 145}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2124587108
@@ -31183,8 +31183,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 3.473, y: 5.746}
-  m_SizeDelta: {x: 70.206, y: 38.624}
+  m_AnchoredPosition: {x: 3.6957, y: 5.746}
+  m_SizeDelta: {x: 81.3426, y: 38.624}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!212 &458260516515150598
 SpriteRenderer:
@@ -38628,7 +38628,7 @@ MonoBehaviour:
   m_fontColor32:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontColor: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColor: {r: 0.39607844, g: 0, b: 0.78039217, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -38651,7 +38651,7 @@ MonoBehaviour:
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 5
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
