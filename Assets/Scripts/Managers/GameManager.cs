@@ -80,6 +80,8 @@ public struct CategoryStyle
 
 public class GameManager : MonoBehaviour
 {
+    private HashSet<string> discoveredRecipes = new HashSet<string>();
+
     [Header("SoundManager")]
     public AudioManager ad;
     [SerializeField] float vol,pitch;
@@ -143,7 +145,10 @@ public class GameManager : MonoBehaviour
     [Header("Coin Floating Text")]
     [SerializeField] private GameObject floatingCoinTextPrefab;
     [SerializeField] private Transform floatingTextSpawnPoint;
-
+    [Header("Known Recipes UI")]
+    [SerializeField] private GameObject knownRecipesPanel;
+    [SerializeField] private Transform knownRecipesParent;
+    [SerializeField] private GameObject knownRecipePrefab;
 
     public static UnityAction<Sprite> OnItemBought;
     public static UnityAction OnSuccessfulMerge;
@@ -174,6 +179,95 @@ public class GameManager : MonoBehaviour
     }
     public ObjectiveManager objectiveManager;
 
+    public void OpenKnownRecipes()
+    {
+        knownRecipesPanel.SetActive(true);
+        PopulateKnownRecipesUI();
+    }
+
+    public void CloseKnownRecipes()
+    {
+        knownRecipesPanel.SetActive(false);
+        PopulateKnownRecipesUI();
+    }
+
+    void PopulateKnownRecipesUI()
+    {
+        ClearChildren(knownRecipesParent);
+
+        foreach (Recipe recipe in recipes)
+        {
+            if (!discoveredRecipes.Contains(recipe.potionName))
+                continue;
+
+            GameObject obj = Instantiate(knownRecipePrefab, knownRecipesParent);
+
+            // RESULT ICON
+            Transform resultIconTransform = obj.transform.Find("ResultIcon");
+            if (resultIconTransform != null)
+            {
+                Image resultIcon = resultIconTransform.GetComponent<Image>();
+                resultIcon.sprite = recipe.icon;
+                resultIcon.enabled = recipe.icon != null;
+            }
+
+            // INGREDIENTS ROW
+            Transform ingredientsRow = obj.transform.Find("IngredientsRow");
+
+            if (ingredientsRow != null)
+            {
+                // Remove any LayoutGroup to control positions manually
+                LayoutGroup lg = ingredientsRow.GetComponent<LayoutGroup>();
+                if (lg != null) Destroy(lg);
+
+                float spacing = 60f; // X spacing between icons
+                for (int i = 0; i < recipe.ingredients.Count; i++)
+                {
+                    string ingredientName = recipe.ingredients[i];
+                    Sprite ingredientIcon = GetIconByNameInsensitive(ingredientName);
+
+                    GameObject iconObj = new GameObject("IngredientIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                    iconObj.transform.SetParent(ingredientsRow, false);
+
+                    Image img = iconObj.GetComponent<Image>();
+                    img.sprite = ingredientIcon;
+                    img.enabled = ingredientIcon != null;
+
+                    // Set size manually
+                    RectTransform rt = iconObj.GetComponent<RectTransform>();
+                    rt.sizeDelta = new Vector2(50, 50); // adjust as needed
+                    rt.anchoredPosition = new Vector2(i * spacing, 0); // horizontal placement
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds the icon for an item name, ignoring case and spaces
+    /// </summary>
+    Sprite GetIconByNameInsensitive(string itemName)
+    {
+        string cleanedName = itemName.Replace(" ", "").ToLower();
+
+        // Check market items
+        foreach (var market in markets)
+        {
+            foreach (var item in market.items)
+            {
+                if (item.itemName.Replace(" ", "").ToLower() == cleanedName)
+                    return item.icon;
+            }
+        }
+
+        // Check recipes (crafted items)
+        foreach (var recipe in recipes)
+        {
+            if (recipe.potionName.Replace(" ", "").ToLower() == cleanedName)
+                return recipe.icon;
+        }
+
+        return null;
+    }
     // ------------------- START -------------------
     void Start()
     {
@@ -505,6 +599,7 @@ public class GameManager : MonoBehaviour
             {
                 ad.PlaySfx(vol, SFX.MergePotion, pitch);
                 AddToInventory(recipe.potionName, recipe.category, "", recipe.icon);
+                discoveredRecipes.Add(recipe.potionName);
                 craftedSomething = true;
                 OnSuccessfulMerge?.Invoke();
                 break;
