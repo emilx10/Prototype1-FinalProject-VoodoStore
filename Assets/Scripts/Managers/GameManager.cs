@@ -394,7 +394,7 @@ public class GameManager : MonoBehaviour
     {
         marketPanel.SetActive(false);
         itemsPanel.SetActive(false);
-        sellPanel.SetActive(false);
+        sellPanel.SetActive(true);
 
         craftingPanel.SetActive(true);
 

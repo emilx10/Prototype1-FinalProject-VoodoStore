@@ -37,7 +37,6 @@ public class UIManager : MonoBehaviour
 
     public void OpenMerge()
     {
-        CloseAll();
         mergePanel.SetActive(true);
 
         gameManager.OpenCrafting(); // refresh crafting items
