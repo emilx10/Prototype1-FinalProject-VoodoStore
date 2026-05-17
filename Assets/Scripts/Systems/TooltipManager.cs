@@ -1,8 +1,11 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class TooltipManager : MonoBehaviour
 {
+    private const int TooltipSortingOrder = 200;
+
     public static TooltipManager Instance;
 
     public GameObject container;
@@ -15,7 +18,27 @@ public class TooltipManager : MonoBehaviour
     {
         Instance = this;
         rect = container.GetComponent<RectTransform>();
+        EnsureTooltipCanvas();
         container.SetActive(false);
+    }
+
+    private void EnsureTooltipCanvas()
+    {
+        if (container == null) return;
+
+        Canvas canvas = container.GetComponentInParent<Canvas>();
+        if (canvas == null)
+        {
+            canvas = container.AddComponent<Canvas>();
+        }
+
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = TooltipSortingOrder;
+
+        if (canvas.GetComponent<GraphicRaycaster>() == null)
+        {
+            canvas.gameObject.AddComponent<GraphicRaycaster>();
+        }
     }
 
     void Update()

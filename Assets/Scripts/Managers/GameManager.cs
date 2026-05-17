@@ -80,6 +80,8 @@ public struct CategoryStyle
 
 public class GameManager : MonoBehaviour
 {
+    private const int ShopItemsSortingOrder = 150;
+
     private HashSet<string> discoveredRecipes = new HashSet<string>();
 
     [Header("SoundManager")]
@@ -271,6 +273,7 @@ public class GameManager : MonoBehaviour
     // ------------------- START -------------------
     void Start()
     {
+        EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
         RandomizeMarketStock();
         inventoryBreather = inventoryButton.GetComponent<ButtonBreather>();
         PopulateInventoryPanel();
@@ -296,8 +299,9 @@ public class GameManager : MonoBehaviour
     public void OpenMarket(Market market)
     {
         currentMarket = market;
-        marketPanel.SetActive(false);
+        //marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
+        EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
         ad.PlaySfx(vol, SFX.EnteredShop, pitch);
 
         ClearChildren(itemsButtonsParent);
@@ -325,6 +329,25 @@ public class GameManager : MonoBehaviour
             {
                 BuyItem(item);
             });
+        }
+    }
+
+    private void EnsureFrontCanvas(GameObject panel, int sortingOrder)
+    {
+        if (panel == null) return;
+
+        Canvas canvas = panel.GetComponent<Canvas>();
+        if (canvas == null)
+        {
+            canvas = panel.AddComponent<Canvas>();
+        }
+
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = sortingOrder;
+
+        if (panel.GetComponent<GraphicRaycaster>() == null)
+        {
+            panel.AddComponent<GraphicRaycaster>();
         }
     }
     void RandomizeMarketStock()

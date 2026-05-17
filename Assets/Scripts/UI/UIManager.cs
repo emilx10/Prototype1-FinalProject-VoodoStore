@@ -50,7 +50,6 @@ public class UIManager : MonoBehaviour
 
     public void OpenItems()
     {
-        CloseAll();
         itemsPanel.SetActive(true);
     }
 
