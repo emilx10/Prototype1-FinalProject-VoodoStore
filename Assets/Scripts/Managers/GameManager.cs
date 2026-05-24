@@ -711,7 +711,7 @@ public class GameManager : MonoBehaviour
             PopulateInventoryPanel();
     }
 
-    void RefreshSellUI()
+    public void RefreshSellUI()
     {
         ClearChildren(sellItemsParent);
 

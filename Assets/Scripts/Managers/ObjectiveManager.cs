@@ -149,11 +149,14 @@ public class ObjectiveManager : MonoBehaviour
             TaskRow row = taskRows[i];
             Mission mission = obj.missions[i];
 
-            if (row.taskText != null)
-                row.taskText.text = mission.missionText;
-
             if (row.strikeLine != null)
                 row.strikeLine.SetActive(mission.completed);
+
+            if (row.taskText != null)
+            {
+                string progress = mission.completed ? "1/1" : "0/1";
+                row.taskText.text = $"{mission.missionText} {progress}";
+            }
         }
     }
 
@@ -203,9 +206,11 @@ public class ObjectiveManager : MonoBehaviour
             if (row.strikeLine != null)
                 row.strikeLine.SetActive(mission.completed);
 
-            // Update text just in case
             if (row.taskText != null)
-                row.taskText.text = mission.missionText;
+            {
+                string progress = mission.completed ? "1/1" : "0/1";
+                row.taskText.text = $"{mission.missionText} {progress}";
+            }
         }
     }
 
