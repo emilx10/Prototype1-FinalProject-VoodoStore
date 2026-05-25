@@ -154,8 +154,15 @@ public class ObjectiveManager : MonoBehaviour
 
             if (row.taskText != null)
             {
-                string progress = mission.completed ? "1/1" : "0/1";
-                row.taskText.text = $"{mission.missionText} {progress}";
+                if (mission.type == MissionType.BuyItems)
+                {
+                    string progress = mission.completed ? "1/1" : "0/1";
+                    row.taskText.text = $"{mission.missionText} {progress}";
+                }
+                else
+                {
+                    row.taskText.text = mission.missionText;
+                }
             }
         }
     }
@@ -208,8 +215,15 @@ public class ObjectiveManager : MonoBehaviour
 
             if (row.taskText != null)
             {
-                string progress = mission.completed ? "1/1" : "0/1";
-                row.taskText.text = $"{mission.missionText} {progress}";
+                if (mission.type == MissionType.BuyItems)
+                {
+                    string progress = mission.completed ? "1/1" : "0/1";
+                    row.taskText.text = $"{mission.missionText} {progress}";
+                }
+                else
+                {
+                    row.taskText.text = mission.missionText;
+                }
             }
         }
     }
