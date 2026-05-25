@@ -3366,6 +3366,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
+      - m_Target: {fileID: 223143934}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
 --- !u!114 &406426638
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10274,7 +10286,7 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 290f01ab1bd32ea469480b6c0daad555, type: 3}
     minSellPrice: 10
     maxSellPrice: 72
-  coins: 30
+  coins: 50
   sellConfirmPanel: {fileID: 2004838369}
   priceSlider: {fileID: 1459339995}
   priceValueText: {fileID: 1564996937}
@@ -16775,7 +16787,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 0}
+      - m_Target: {fileID: 275940467}
         m_TargetAssemblyTypeName: UnityEngine.UI.Button, UnityEngine.UI
         m_MethodName: set_interactable
         m_Mode: 6
@@ -16787,9 +16799,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 275940467}
-        m_TargetAssemblyTypeName: UnityEngine.UI.Button, UnityEngine.UI
-        m_MethodName: set_interactable
+      - m_Target: {fileID: 223143934}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
         m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
