@@ -5,7 +5,6 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
-using static UnityEditor.Progress;
 
 public enum ItemCategory
 {
@@ -16,20 +15,27 @@ public enum ItemCategory
     Junk
 }
 
+
 [System.Serializable]
 public class MarketItem
 {
     public string itemName;
     public int price;
     public ItemCategory category;
-    public Sprite Icon;
 
     [TextArea(2, 5)]
     public string description;
 
+    [Header("Icon")]
+    public Sprite icon;
+
     [Header("Sell Price Limits")]
     public int minSellPrice;
     public int maxSellPrice;
+
+    [Header("Random Amount Between Min->Max")]
+    public int minAmount;
+    public int maxAmount;
 }
 
 [System.Serializable]
@@ -45,7 +51,9 @@ public class Recipe
     public string potionName;
     public ItemCategory category;
     public List<string> ingredients;
-    public Sprite Icon;
+
+    [Header("Icon")]
+    public Sprite icon;
 
     [Header("Sell Price Limits")]
     public int minSellPrice;
@@ -59,7 +67,7 @@ public class InventoryItem
     public int count;
     public ItemCategory category;
     public string description;
-    public Sprite Icon;
+    public Sprite icon;
 }
 
 [System.Serializable]
@@ -72,6 +80,10 @@ public struct CategoryStyle
 
 public class GameManager : MonoBehaviour
 {
+    private const int ShopItemsSortingOrder = 150;
+
+    private HashSet<string> discoveredRecipes = new HashSet<string>();
+
     [Header("SoundManager")]
     public AudioManager ad;
     [SerializeField] float vol,pitch;
@@ -102,6 +114,7 @@ public class GameManager : MonoBehaviour
     [Header("Junk Settings")]
     [SerializeField] private string junkItemName = "Junk";
     [SerializeField] private int junkSellPrice = 1;
+    [SerializeField] private Sprite junkIcon;
 
     [Header("Crafting Selection UI")]
     public Transform selectedItemsParent;
@@ -134,9 +147,12 @@ public class GameManager : MonoBehaviour
     [Header("Coin Floating Text")]
     [SerializeField] private GameObject floatingCoinTextPrefab;
     [SerializeField] private Transform floatingTextSpawnPoint;
+    [Header("Known Recipes UI")]
+    [SerializeField] private GameObject knownRecipesPanel;
+    [SerializeField] private Transform knownRecipesParent;
+    [SerializeField] private GameObject knownRecipePrefab;
 
-    private List<UpdateItemButton> selectedItemUI = new List<UpdateItemButton>();
-    public static UnityAction <Sprite>OnItemBought;
+    public static UnityAction<Sprite> OnItemBought;
     public static UnityAction OnSuccessfulMerge;
     public static UnityAction OnFailedMerge;
     public static UnityAction <bool> OnItemSold;
@@ -146,16 +162,120 @@ public class GameManager : MonoBehaviour
     private InventoryItem pendingSellItem;
     private List<InventoryItem> inventory = new List<InventoryItem>();
     private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
+    private int konamiIndex = 0;
+    private Dictionary<MarketItem, int> marketStock = new Dictionary<MarketItem, int>();
+    private Market currentMarket;
+
+
+    private HashSet<string> discoveredItems = new HashSet<string>();
+    private bool hasUnseenNewItem = false;
+    private HashSet<string> lockedItemsToday = new HashSet<string>();
+
+    [Header("Inventory Button")]
+    [SerializeField] private Button inventoryButton;
+    public ButtonBreather inventoryBreather;
+
     public List<InventoryItem> GetInventoryItems()
     {
         return inventory;
     }
     public ObjectiveManager objectiveManager;
 
+    public void OpenKnownRecipes()
+    {
+        knownRecipesPanel.SetActive(true);
+        PopulateKnownRecipesUI();
+    }
+
+    public void CloseKnownRecipes()
+    {
+        knownRecipesPanel.SetActive(false);
+        PopulateKnownRecipesUI();
+    }
+
+    void PopulateKnownRecipesUI()
+    {
+        ClearChildren(knownRecipesParent);
+
+        foreach (Recipe recipe in recipes)
+        {
+            if (!discoveredRecipes.Contains(recipe.potionName))
+                continue;
+
+            GameObject obj = Instantiate(knownRecipePrefab, knownRecipesParent);
+
+            // RESULT ICON
+            Transform resultIconTransform = obj.transform.Find("ResultIcon");
+            if (resultIconTransform != null)
+            {
+                Image resultIcon = resultIconTransform.GetComponent<Image>();
+                resultIcon.sprite = recipe.icon;
+                resultIcon.enabled = recipe.icon != null;
+            }
+
+            // INGREDIENTS ROW
+            Transform ingredientsRow = obj.transform.Find("IngredientsRow");
+
+            if (ingredientsRow != null)
+            {
+                // Remove any LayoutGroup to control positions manually
+                LayoutGroup lg = ingredientsRow.GetComponent<LayoutGroup>();
+                if (lg != null) Destroy(lg);
+
+                float spacing = 60f; // X spacing between icons
+                for (int i = 0; i < recipe.ingredients.Count; i++)
+                {
+                    string ingredientName = recipe.ingredients[i];
+                    Sprite ingredientIcon = GetIconByNameInsensitive(ingredientName);
+
+                    GameObject iconObj = new GameObject("IngredientIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                    iconObj.transform.SetParent(ingredientsRow, false);
+
+                    Image img = iconObj.GetComponent<Image>();
+                    img.sprite = ingredientIcon;
+                    img.enabled = ingredientIcon != null;
+
+                    // Set size manually
+                    RectTransform rt = iconObj.GetComponent<RectTransform>();
+                    rt.sizeDelta = new Vector2(50, 50); // adjust as needed
+                    rt.anchoredPosition = new Vector2(i * spacing, 0); // horizontal placement
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds the icon for an item name, ignoring case and spaces
+    /// </summary>
+    Sprite GetIconByNameInsensitive(string itemName)
+    {
+        string cleanedName = itemName.Replace(" ", "").ToLower();
+
+        // Check market items
+        foreach (var market in markets)
+        {
+            foreach (var item in market.items)
+            {
+                if (item.itemName.Replace(" ", "").ToLower() == cleanedName)
+                    return item.icon;
+            }
+        }
+
+        // Check recipes (crafted items)
+        foreach (var recipe in recipes)
+        {
+            if (recipe.potionName.Replace(" ", "").ToLower() == cleanedName)
+                return recipe.icon;
+        }
+
+        return null;
+    }
     // ------------------- START -------------------
     void Start()
     {
-        StartMarketPhase();
+        EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
+        RandomizeMarketStock();
+        inventoryBreather = inventoryButton.GetComponent<ButtonBreather>();
         PopulateInventoryPanel();
         UpdateCoinsUI();
         priceSlider.minValue = 0;
@@ -178,53 +298,118 @@ public class GameManager : MonoBehaviour
 
     public void OpenMarket(Market market)
     {
-        marketPanel.SetActive(false);
+        currentMarket = market;
+        //marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
+        EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
         ad.PlaySfx(vol, SFX.EnteredShop, pitch);
+
         ClearChildren(itemsButtonsParent);
 
         foreach (MarketItem item in market.items)
         {
             GameObject btn = Instantiate(buttonPrefab, itemsButtonsParent);
 
-            // Assign tooltip
             var tooltip = btn.GetComponent<ItemHoverTooltip>();
             tooltip.marketItem = item;
 
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
-            txt.text = $"{item.itemName} - {item.price} coins";
-
+            int stock = marketStock[item];
+            txt.text = "x " + stock;
             ApplyCategoryStyle(btn, item.category);
 
+            Button button = btn.GetComponent<Button>();
+            button.interactable = stock > 0;
 
+            Image iconImage = btn.transform.Find("Icon").GetComponent<Image>();
+            iconImage.sprite = item.icon;
+            iconImage.enabled = item.icon != null;
 
-            btn.GetComponent<Button>().onClick.AddListener(() =>
+            button.onClick.AddListener(() =>
             {
                 BuyItem(item);
             });
         }
     }
 
+    private void EnsureFrontCanvas(GameObject panel, int sortingOrder)
+    {
+        if (panel == null) return;
+
+        Canvas canvas = panel.GetComponent<Canvas>();
+        if (canvas == null)
+        {
+            canvas = panel.AddComponent<Canvas>();
+        }
+
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = sortingOrder;
+
+        if (panel.GetComponent<GraphicRaycaster>() == null)
+        {
+            panel.AddComponent<GraphicRaycaster>();
+        }
+    }
+    void RandomizeMarketStock()
+    {
+        marketStock.Clear();
+
+        foreach (Market market in markets)
+        {
+            foreach (MarketItem item in market.items)
+            {
+                int amount = Random.Range(item.minAmount, item.maxAmount + 1);
+                marketStock[item] = amount;
+            }
+        }
+    }
     void BuyItem(MarketItem item)
     {
         if (coins < item.price) return;
+        if (marketStock[item] <= 0) return;
 
         coins -= item.price;
-        AddToInventory(item.itemName, item.category, item.description, item.Icon);
+        marketStock[item]--;
+
+        AddToInventory(item.itemName, item.category, item.description, item.icon);
+
         ShowInventoryStar();
         PopulateInventoryPanel();
         UpdateCoinsUI();
         ShowFloatingCoins(-item.price);
         ad.PlaySfx(vol, SFX.Buying, pitch);
 
-        OnItemBought?.Invoke(item.Icon);
+        OnItemBought?.Invoke(item.icon);
+        objectiveManager.UpdateTasksFromInventory(GetInventoryItems());
 
-        if (inventoryPanel.activeSelf)
-            PopulateInventoryPanel();
-        // Check if any tasks are now completed
-        objectiveManager.UpdateTasksFromInventory(inventory);
+        RefreshMarketItemsUI(); // <-- just refresh buttons and counts
+    }
 
-        
+    void RefreshMarketItemsUI()
+    {
+        ClearChildren(itemsButtonsParent);
+
+        foreach (MarketItem item in currentMarket.items)
+        {
+            GameObject btn = Instantiate(buttonPrefab, itemsButtonsParent);
+
+            var tooltip = btn.GetComponent<ItemHoverTooltip>();
+            tooltip.marketItem = item;
+
+            TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
+            int stock = marketStock[item];
+            txt.text = "x " + stock;
+            ApplyCategoryStyle(btn, item.category);
+
+            Button button = btn.GetComponent<Button>();
+            button.interactable = stock > 0;
+
+            Image iconImage = btn.transform.Find("Icon").GetComponent<Image>();
+            iconImage.sprite = item.icon;
+            iconImage.enabled = item.icon != null;
+
+            button.onClick.AddListener(() => BuyItem(item));
+        }
     }
 
     // ------------------- CRAFTING -------------------
@@ -232,7 +417,7 @@ public class GameManager : MonoBehaviour
     {
         marketPanel.SetActive(false);
         itemsPanel.SetActive(false);
-        sellPanel.SetActive(false);
+        sellPanel.SetActive(true);
 
         craftingPanel.SetActive(true);
 
@@ -249,35 +434,24 @@ public class GameManager : MonoBehaviour
         foreach (InventoryItem item in inventory)
         {
             if (item.count <= 0) continue;
-            
-            GameObject btn = Instantiate(selectedItemTextPrefab, craftingItemsParent);
-            UpdateItemButton updateItemButton = btn.GetComponent<UpdateItemButton>();
 
-            updateItemButton.UpdateItemData(item.itemName, item.Icon);
+            GameObject btn = Instantiate(buttonPrefab, craftingItemsParent);
 
             // Assign tooltip
             var tooltip = btn.GetComponent<ItemHoverTooltip>();
-            if (tooltip != null)
-            {
-                tooltip.inventoryItem = item;
-            }
+            tooltip.inventoryItem = item;
 
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
-            txt.text = $"{item.itemName} x{item.count}";
+            if (txt != null)
+                txt.gameObject.SetActive(false);
 
-            var style = GetCategoryStyle(item.category);
+            ApplyCategoryStyle(btn, item.category);
 
-            if (style.HasValue)
-            {
-                updateItemButton.ApplyStyle(
-                    style.Value.backgroundColor,
-                    style.Value.textColor
-                );
-            }
+            Image iconImage = btn.transform.Find("Icon").GetComponent<Image>();
+            iconImage.sprite = item.icon;
+            iconImage.enabled = item.icon != null;
 
-            Button button = updateItemButton.GetButton();
-
-            button.onClick.AddListener(() => SelectCraftingItem(item));
+            btn.GetComponent<Button>().onClick.AddListener(() => SelectCraftingItem(item));
         }
     }
 
@@ -292,9 +466,8 @@ public class GameManager : MonoBehaviour
         {
             itemName = item.itemName,
             category = item.category,
-            Icon = item.Icon,
             count = 1,
-            description = item.description
+            icon = item.icon
         });
 
         // Remove one from inventory stack
@@ -307,28 +480,26 @@ public class GameManager : MonoBehaviour
 
     void RefreshSelectedItemsUI()
     {
-        selectedItemUI.Clear();
         ClearChildren(selectedItemsParent);
 
         for (int i = 0; i < selectedCraftingItems.Count; i++)
         {
-            GameObject txtObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
-            UpdateItemButton buttonHandler = txtObj.GetComponent<UpdateItemButton>();
-            selectedItemUI.Add(buttonHandler);
-            buttonHandler.UpdateItemData(selectedCraftingItems[i].itemName, selectedCraftingItems[i].Icon);
-            RectTransform rt = txtObj.GetComponent<RectTransform>();
-            UpdateItemButton tag = txtObj.GetComponent<UpdateItemButton>();
+            GameObject btnObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
 
-            var style = GetCategoryStyle(selectedCraftingItems[i].category);
-
-            if (style.HasValue)
+            // Get the Icon inside Button child
+            Image iconImage = btnObj.transform.Find("Button/Icon")?.GetComponent<Image>();
+            if (iconImage != null && selectedCraftingItems[i].icon != null)
             {
-                buttonHandler.ApplyStyle(
-                    style.Value.backgroundColor,
-                    style.Value.textColor
-                );
+                iconImage.sprite = selectedCraftingItems[i].icon;
+                iconImage.enabled = true;
+            }
+            else
+            {
+                Debug.LogWarning($"Icon missing for item {selectedCraftingItems[i].itemName}");
             }
 
+            // Position button
+            RectTransform rt = btnObj.GetComponent<RectTransform>();
             if (selectedCraftingItems.Count == 1)
                 rt.anchoredPosition = Vector2.zero;
             else if (selectedCraftingItems.Count == 2)
@@ -339,33 +510,82 @@ public class GameManager : MonoBehaviour
                 if (i == 1) rt.anchoredPosition = triangleRightTop;
                 if (i == 2) rt.anchoredPosition = triangleCenterBottom;
             }
-
-            /*GameObject txtObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
-            TMP_Text txt = txtObj.GetComponent<TMP_Text>();
-            //txt.text = selectedCraftingItems[i].itemName;
-            txt.text = "";
-            RectTransform rt = txtObj.GetComponent<RectTransform>();
-            UpdateItemButton tag = txtObj.GetComponent<UpdateItemButton>();
-
-            tag.updateTheText(selectedCraftingItems[i].itemName);
-
-            if (selectedCraftingItems.Count == 1)
-                rt.anchoredPosition = Vector2.zero;
-            else if (selectedCraftingItems.Count == 2)
-                rt.anchoredPosition = (i == 0) ? triangleLeftTop : triangleRightTop;
-            else
-            {
-                if (i == 0) rt.anchoredPosition = triangleLeftTop;
-                if (i == 1) rt.anchoredPosition = triangleRightTop;
-                if (i == 2) rt.anchoredPosition = triangleCenterBottom;
-            }*/
         }
     }
 
     public void MergeItems()
     {
         if (selectedCraftingItems.Count < 2) return;
+        StartCoroutine(MergeAnimationCoroutine());
+    }
 
+    private IEnumerator MergeAnimationCoroutine()
+    {
+        // Collect all images to animate
+        List<Image> imagesToAnimate = new List<Image>();
+
+        foreach (Transform buttonTransform in selectedItemsParent)
+        {
+
+            // Icon child Image
+            Transform bTransform = buttonTransform.Find("Button");
+            if (bTransform != null)
+            {
+                Image iconImg = bTransform.GetComponent<Image>();
+                if (iconImg != null)
+                {
+                    Material iconMat = new Material(iconImg.material); // unique material
+                    iconImg.material = iconMat;
+                    iconMat.SetFloat("_LifeTime", -2f);
+                    imagesToAnimate.Add(iconImg);
+                }
+            }
+            Transform iconTransform = buttonTransform.Find("Button/Icon");
+            if (iconTransform != null)
+            {
+                Image iconImg = iconTransform.GetComponent<Image>();
+                if (iconImg != null)
+                {
+                    Material iconMat = new Material(iconImg.material); // unique material
+                    iconImg.material = iconMat;
+                    iconMat.SetFloat("_LifeTime", -2f);
+                    imagesToAnimate.Add(iconImg);
+                }
+            }
+        }
+
+        float duration = 1f;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float value = Mathf.Lerp(-2f, 1f, elapsed / duration);
+
+            foreach (Image img in imagesToAnimate)
+            {
+                img.material.SetFloat("_LifeTime", value);
+                img.SetMaterialDirty(); // force Canvas to redraw
+                Debug.Log($"Animating {img.name} _LifeTime = {value}");
+            }
+
+            yield return null;
+        }
+
+        // Ensure final value
+        foreach (Image img in imagesToAnimate)
+        {
+            img.material.SetFloat("_LifeTime", 1f);
+            img.SetMaterialDirty();
+            Debug.Log($"Final _LifeTime for {img.name} = 1");
+        }
+
+        // After animation finishes, give the item
+        CraftSelectedItems();
+    }
+
+    private void CraftSelectedItems()
+    {
         bool craftedSomething = false;
 
         foreach (Recipe recipe in recipes)
@@ -401,7 +621,8 @@ public class GameManager : MonoBehaviour
             if (match)
             {
                 ad.PlaySfx(vol, SFX.MergePotion, pitch);
-                AddToInventory(recipe.potionName, recipe.category, "", recipe.Icon);
+                AddToInventory(recipe.potionName, recipe.category, "", recipe.icon);
+                discoveredRecipes.Add(recipe.potionName);
                 craftedSomething = true;
                 OnSuccessfulMerge?.Invoke();
                 break;
@@ -410,52 +631,51 @@ public class GameManager : MonoBehaviour
 
         if (!craftedSomething)
         {
-            AddToInventory(junkItemName, ItemCategory.Junk, "", null);
+            AddToInventory(junkItemName, ItemCategory.Junk, "", junkIcon);
             ad.PlaySfx(vol, SFX.JunkMerge, pitch);
             OnFailedMerge?.Invoke();
         }
-
-        //selectedCraftingItems.Clear();
-        //RefreshSelectedItemsUI();
-        //RefreshCraftingUI();
-        StartCoroutine(MergeRoutine(craftedSomething));
-
-        PopulateInventoryPanel();
-        FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.MergeItems);
-
-        if (inventoryPanel.activeSelf)
-            PopulateInventoryPanel();
-    }
-
-    IEnumerator MergeRoutine(bool craftedSomething)
-    {
-        // play dissolve
-        foreach (var ui in selectedItemUI)
-        {
-            ui.PlayDissolve(1f);
-        }
-
-        yield return new WaitForSeconds(1.3f);
 
         selectedCraftingItems.Clear();
 
         RefreshSelectedItemsUI();
         RefreshCraftingUI();
         PopulateInventoryPanel();
+        FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.MergeItems);
     }
 
     void ReturnCraftingItemsToInventory()
     {
         foreach (var item in selectedCraftingItems)
         {
-            AddToInventory(item.itemName, item.category, "",item.Icon);
+            // Add one unit back to inventory, preserving icon and description
+            InventoryItem existing = inventory.Find(i => i.itemName == item.itemName);
+            if (existing != null)
+            {
+                existing.count += 1; // increment count
+            }
+            else
+            {
+                inventory.Add(new InventoryItem
+                {
+                    itemName = item.itemName,
+                    count = 1,
+                    category = item.category,
+                    description = item.description, // keep original description
+                    icon = item.icon              // keep original icon
+                });
+            }
         }
 
+        // Clear the selected list
         selectedCraftingItems.Clear();
+
+        // Refresh the UI safely
         RefreshSelectedItemsUI();
         RefreshCraftingUI();
         PopulateInventoryPanel();
     }
+
     // ------------------- SELL -------------------
     public void OpenSell()
     {
@@ -491,55 +711,57 @@ public class GameManager : MonoBehaviour
             PopulateInventoryPanel();
     }
 
-    void RefreshSellUI()
+    public void RefreshSellUI()
     {
         ClearChildren(sellItemsParent);
 
         foreach (InventoryItem item in inventory)
         {
-
-            GameObject btn = Instantiate(selectedItemTextPrefab, sellItemsParent);
-            UpdateItemButton updateItemButton = btn.GetComponent<UpdateItemButton>();
-
-            updateItemButton.UpdateItemData(item.itemName, item.Icon);
-
-            // Assign tooltip
-            var tooltip = btn.GetComponent<ItemHoverTooltip>();
-            if (tooltip != null)
-            {
-                tooltip.inventoryItem = item;
-            }
-
-            TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
-            txt.text = $"{item.itemName} x{item.count}";
-
-            var style = GetCategoryStyle(item.category);
-
-            if (style.HasValue)
-            {
-                updateItemButton.ApplyStyle(
-                    style.Value.backgroundColor,
-                    style.Value.textColor
-                );
-            }
-
-            Button button = updateItemButton.GetButton();
-
-            button.onClick.AddListener(() => OnSellClicked(item));
-            /*
             GameObject btn = Instantiate(buttonPrefab, sellItemsParent);
 
-            // Assign tooltip
             var tooltip = btn.GetComponent<ItemHoverTooltip>();
             tooltip.inventoryItem = item;
 
+            // HIDE old text
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
-            txt.text = $"{item.itemName} x{item.count}";
+            if (txt != null)
+                txt.gameObject.SetActive(false);
 
             ApplyCategoryStyle(btn, item.category);
 
-            btn.GetComponent<Button>().onClick.AddListener(() => OnSellClicked(item));*/
+            // ICON
+            Transform iconTransform = btn.transform.Find("Icon");
+            if (iconTransform != null)
+            {
+                Image iconImage = iconTransform.GetComponent<Image>();
+                iconImage.sprite = item.icon;
+                iconImage.enabled = item.icon != null;
+                iconImage.raycastTarget = false; 
+            }
 
+            // COUNT TEXT
+            Transform countTransform = btn.transform.Find("CountText");
+            if (countTransform != null)
+            {
+                TMP_Text countText = countTransform.GetComponent<TMP_Text>();
+
+                if (item.count > 1)
+                    countText.text = "x " + item.count;
+                else
+                    countText.text = "";
+            }
+
+            Button button = btn.GetComponent<Button>();
+
+            if (lockedItemsToday.Contains(item.itemName))
+            {
+                button.interactable = false;
+            }
+            else
+            {
+                button.interactable = true;
+                button.onClick.AddListener(() => OnSellClicked(item));
+            }
         }
     }
     void OnPriceSliderChanged(float value)
@@ -572,6 +794,8 @@ public class GameManager : MonoBehaviour
     // ------------------- INVENTORY -------------------
     void AddToInventory(string name, ItemCategory category, string description = "", Sprite icon = null)
     {
+        bool isNewItem = !discoveredItems.Contains(name);
+
         ShowObjectiveDiscoveryStar();
 
         InventoryItem existing = inventory.Find(i => i.itemName == name);
@@ -579,10 +803,6 @@ public class GameManager : MonoBehaviour
         if (existing != null)
         {
             existing.count++;
-
-            // OPTIONAL: update icon if missing
-            if (existing.Icon == null && icon != null)
-                existing.Icon = icon;
         }
         else
         {
@@ -592,8 +812,18 @@ public class GameManager : MonoBehaviour
                 count = 1,
                 category = category,
                 description = description,
-                Icon = icon
+                icon = icon
             });
+        }
+
+        if (isNewItem)
+        {
+            discoveredItems.Add(name);
+
+            hasUnseenNewItem = true;
+
+            if (inventoryBreather != null)
+                inventoryBreather.StartBreathing();
         }
 
         OnItemAdded?.Invoke(name, category);
@@ -615,6 +845,14 @@ public class GameManager : MonoBehaviour
     {
         inventoryPanel.SetActive(true);
         PopulateInventoryPanel();
+
+        if (hasUnseenNewItem)
+        {
+            hasUnseenNewItem = false;
+
+            if (inventoryBreather != null)
+                inventoryBreather.StopBreathing();
+        }
     }
 
     public void PopulateInventoryPanel()
@@ -627,11 +865,12 @@ public class GameManager : MonoBehaviour
             GameObject row = Instantiate(inventoryRowPrefab, inventoryListParent);
 
             // Assign texts properly
-            TMP_Text itemNameText = row.transform.Find("ItemNameText").GetComponent<TMP_Text>();
+            Image iconImage = row.transform.Find("Icon").GetComponent<Image>();
             TMP_Text itemCountText = row.transform.Find("ItemCountText").GetComponent<TMP_Text>();
             Button investigateBtn = row.transform.Find("InvestigateButton").GetComponent<Button>();
 
-            itemNameText.text = item.itemName;
+            iconImage.sprite = item.icon;
+            iconImage.enabled = item.icon != null;
             itemCountText.text = "x" + item.count;
 
             // Setup investigate button
@@ -647,12 +886,13 @@ public class GameManager : MonoBehaviour
     // ------------------- END DAY -------------------
     public void EndDay()
     {
+        RandomizeMarketStock();
         marketPanel.SetActive(false);
         itemsPanel.SetActive(false);
         craftingPanel.SetActive(false);
         sellPanel.SetActive(false);
         inventoryPanel.SetActive(false);
-
+        lockedItemsToday.Clear();
         objectiveManager.ResetDailyInvestigations();
         PopulateInventoryPanel();
 
@@ -673,16 +913,6 @@ public class GameManager : MonoBehaviour
 
         style = default;
         return false;
-    }
-
-    CategoryStyle? GetCategoryStyle(ItemCategory category)
-    {
-        foreach (var s in categoryStyles)
-        {
-            if (s.category == category)
-                return s;
-        }
-        return null;
     }
 
     void ApplyCategoryStyle(GameObject button, ItemCategory category)
@@ -725,6 +955,13 @@ public class GameManager : MonoBehaviour
         if (price < min || price > max)
         {
             Debug.Log($"Blocked sale: {price} not in range {min}-{max}");
+
+            lockedItemsToday.Add(pendingSellItem.itemName);
+
+            pendingSellItem = null;
+            sellConfirmPanel.SetActive(false);
+
+            RefreshSellUI(); // update buttons immediately
             return;
         }
 
@@ -815,4 +1052,42 @@ public class GameManager : MonoBehaviour
             floatText.SetText("+" + amount.ToString(), Color.yellow);
     }
 
+    private KeyCode[] konamiCode = new KeyCode[]
+    {
+     KeyCode.UpArrow,
+     KeyCode.UpArrow,
+     KeyCode.DownArrow,
+     KeyCode.DownArrow,
+     KeyCode.LeftArrow,
+     KeyCode.RightArrow,
+     KeyCode.LeftArrow,
+     KeyCode.RightArrow
+    };
+    private void Update()
+    {
+        CheckKonamiCode();
+    }
+    void CheckKonamiCode()
+    {
+        if (Input.GetKeyDown(konamiCode[konamiIndex]))
+        {
+            konamiIndex++;
+
+            if (konamiIndex >= konamiCode.Length)
+            {
+                ActivateKonamiReward();
+                konamiIndex = 0;
+            }
+        }
+        else if (Input.anyKeyDown)
+        {
+            konamiIndex = 0;
+        }
+    }
+    void ActivateKonamiReward()
+    {
+        coins += 100;
+        UpdateCoinsUI();
+        ShowFloatingCoins(100);
+    }
 }

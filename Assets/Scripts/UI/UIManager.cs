@@ -32,12 +32,11 @@ public class UIManager : MonoBehaviour
     public void OpenInventory()
     {
         marketPanel.SetActive(false);
-        inventoryPanel.SetActive(true);
+        gameManager.OpenInventoryPanel();
     }
 
     public void OpenMerge()
     {
-        CloseAll();
         mergePanel.SetActive(true);
 
         gameManager.OpenCrafting(); // refresh crafting items
@@ -46,12 +45,11 @@ public class UIManager : MonoBehaviour
     public void OpenMarket()
     {
         CloseAll();
-        marketPanel.SetActive(true);
+        gameManager.EndDay();
     }
 
     public void OpenItems()
     {
-        CloseAll();
         itemsPanel.SetActive(true);
     }
 

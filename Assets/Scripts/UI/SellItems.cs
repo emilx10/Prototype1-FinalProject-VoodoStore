@@ -50,7 +50,7 @@ public class SellItems : MonoBehaviour
 
     public void badCraft()
     {
-        
+
         fader.FadeOut(myImage, 0.3f, 1f, UIFader.FadeColor.Purple);
     }
 
