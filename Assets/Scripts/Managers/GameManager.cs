@@ -644,6 +644,17 @@ public class GameManager : MonoBehaviour
         FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.MergeItems);
     }
 
+    public void CancelCrafting()
+    {
+        ReturnCraftingItemsToInventory();
+
+        selectedCraftingItems.Clear();
+
+        RefreshSelectedItemsUI();
+        RefreshCraftingUI();
+        PopulateInventoryPanel();
+    }
+
     void ReturnCraftingItemsToInventory()
     {
         foreach (var item in selectedCraftingItems)

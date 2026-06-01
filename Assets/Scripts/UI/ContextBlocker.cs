@@ -14,6 +14,7 @@ public class ContextBlocker : MonoBehaviour
     {
         contextMenu.SetActive(false);
         gameObject.SetActive(false);
+        
         foreach (GameObject go in GOToEnable)
         {
             go.SetActive(true);
@@ -26,7 +27,9 @@ public class ContextBlocker : MonoBehaviour
 
         if (gameManager != null)
         {
+            gameManager.CancelCrafting();
             gameManager.RefreshSellUI();
+            
         }
     }
 }
