@@ -6,12 +6,17 @@ using UnityEngine.Audio;
 //For each sound make a name inside this Enum!!!!!!
 public enum SFX
 {
+    None,
     Selling,
     JunkMerge,
     Objective,
     MergePotion,
     EnteredShop,
-    Buying
+    Buying,
+    UI_Button_Hover,
+    GemMarketSelected,
+    OilMarketSelected,
+    HerbMarketSelected
 }
 
 public class AudioManager : MonoBehaviour
@@ -35,8 +40,10 @@ public class AudioManager : MonoBehaviour
     [SerializeField] public AudioClip Objective;
     [SerializeField] public AudioClip MergePotion;
     [SerializeField] public AudioClip EnteredShop;
-
-
+    [SerializeField] public AudioClip UiHover;
+    [SerializeField] public AudioClip GemMarketSFX;
+    [SerializeField] public AudioClip OilMarketSFX;
+    [SerializeField] public AudioClip HerbMarketSFX;
     public void Awake()
     {
         if (!Instance.IsUnityNull())
@@ -77,6 +84,18 @@ public class AudioManager : MonoBehaviour
                 break;
             case SFX.Buying:
                 PlaySfx(volume, Buying, pitch);
+                break;
+            case SFX.UI_Button_Hover:
+                PlaySfx(volume, UiHover, pitch);
+                break;
+            case SFX.GemMarketSelected:
+                PlaySfx(volume, GemMarketSFX, pitch);
+                break;
+            case SFX.HerbMarketSelected:
+                PlaySfx(volume, HerbMarketSFX, pitch);
+                break;
+            case SFX.OilMarketSelected:
+                PlaySfx(volume, OilMarketSFX, pitch);
                 break;
             default:
                 break;

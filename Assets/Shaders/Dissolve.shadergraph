@@ -107,6 +107,9 @@
         },
         {
             "m_Id": "62e8922bd8354cefa9b353578f5f2c12"
+        },
+        {
+            "m_Id": "6acd2af4a2d04db39cb6ac9c4f98eca6"
         }
     ],
     "m_GroupDatas": [],
@@ -554,6 +557,9 @@
             },
             {
                 "m_Id": "68d528d7991e488fbfe56dc7c31a915a"
+            },
+            {
+                "m_Id": "6acd2af4a2d04db39cb6ac9c4f98eca6"
             }
         ]
     },
@@ -896,6 +902,21 @@
     },
     "m_Labels": [],
     "m_Channel": 0
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector1MaterialSlot",
+    "m_ObjectId": "24f9b2dd9a3f40e4992b48cfc1e0e8c6",
+    "m_Id": 0,
+    "m_DisplayName": "Alpha Clip Threshold",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "AlphaClipThreshold",
+    "m_StageCapability": 2,
+    "m_Value": 0.5,
+    "m_DefaultValue": 0.5,
+    "m_Labels": []
 }
 
 {
@@ -1731,6 +1752,40 @@
         "m_Guid": ""
     },
     "m_DefaultType": 0
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.BlockNode",
+    "m_ObjectId": "6acd2af4a2d04db39cb6ac9c4f98eca6",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "SurfaceDescription.AlphaClipThreshold",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": 0.0,
+            "y": 0.0,
+            "width": 0.0,
+            "height": 0.0
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "24f9b2dd9a3f40e4992b48cfc1e0e8c6"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": true,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_SerializedDescriptor": "SurfaceDescription.AlphaClipThreshold"
 }
 
 {
@@ -2968,7 +3023,7 @@
     "m_Type": "UnityEditor.Rendering.Canvas.ShaderGraph.CanvasData",
     "m_ObjectId": "cb2b857082b64c00937a49eef68ae243",
     "m_Version": 0,
-    "m_AlphaClip": false,
+    "m_AlphaClip": true,
     "m_DisableTint": false
 }
 
