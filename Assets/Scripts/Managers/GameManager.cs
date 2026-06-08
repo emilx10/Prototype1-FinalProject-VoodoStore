@@ -81,6 +81,8 @@ public struct CategoryStyle
 public class GameManager : MonoBehaviour
 {
     private const int ShopItemsSortingOrder = 150;
+    private const float MergeDissolveStart = -2f;
+    private const float MergeDissolveEnd = 1f;
 
     private HashSet<string> discoveredRecipes = new HashSet<string>();
 
@@ -165,6 +167,7 @@ public class GameManager : MonoBehaviour
     private int konamiIndex = 0;
     private Dictionary<MarketItem, int> marketStock = new Dictionary<MarketItem, int>();
     private Market currentMarket;
+    private bool isMergeAnimationPlaying = false;
 
 
     private HashSet<string> discoveredItems = new HashSet<string>();
@@ -434,6 +437,7 @@ public class GameManager : MonoBehaviour
         foreach (InventoryItem item in inventory)
         {
             if (item.count <= 0) continue;
+            if (IsRecipeItem(item.itemName)) continue;
 
             GameObject btn = Instantiate(buttonPrefab, craftingItemsParent);
 
@@ -453,6 +457,21 @@ public class GameManager : MonoBehaviour
 
             btn.GetComponent<Button>().onClick.AddListener(() => SelectCraftingItem(item));
         }
+    }
+
+    bool IsRecipeItem(string itemName)
+    {
+        string cleanedItemName = itemName.Trim().ToLower();
+
+        foreach (Recipe recipe in recipes)
+        {
+            if (recipe.potionName.Trim().ToLower() == cleanedItemName)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     void SelectCraftingItem(InventoryItem item)
@@ -516,72 +535,129 @@ public class GameManager : MonoBehaviour
     public void MergeItems()
     {
         if (selectedCraftingItems.Count < 2) return;
+        if (isMergeAnimationPlaying) return;
+
         StartCoroutine(MergeAnimationCoroutine());
     }
 
     private IEnumerator MergeAnimationCoroutine()
     {
-        // Collect all images to animate
+        isMergeAnimationPlaying = true;
+
         List<Image> imagesToAnimate = new List<Image>();
+        List<Material> dissolveMaterials = new List<Material>();
+        List<RectTransform> selectedRects = new List<RectTransform>();
+        List<Vector3> startScales = new List<Vector3>();
+        List<Vector2> startPositions = new List<Vector2>();
+        List<CanvasGroup> selectedGroups = new List<CanvasGroup>();
 
-        foreach (Transform buttonTransform in selectedItemsParent)
+        foreach (Transform selectedItemTransform in selectedItemsParent)
         {
-
-            // Icon child Image
-            Transform bTransform = buttonTransform.Find("Button");
-            if (bTransform != null)
+            RectTransform selectedRect = selectedItemTransform.GetComponent<RectTransform>();
+            if (selectedRect != null)
             {
-                Image iconImg = bTransform.GetComponent<Image>();
-                if (iconImg != null)
-                {
-                    Material iconMat = new Material(iconImg.material); // unique material
-                    iconImg.material = iconMat;
-                    iconMat.SetFloat("_LifeTime", -2f);
-                    imagesToAnimate.Add(iconImg);
-                }
+                selectedRects.Add(selectedRect);
+                startScales.Add(selectedRect.localScale);
+                startPositions.Add(selectedRect.anchoredPosition);
             }
-            Transform iconTransform = buttonTransform.Find("Button/Icon");
-            if (iconTransform != null)
+
+            CanvasGroup canvasGroup = selectedItemTransform.GetComponent<CanvasGroup>();
+            if (canvasGroup == null)
             {
-                Image iconImg = iconTransform.GetComponent<Image>();
-                if (iconImg != null)
+                canvasGroup = selectedItemTransform.gameObject.AddComponent<CanvasGroup>();
+            }
+
+            canvasGroup.alpha = 1f;
+            canvasGroup.interactable = false;
+            canvasGroup.blocksRaycasts = false;
+            selectedGroups.Add(canvasGroup);
+
+            Image[] images = selectedItemTransform.GetComponentsInChildren<Image>(true);
+            foreach (Image image in images)
+            {
+                if (image == null || !image.enabled)
                 {
-                    Material iconMat = new Material(iconImg.material); // unique material
-                    iconImg.material = iconMat;
-                    iconMat.SetFloat("_LifeTime", -2f);
-                    imagesToAnimate.Add(iconImg);
+                    continue;
                 }
+
+                Material dissolveMaterial = new Material(image.material);
+                dissolveMaterial.SetFloat("_LifeTime", MergeDissolveStart);
+
+                if (dissolveMaterial.HasProperty("_EdgeWidth"))
+                {
+                    dissolveMaterial.SetFloat("_EdgeWidth", 0.65f);
+                }
+
+                if (dissolveMaterial.HasProperty("_DissolvePower"))
+                {
+                    dissolveMaterial.SetFloat("_DissolvePower", 70f);
+                }
+
+                if (dissolveMaterial.HasProperty("_DissolveColor"))
+                {
+                    dissolveMaterial.SetColor("_DissolveColor", new Color(0.2f, 1f, 0.42f, 1f));
+                }
+
+                image.material = dissolveMaterial;
+                imagesToAnimate.Add(image);
+                dissolveMaterials.Add(dissolveMaterial);
             }
         }
 
-        float duration = 1f;
+        float duration = 0.72f;
         float elapsed = 0f;
 
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
-            float value = Mathf.Lerp(-2f, 1f, elapsed / duration);
+            float t = Mathf.Clamp01(elapsed / duration);
+            float easedT = 1f - Mathf.Pow(1f - t, 3f);
+            float value = Mathf.Lerp(MergeDissolveStart, MergeDissolveEnd, easedT);
 
-            foreach (Image img in imagesToAnimate)
+            for (int i = 0; i < dissolveMaterials.Count; i++)
             {
-                img.material.SetFloat("_LifeTime", value);
-                img.SetMaterialDirty(); // force Canvas to redraw
-                Debug.Log($"Animating {img.name} _LifeTime = {value}");
+                dissolveMaterials[i].SetFloat("_LifeTime", value);
+                imagesToAnimate[i].SetMaterialDirty();
             }
 
+            float pulse = Mathf.Sin(t * Mathf.PI);
+            float scale = Mathf.Lerp(1.06f, 0.68f, easedT) + pulse * 0.04f;
+            AnimateSelectedRects(selectedRects, startScales, startPositions, scale, easedT);
+            SetSelectedGroupAlpha(selectedGroups, 1f - Mathf.SmoothStep(0f, 1f, t));
             yield return null;
         }
 
-        // Ensure final value
-        foreach (Image img in imagesToAnimate)
+        for (int i = 0; i < dissolveMaterials.Count; i++)
         {
-            img.material.SetFloat("_LifeTime", 1f);
-            img.SetMaterialDirty();
-            Debug.Log($"Final _LifeTime for {img.name} = 1");
+            dissolveMaterials[i].SetFloat("_LifeTime", MergeDissolveEnd);
+            imagesToAnimate[i].SetMaterialDirty();
         }
 
-        // After animation finishes, give the item
+        SetSelectedGroupAlpha(selectedGroups, 0f);
+        for (int i = 0; i < selectedRects.Count; i++)
+        {
+            selectedRects[i].gameObject.SetActive(false);
+        }
+
         CraftSelectedItems();
+        isMergeAnimationPlaying = false;
+    }
+
+    private void AnimateSelectedRects(List<RectTransform> rects, List<Vector3> startScales, List<Vector2> startPositions, float scale, float moveToCenterAmount)
+    {
+        for (int i = 0; i < rects.Count; i++)
+        {
+            rects[i].localScale = startScales[i] * scale;
+            rects[i].anchoredPosition = Vector2.Lerp(startPositions[i], Vector2.zero, moveToCenterAmount);
+        }
+    }
+
+    private void SetSelectedGroupAlpha(List<CanvasGroup> groups, float alpha)
+    {
+        for (int i = 0; i < groups.Count; i++)
+        {
+            groups[i].alpha = alpha;
+        }
     }
 
     private void CraftSelectedItems()
