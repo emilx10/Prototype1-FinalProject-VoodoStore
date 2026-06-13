@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public sealed class ResponsiveDisplayManager : MonoBehaviour
@@ -24,6 +25,21 @@ public sealed class ResponsiveDisplayManager : MonoBehaviour
     }
 
     private void Awake()
+    {
+        ApplyResponsiveSettings();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         ApplyResponsiveSettings();
     }

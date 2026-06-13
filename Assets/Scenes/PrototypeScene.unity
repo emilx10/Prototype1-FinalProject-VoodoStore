@@ -1352,7 +1352,7 @@ MonoBehaviour:
         m_CallState: 2
       - m_Target: {fileID: 542564990}
         m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
-        m_MethodName: CheckActive
+        m_MethodName: CloseInventory
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -10361,6 +10361,10 @@ MonoBehaviour:
   knownRecipesPanel: {fileID: 1291665568}
   knownRecipesParent: {fileID: 1291665569}
   knownRecipePrefab: {fileID: 1461284419701723272, guid: 0b1e48b6f41075e49a294b242498e9ae, type: 3}
+  knownRecipeStartPosition: {x: -260, y: 260}
+  knownRecipeSpacing: {x: 260, y: 230}
+  knownRecipeCloneSize: {x: 230, y: 190}
+  knownRecipeIngredientsPosition: {x: 52, y: 5}
   inventoryButton: {fileID: 648672315}
   inventoryBreather: {fileID: 648672318}
   objectiveManager: {fileID: 1945514260}
@@ -15802,6 +15806,7 @@ GameObject:
   m_Component:
   - component: {fileID: 861392865}
   - component: {fileID: 861392866}
+  - component: {fileID: 861392867}
   m_Layer: 0
   m_Name: ItemsForMerge
   m_TagString: Untagged
@@ -15851,6 +15856,23 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 20
   m_TargetDisplay: 0
+--- !u!114 &861392867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 861392864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GraphicRaycaster
+  m_IgnoreReversedGraphics: 1
+  m_BlockingObjects: 0
+  m_BlockingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!1 &868194560
 GameObject:
   m_ObjectHideFlags: 0
@@ -32262,6 +32284,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1783851598383626948}
+  - component: {fileID: 912345678901234567}
   m_Layer: 0
   m_Name: 'Cauldron '
   m_TagString: Untagged
@@ -32727,6 +32750,29 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &912345678901234567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 579163656846074535}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38d0a3c7b4d44ea4b8fc21ad8d6e8176, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  localCenter: {x: 0, y: 5.35, z: 0}
+  liquidSize: {x: 3.2, y: 0.62}
+  sortingOrder: 98
+  swirlSpeed: 32
+  pulseAmount: 0.055
+  pulseSpeed: 2.6
+  bubbleRiseHeight: 0.62
+  bubbleLifetime: 1.45
+  liquidColor: {r: 0.16, g: 0.92, b: 0.48, a: 0.82}
+  glowColor: {r: 0.38, g: 1, b: 0.68, a: 0.46}
+  bubbleColor: {r: 0.78, g: 1, b: 0.86, a: 0.72}
 --- !u!4 &952086137916600107
 Transform:
   m_ObjectHideFlags: 0

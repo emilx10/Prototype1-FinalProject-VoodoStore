@@ -16,6 +16,10 @@ public class UIManager : MonoBehaviour
 
     private Coroutine openSellRoutine;
     private Coroutine openMarketRoutine;
+    private bool restoreSellAfterInventory;
+    private bool restoreMergeAfterInventory;
+    private bool restoreMarketAfterInventory;
+    private bool restoreItemsAfterInventory;
 
     void CloseAll()
     {
@@ -53,8 +57,22 @@ public class UIManager : MonoBehaviour
 
     public void OpenInventory()
     {
-        marketPanel.SetActive(false);
+        restoreSellAfterInventory = sellPanel.activeSelf;
+        restoreMergeAfterInventory = mergePanel.activeSelf;
+        restoreMarketAfterInventory = marketPanel.activeSelf;
+        restoreItemsAfterInventory = itemsPanel.activeSelf;
+
+        CloseAll();
         gameManager.OpenInventoryPanel();
+    }
+
+    public void CloseInventory()
+    {
+        inventoryPanel.SetActive(false);
+        sellPanel.SetActive(restoreSellAfterInventory);
+        mergePanel.SetActive(restoreMergeAfterInventory);
+        marketPanel.SetActive(restoreMarketAfterInventory);
+        itemsPanel.SetActive(restoreItemsAfterInventory);
     }
 
     public void OpenMerge()

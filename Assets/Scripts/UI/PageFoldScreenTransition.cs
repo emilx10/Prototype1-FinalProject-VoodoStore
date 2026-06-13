@@ -231,12 +231,14 @@ public class PageFoldScreenTransition : MonoBehaviour
         float direction = foldDirection == FoldDirection.RightToLeft ? -1f : 1f;
         float rotation = Mathf.Lerp(88f, 0f, amount) * direction;
         float pageX = foldDirection == FoldDirection.RightToLeft ? 1f : 0f;
-        float anchoredX = Mathf.Lerp(direction * Screen.width * 0.5f, 0f, amount);
+        float canvasWidth = overlayRoot.rect.width > 0f ? overlayRoot.rect.width : 1920f;
+        float anchoredX = Mathf.Lerp(direction * canvasWidth * 0.5f, 0f, amount);
         float edgeX = foldDirection == FoldDirection.RightToLeft ? 0f : 1f;
 
         page.pivot = new Vector2(pageX, 0.5f);
         page.anchorMin = new Vector2(pageX, 0f);
         page.anchorMax = new Vector2(pageX, 1f);
+        page.sizeDelta = new Vector2(canvasWidth, 0f);
         page.anchoredPosition = new Vector2(anchoredX, 0f);
         page.localRotation = Quaternion.Euler(0f, rotation, 0f);
 
@@ -294,7 +296,7 @@ public class PageFoldScreenTransition : MonoBehaviour
         page = CreateImage("Folding Page", overlayRoot, pageColor).rectTransform;
         page.anchorMin = new Vector2(1f, 0f);
         page.anchorMax = new Vector2(1f, 1f);
-        page.sizeDelta = new Vector2(Screen.width, 0f);
+        page.sizeDelta = new Vector2(1920f, 0f);
         pageImage = page.GetComponent<Image>();
         pageImage.raycastTarget = false;
 

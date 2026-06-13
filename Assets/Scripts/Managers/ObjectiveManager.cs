@@ -243,6 +243,7 @@ public class ObjectiveManager : MonoBehaviour
 
         string key = itemName.ToLower().Trim();
         bool revealedSomething = false;
+        bool revealedRecipeIngredient = gameManager.DiscoverRecipeIngredient(itemName);
 
         foreach (var obj in objectives)
         {
@@ -260,7 +261,7 @@ public class ObjectiveManager : MonoBehaviour
             RefreshObjectivesUI();
 
         gameManager.PopulateInventoryPanel();
-        return revealedSomething;
+        return revealedSomething || revealedRecipeIngredient;
     }
     public void CompleteMission(MissionType type)
     {

@@ -81,10 +81,12 @@ public struct CategoryStyle
 public class GameManager : MonoBehaviour
 {
     private const int ShopItemsSortingOrder = 150;
+    private const int KnownRecipeColumns = 3;
     private const float MergeDissolveStart = -2f;
     private const float MergeDissolveEnd = 1f;
 
     private HashSet<string> discoveredRecipes = new HashSet<string>();
+    private HashSet<string> discoveredRecipeIngredients = new HashSet<string>();
 
     [Header("SoundManager")]
     public AudioManager ad;
@@ -153,6 +155,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject knownRecipesPanel;
     [SerializeField] private Transform knownRecipesParent;
     [SerializeField] private GameObject knownRecipePrefab;
+    [SerializeField] private Vector2 knownRecipeStartPosition = new Vector2(-260f, 260f);
+    [SerializeField] private Vector2 knownRecipeSpacing = new Vector2(260f, 230f);
+    [SerializeField] private Vector2 knownRecipeCloneSize = new Vector2(230f, 190f);
+    [Tooltip("Position of the three ingredient names or ??? labels inside every recipe clone.")]
+    [SerializeField] private Vector2 knownRecipeIngredientsPosition = new Vector2(52f, 8f);
 
     public static UnityAction<Sprite> OnItemBought;
     public static UnityAction OnSuccessfulMerge;
@@ -193,58 +200,178 @@ public class GameManager : MonoBehaviour
     public void CloseKnownRecipes()
     {
         knownRecipesPanel.SetActive(false);
-        PopulateKnownRecipesUI();
+    }
+
+    private void OnValidate()
+    {
+        if (Application.isPlaying &&
+            knownRecipesPanel != null &&
+            knownRecipesPanel.activeInHierarchy &&
+            knownRecipesParent != null &&
+            knownRecipePrefab != null)
+        {
+            PopulateKnownRecipesUI();
+        }
     }
 
     void PopulateKnownRecipesUI()
     {
         ClearChildren(knownRecipesParent);
 
-        foreach (Recipe recipe in recipes)
+        for (int recipeIndex = 0; recipeIndex < recipes.Count; recipeIndex++)
         {
-            if (!discoveredRecipes.Contains(recipe.potionName))
-                continue;
+            Recipe recipe = recipes[recipeIndex];
 
             GameObject obj = Instantiate(knownRecipePrefab, knownRecipesParent);
+            RectTransform recipeRect = obj.GetComponent<RectTransform>();
+            int column = recipeIndex % KnownRecipeColumns;
+            int row = recipeIndex / KnownRecipeColumns;
 
-            // RESULT ICON
+            recipeRect.localScale = Vector3.one;
+            recipeRect.anchorMin = new Vector2(0.5f, 0.5f);
+            recipeRect.anchorMax = new Vector2(0.5f, 0.5f);
+            recipeRect.sizeDelta = knownRecipeCloneSize;
+            recipeRect.anchoredPosition = new Vector2(
+                knownRecipeStartPosition.x + column * knownRecipeSpacing.x,
+                knownRecipeStartPosition.y - row * knownRecipeSpacing.y);
+
             Transform resultIconTransform = obj.transform.Find("ResultIcon");
             if (resultIconTransform != null)
             {
                 Image resultIcon = resultIconTransform.GetComponent<Image>();
                 resultIcon.sprite = recipe.icon;
                 resultIcon.enabled = recipe.icon != null;
+
+                RectTransform iconRect = resultIconTransform.GetComponent<RectTransform>();
+                iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+                iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+                iconRect.anchoredPosition = new Vector2(-72f, 10f);
+                iconRect.sizeDelta = new Vector2(72f, 72f);
             }
 
-            // INGREDIENTS ROW
-            Transform ingredientsRow = obj.transform.Find("IngredientsRow");
+            CreateKnownRecipeText(
+                obj.transform,
+                "RecipeName",
+                recipe.potionName,
+                new Vector2(0f, 76f),
+                new Vector2(225f, 42f),
+                23f,
+                FontStyles.Bold);
 
+            Transform ingredientsRow = obj.transform.Find("IngredientsRow");
             if (ingredientsRow != null)
             {
-                // Remove any LayoutGroup to control positions manually
                 LayoutGroup lg = ingredientsRow.GetComponent<LayoutGroup>();
                 if (lg != null) Destroy(lg);
 
-                float spacing = 60f; // X spacing between icons
-                for (int i = 0; i < recipe.ingredients.Count; i++)
+                RectTransform rowRect = ingredientsRow.GetComponent<RectTransform>();
+                rowRect.anchorMin = new Vector2(0.5f, 0.5f);
+                rowRect.anchorMax = new Vector2(0.5f, 0.5f);
+                rowRect.pivot = new Vector2(0.5f, 0.5f);
+                rowRect.localScale = Vector3.one;
+                rowRect.localRotation = Quaternion.identity;
+                rowRect.anchoredPosition = knownRecipeIngredientsPosition;
+                rowRect.sizeDelta = new Vector2(150f, 100f);
+                rowRect.SetAsLastSibling();
+
+                for (int ingredientIndex = 0; ingredientIndex < 3; ingredientIndex++)
                 {
-                    string ingredientName = recipe.ingredients[i];
-                    Sprite ingredientIcon = GetIconByNameInsensitive(ingredientName);
+                    string ingredientText = "???";
 
-                    GameObject iconObj = new GameObject("IngredientIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                    iconObj.transform.SetParent(ingredientsRow, false);
+                    if (ingredientIndex < recipe.ingredients.Count)
+                    {
+                        string ingredientName = recipe.ingredients[ingredientIndex];
+                        bool recipeDiscovered = discoveredRecipes.Contains(NormalizeName(recipe.potionName));
+                        bool ingredientDiscovered = discoveredRecipeIngredients.Contains(NormalizeName(ingredientName));
 
-                    Image img = iconObj.GetComponent<Image>();
-                    img.sprite = ingredientIcon;
-                    img.enabled = ingredientIcon != null;
+                        if (recipeDiscovered || ingredientDiscovered)
+                            ingredientText = ingredientName;
+                    }
 
-                    // Set size manually
-                    RectTransform rt = iconObj.GetComponent<RectTransform>();
-                    rt.sizeDelta = new Vector2(50, 50); // adjust as needed
-                    rt.anchoredPosition = new Vector2(i * spacing, 0); // horizontal placement
+                    CreateKnownRecipeText(
+                        ingredientsRow,
+                        $"Ingredient{ingredientIndex + 1}",
+                        ingredientText,
+                        new Vector2(0f, 34f - ingredientIndex * 34f),
+                        new Vector2(150f, 30f),
+                        19f,
+                        FontStyles.Normal);
                 }
             }
         }
+    }
+
+    private void CreateKnownRecipeText(
+        Transform parent,
+        string objectName,
+        string text,
+        Vector2 anchoredPosition,
+        Vector2 size,
+        float fontSize,
+        FontStyles fontStyle)
+    {
+        GameObject textObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
+        textObject.transform.SetParent(parent, false);
+
+        RectTransform rectTransform = textObject.GetComponent<RectTransform>();
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.anchoredPosition = anchoredPosition;
+        rectTransform.sizeDelta = size;
+
+        TextMeshProUGUI label = textObject.GetComponent<TextMeshProUGUI>();
+        label.text = text;
+        label.fontSize = fontSize;
+        label.fontStyle = fontStyle;
+        label.alignment = TextAlignmentOptions.Center;
+        label.color = Color.white;
+        label.textWrappingMode = TextWrappingModes.Normal;
+        label.raycastTarget = false;
+    }
+
+    public bool DiscoverRecipeIngredient(string ingredientName)
+    {
+        string normalizedIngredient = NormalizeName(ingredientName);
+        bool usedByRecipe = false;
+
+        foreach (Recipe recipe in recipes)
+        {
+            foreach (string recipeIngredient in recipe.ingredients)
+            {
+                if (NormalizeName(recipeIngredient) == normalizedIngredient)
+                {
+                    usedByRecipe = true;
+                    break;
+                }
+            }
+
+            if (usedByRecipe) break;
+        }
+
+        if (!usedByRecipe)
+            return false;
+
+        bool newlyDiscovered = discoveredRecipeIngredients.Add(normalizedIngredient);
+        if (newlyDiscovered && knownRecipesPanel.activeInHierarchy)
+            PopulateKnownRecipesUI();
+
+        return newlyDiscovered;
+    }
+
+    private void DiscoverRecipe(Recipe recipe)
+    {
+        discoveredRecipes.Add(NormalizeName(recipe.potionName));
+
+        foreach (string ingredient in recipe.ingredients)
+            discoveredRecipeIngredients.Add(NormalizeName(ingredient));
+
+        if (knownRecipesPanel.activeInHierarchy)
+            PopulateKnownRecipesUI();
+    }
+
+    private static string NormalizeName(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim().ToLowerInvariant();
     }
 
     /// <summary>
@@ -486,6 +613,7 @@ public class GameManager : MonoBehaviour
             itemName = item.itemName,
             category = item.category,
             count = 1,
+            description = item.description,
             icon = item.icon
         });
 
@@ -499,23 +627,45 @@ public class GameManager : MonoBehaviour
 
     void RefreshSelectedItemsUI()
     {
+        Canvas selectedItemsCanvas = selectedItemsParent.GetComponent<Canvas>();
+        if (selectedItemsCanvas != null &&
+            selectedItemsParent.GetComponent<GraphicRaycaster>() == null)
+        {
+            selectedItemsParent.gameObject.AddComponent<GraphicRaycaster>();
+        }
+
         ClearChildren(selectedItemsParent);
 
         for (int i = 0; i < selectedCraftingItems.Count; i++)
         {
             GameObject btnObj = Instantiate(selectedItemTextPrefab, selectedItemsParent);
+            InventoryItem selectedItem = selectedCraftingItems[i];
+            int selectedIndex = i;
 
             // Get the Icon inside Button child
             Image iconImage = btnObj.transform.Find("Button/Icon")?.GetComponent<Image>();
-            if (iconImage != null && selectedCraftingItems[i].icon != null)
+            if (iconImage != null && selectedItem.icon != null)
             {
-                iconImage.sprite = selectedCraftingItems[i].icon;
+                iconImage.sprite = selectedItem.icon;
                 iconImage.enabled = true;
             }
             else
             {
-                Debug.LogWarning($"Icon missing for item {selectedCraftingItems[i].itemName}");
+                Debug.LogWarning($"Icon missing for item {selectedItem.itemName}");
             }
+
+            Button selectedButton = btnObj.GetComponent<Button>();
+            if (selectedButton == null)
+                selectedButton = btnObj.AddComponent<Button>();
+
+            selectedButton.onClick.RemoveAllListeners();
+            selectedButton.onClick.AddListener(() => UnselectCraftingItem(selectedIndex));
+
+            ItemHoverTooltip tooltip = btnObj.GetComponent<ItemHoverTooltip>();
+            if (tooltip == null)
+                tooltip = btnObj.AddComponent<ItemHoverTooltip>();
+
+            tooltip.inventoryItem = selectedItem;
 
             // Position button
             RectTransform rt = btnObj.GetComponent<RectTransform>();
@@ -530,6 +680,39 @@ public class GameManager : MonoBehaviour
                 if (i == 2) rt.anchoredPosition = triangleCenterBottom;
             }
         }
+    }
+
+    private void UnselectCraftingItem(int selectedIndex)
+    {
+        if (isMergeAnimationPlaying) return;
+        if (selectedIndex < 0 || selectedIndex >= selectedCraftingItems.Count) return;
+
+        TooltipManager.Instance.Hide();
+        ContextBlocker.IgnoreCloseForCurrentFrame();
+
+        InventoryItem selectedItem = selectedCraftingItems[selectedIndex];
+        InventoryItem existing = inventory.Find(i => i.itemName == selectedItem.itemName);
+
+        if (existing != null)
+        {
+            existing.count += 1;
+        }
+        else
+        {
+            inventory.Add(new InventoryItem
+            {
+                itemName = selectedItem.itemName,
+                count = 1,
+                category = selectedItem.category,
+                description = selectedItem.description,
+                icon = selectedItem.icon
+            });
+        }
+
+        selectedCraftingItems.RemoveAt(selectedIndex);
+        RefreshSelectedItemsUI();
+        RefreshCraftingUI();
+        PopulateInventoryPanel();
     }
 
     public void MergeItems()
@@ -698,7 +881,7 @@ public class GameManager : MonoBehaviour
             {
                 ad.PlaySfx(vol, SFX.MergePotion, pitch);
                 AddToInventory(recipe.potionName, recipe.category, "", recipe.icon);
-                discoveredRecipes.Add(recipe.potionName);
+                DiscoverRecipe(recipe);
                 craftedSomething = true;
                 OnSuccessfulMerge?.Invoke();
                 break;
@@ -912,6 +1095,9 @@ public class GameManager : MonoBehaviour
             if (inventoryBreather != null)
                 inventoryBreather.StartBreathing();
         }
+
+        if (inventoryButton != null)
+            inventoryButton.interactable = true;
 
         OnItemAdded?.Invoke(name, category);
     }
