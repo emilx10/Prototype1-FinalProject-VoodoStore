@@ -86,7 +86,7 @@ public class GameManager : MonoBehaviour
     private const float MergeDissolveEnd = 1f;
 
     private HashSet<string> discoveredRecipes = new HashSet<string>();
-    private HashSet<string> discoveredRecipeIngredients = new HashSet<string>();
+    private HashSet<string> discoveredRecipeIngredientSlots = new HashSet<string>();
 
     [Header("SoundManager")]
     public AudioManager ad;
@@ -123,6 +123,7 @@ public class GameManager : MonoBehaviour
     [Header("Crafting Selection UI")]
     public Transform selectedItemsParent;
     public GameObject selectedItemTextPrefab;
+    [SerializeField] private Button endDayButton;
 
     public GameObject buttonPrefab;
 
@@ -185,6 +186,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Button inventoryButton;
     public ButtonBreather inventoryBreather;
 
+    [Header("Day Night Cycle UI")]
+    [SerializeField] private Vector2 dayNightCyclePosition = new Vector2(0f, -18f);
+    [SerializeField] private float dayNightCycleRotation;
+    [SerializeField] private Vector3 dayNightCycleScale = Vector3.one;
+
     public List<InventoryItem> GetInventoryItems()
     {
         return inventory;
@@ -204,6 +210,9 @@ public class GameManager : MonoBehaviour
 
     private void OnValidate()
     {
+        if (Application.isPlaying)
+            DayNightCycleUI.SetLayout(dayNightCyclePosition, dayNightCycleRotation, dayNightCycleScale);
+
         if (Application.isPlaying &&
             knownRecipesPanel != null &&
             knownRecipesPanel.activeInHierarchy &&
@@ -282,7 +291,8 @@ public class GameManager : MonoBehaviour
                     {
                         string ingredientName = recipe.ingredients[ingredientIndex];
                         bool recipeDiscovered = discoveredRecipes.Contains(NormalizeName(recipe.potionName));
-                        bool ingredientDiscovered = discoveredRecipeIngredients.Contains(NormalizeName(ingredientName));
+                        bool ingredientDiscovered = discoveredRecipeIngredientSlots.Contains(
+                            GetRecipeIngredientSlotKey(recipe, ingredientIndex));
 
                         if (recipeDiscovered || ingredientDiscovered)
                             ingredientText = ingredientName;
@@ -332,41 +342,62 @@ public class GameManager : MonoBehaviour
     public bool DiscoverRecipeIngredient(string ingredientName)
     {
         string normalizedIngredient = NormalizeName(ingredientName);
-        bool usedByRecipe = false;
+        List<int> matchingRecipeIndexes = new List<int>();
 
-        foreach (Recipe recipe in recipes)
+        for (int recipeIndex = 0; recipeIndex < recipes.Count; recipeIndex++)
         {
-            foreach (string recipeIngredient in recipe.ingredients)
+            Recipe recipe = recipes[recipeIndex];
+            if (discoveredRecipes.Contains(NormalizeName(recipe.potionName)))
+                continue;
+
+            for (int ingredientIndex = 0; ingredientIndex < recipe.ingredients.Count; ingredientIndex++)
             {
-                if (NormalizeName(recipeIngredient) == normalizedIngredient)
+                bool isMatchingIngredient =
+                    NormalizeName(recipe.ingredients[ingredientIndex]) == normalizedIngredient;
+                bool isAlreadyDiscovered = discoveredRecipeIngredientSlots.Contains(
+                    GetRecipeIngredientSlotKey(recipe, ingredientIndex));
+
+                if (isMatchingIngredient && !isAlreadyDiscovered)
                 {
-                    usedByRecipe = true;
+                    matchingRecipeIndexes.Add(recipeIndex);
                     break;
                 }
             }
-
-            if (usedByRecipe) break;
         }
 
-        if (!usedByRecipe)
+        if (matchingRecipeIndexes.Count == 0)
             return false;
 
-        bool newlyDiscovered = discoveredRecipeIngredients.Add(normalizedIngredient);
-        if (newlyDiscovered && knownRecipesPanel.activeInHierarchy)
+        int selectedRecipeIndex = matchingRecipeIndexes[Random.Range(0, matchingRecipeIndexes.Count)];
+        Recipe selectedRecipe = recipes[selectedRecipeIndex];
+
+        for (int ingredientIndex = 0; ingredientIndex < selectedRecipe.ingredients.Count; ingredientIndex++)
+        {
+            if (NormalizeName(selectedRecipe.ingredients[ingredientIndex]) != normalizedIngredient)
+                continue;
+
+            discoveredRecipeIngredientSlots.Add(
+                GetRecipeIngredientSlotKey(selectedRecipe, ingredientIndex));
+            break;
+        }
+
+        if (knownRecipesPanel.activeInHierarchy)
             PopulateKnownRecipesUI();
 
-        return newlyDiscovered;
+        return true;
     }
 
     private void DiscoverRecipe(Recipe recipe)
     {
         discoveredRecipes.Add(NormalizeName(recipe.potionName));
 
-        foreach (string ingredient in recipe.ingredients)
-            discoveredRecipeIngredients.Add(NormalizeName(ingredient));
-
         if (knownRecipesPanel.activeInHierarchy)
             PopulateKnownRecipesUI();
+    }
+
+    private static string GetRecipeIngredientSlotKey(Recipe recipe, int ingredientIndex)
+    {
+        return $"{NormalizeName(recipe.potionName)}|{ingredientIndex}";
     }
 
     private static string NormalizeName(string value)
@@ -403,6 +434,7 @@ public class GameManager : MonoBehaviour
     // ------------------- START -------------------
     void Start()
     {
+        DayNightCycleUI.SetLayout(dayNightCyclePosition, dayNightCycleRotation, dayNightCycleScale);
         EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
         RandomizeMarketStock();
         inventoryBreather = inventoryButton.GetComponent<ButtonBreather>();
@@ -420,6 +452,8 @@ public class GameManager : MonoBehaviour
     // ------------------- MARKET -------------------
     public void StartMarketPhase()
     {
+        DayNightCycleUI.SetPhase(DayNightPhase.Day);
+
         marketPanel.SetActive(true);
         itemsPanel.SetActive(false);
         craftingPanel.SetActive(false);
@@ -428,6 +462,8 @@ public class GameManager : MonoBehaviour
 
     public void OpenMarket(Market market)
     {
+        DayNightCycleUI.SetPhase(DayNightPhase.Day);
+
         currentMarket = market;
         //marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
@@ -545,6 +581,9 @@ public class GameManager : MonoBehaviour
     // ------------------- CRAFTING -------------------
     public void OpenCrafting()
     {
+        if (endDayButton != null)
+            endDayButton.interactable = false;
+
         marketPanel.SetActive(false);
         itemsPanel.SetActive(false);
         sellPanel.SetActive(true);
@@ -909,6 +948,11 @@ public class GameManager : MonoBehaviour
 
         selectedCraftingItems.Clear();
 
+        if (endDayButton != null)
+            endDayButton.interactable = true;
+
+        DayNightCycleUI.SetPhase(DayNightPhase.Night);
+
         RefreshSelectedItemsUI();
         RefreshCraftingUI();
         PopulateInventoryPanel();
@@ -949,6 +993,11 @@ public class GameManager : MonoBehaviour
     // ------------------- SELL -------------------
     public void OpenSell()
     {
+        if (endDayButton != null)
+            endDayButton.interactable = false;
+
+        DayNightCycleUI.SetPhase(DayNightPhase.Evening);
+
         marketPanel.SetActive(false);
         itemsPanel.SetActive(false);
         craftingPanel.SetActive(false);

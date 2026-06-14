@@ -3912,7 +3912,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 440}
+  m_AnchoredPosition: {x: 0, y: 388}
   m_SizeDelta: {x: 422.7579, y: 148.4824}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &583819588
@@ -10172,6 +10172,7 @@ MonoBehaviour:
   junkIcon: {fileID: 21300000, guid: 8820adc97120ed245b4e474d99c787e5, type: 3}
   selectedItemsParent: {fileID: 861392865}
   selectedItemTextPrefab: {fileID: 1933840957925310353, guid: 8a12491297d090c46802897957f053d6, type: 3}
+  endDayButton: {fileID: 275940467}
   buttonPrefab: {fileID: 1146517354664766705, guid: 6bd8b2ccaff8d5d40bea24e1527bd20d, type: 3}
   markets:
   - marketName: Gems
@@ -10367,6 +10368,9 @@ MonoBehaviour:
   knownRecipeIngredientsPosition: {x: 52, y: 5}
   inventoryButton: {fileID: 648672315}
   inventoryBreather: {fileID: 648672318}
+  dayNightCyclePosition: {x: 0, y: -109}
+  dayNightCycleRotation: 180
+  dayNightCycleScale: {x: 0.8, y: 0.8, z: 0.8}
   objectiveManager: {fileID: 1945514260}
 --- !u!4 &731473974
 Transform:
@@ -15866,7 +15870,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dc42784cf147c0c48a680349fa168899, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.GraphicRaycaster
   m_IgnoreReversedGraphics: 1
   m_BlockingObjects: 0
@@ -16044,7 +16048,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0, y: -23}
+  m_AnchoredPosition: {x: 0, y: -57.3}
   m_SizeDelta: {x: 469.1994, y: 127.8746}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &895774963
