@@ -10362,10 +10362,16 @@ MonoBehaviour:
   knownRecipesPanel: {fileID: 1291665568}
   knownRecipesParent: {fileID: 1291665569}
   knownRecipePrefab: {fileID: 1461284419701723272, guid: 0b1e48b6f41075e49a294b242498e9ae, type: 3}
-  knownRecipeStartPosition: {x: -260, y: 260}
-  knownRecipeSpacing: {x: 260, y: 230}
-  knownRecipeCloneSize: {x: 230, y: 190}
-  knownRecipeIngredientsPosition: {x: 52, y: 5}
+  knownRecipeStartPosition: {x: -260, y: 230}
+  knownRecipeSpacing: {x: 260, y: 300}
+  knownRecipeCloneSize: {x: 230.8, y: 190}
+  knownRecipeIngredientsPosition: {x: 1, y: -62}
+  knownRecipesWholeScale: {x: 2.5, y: 1, z: 1}
+  knownRecipeItemScale: {x: 0.83, y: 1.43, z: 1}
+  knownRecipeOilColor: {r: 0.28, g: 0.17, b: 0.05, a: 1}
+  knownRecipeHerbColor: {r: 0.12, g: 0.72, b: 0.32, a: 1}
+  knownRecipeGemColor: {r: 0.35, g: 0.16, b: 0.82, a: 1}
+  knownRecipeUnknownProductColor: {r: 0.62, g: 0.62, b: 0.62, a: 1}
   inventoryButton: {fileID: 648672315}
   inventoryBreather: {fileID: 648672318}
   dayNightCyclePosition: {x: 0, y: -109}

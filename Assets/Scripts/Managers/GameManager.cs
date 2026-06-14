@@ -161,6 +161,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Vector2 knownRecipeCloneSize = new Vector2(230f, 190f);
     [Tooltip("Position of the three ingredient names or ??? labels inside every recipe clone.")]
     [SerializeField] private Vector2 knownRecipeIngredientsPosition = new Vector2(52f, 8f);
+    [Tooltip("Scales the complete Known Recipes title and grid as one unit.")]
+    [SerializeField] private Vector3 knownRecipesWholeScale = Vector3.one;
+    [Tooltip("Scales each recipe card and all of its contents.")]
+    [SerializeField] private Vector3 knownRecipeItemScale = Vector3.one;
+    [SerializeField] private Color knownRecipeOilColor = new Color(0.28f, 0.17f, 0.05f, 1f);
+    [SerializeField] private Color knownRecipeHerbColor = new Color(0.12f, 0.72f, 0.32f, 1f);
+    [SerializeField] private Color knownRecipeGemColor = new Color(0.35f, 0.16f, 0.82f, 1f);
+    [SerializeField] private Color knownRecipeUnknownProductColor = new Color(0.62f, 0.62f, 0.62f, 1f);
 
     public static UnityAction<Sprite> OnItemBought;
     public static UnityAction OnSuccessfulMerge;
@@ -227,16 +235,37 @@ public class GameManager : MonoBehaviour
     {
         ClearChildren(knownRecipesParent);
 
+        GameObject layoutObject = new GameObject("KnownRecipesLayout", typeof(RectTransform));
+        layoutObject.transform.SetParent(knownRecipesParent, false);
+
+        RectTransform layoutRect = layoutObject.GetComponent<RectTransform>();
+        layoutRect.anchorMin = new Vector2(0.5f, 0.5f);
+        layoutRect.anchorMax = new Vector2(0.5f, 0.5f);
+        layoutRect.pivot = new Vector2(0.5f, 0.5f);
+        layoutRect.anchoredPosition = Vector2.zero;
+        layoutRect.sizeDelta = Vector2.zero;
+        layoutRect.localScale = knownRecipesWholeScale;
+
+        CreateKnownRecipeText(
+            layoutRect,
+            "KnownRecipesTitle",
+            "Known recipes",
+            new Vector2(0f, 390f),
+            new Vector2(420f, 54f),
+            32f,
+            FontStyles.Bold,
+            new Color(0.08f, 0.06f, 0.04f, 1f));
+
         for (int recipeIndex = 0; recipeIndex < recipes.Count; recipeIndex++)
         {
             Recipe recipe = recipes[recipeIndex];
 
-            GameObject obj = Instantiate(knownRecipePrefab, knownRecipesParent);
+            GameObject obj = Instantiate(knownRecipePrefab, layoutRect);
             RectTransform recipeRect = obj.GetComponent<RectTransform>();
             int column = recipeIndex % KnownRecipeColumns;
             int row = recipeIndex / KnownRecipeColumns;
 
-            recipeRect.localScale = Vector3.one;
+            recipeRect.localScale = knownRecipeItemScale;
             recipeRect.anchorMin = new Vector2(0.5f, 0.5f);
             recipeRect.anchorMax = new Vector2(0.5f, 0.5f);
             recipeRect.sizeDelta = knownRecipeCloneSize;
@@ -244,28 +273,52 @@ public class GameManager : MonoBehaviour
                 knownRecipeStartPosition.x + column * knownRecipeSpacing.x,
                 knownRecipeStartPosition.y - row * knownRecipeSpacing.y);
 
+            Image recipeBackground = obj.GetComponent<Image>();
+            if (recipeBackground == null)
+                recipeBackground = obj.AddComponent<Image>();
+            recipeBackground.color = new Color(0.12f, 0.08f, 0.04f, 0.16f);
+            recipeBackground.raycastTarget = false;
+
+            bool recipeDiscovered = discoveredRecipes.Contains(NormalizeName(recipe.potionName));
             Transform resultIconTransform = obj.transform.Find("ResultIcon");
             if (resultIconTransform != null)
             {
                 Image resultIcon = resultIconTransform.GetComponent<Image>();
-                resultIcon.sprite = recipe.icon;
-                resultIcon.enabled = recipe.icon != null;
+                resultIcon.sprite = recipeDiscovered ? recipe.icon : null;
+                resultIcon.color = recipeDiscovered ? Color.white : knownRecipeUnknownProductColor;
+                resultIcon.enabled = true;
+                resultIcon.preserveAspect = recipeDiscovered;
+                resultIcon.raycastTarget = false;
 
                 RectTransform iconRect = resultIconTransform.GetComponent<RectTransform>();
                 iconRect.anchorMin = new Vector2(0.5f, 0.5f);
                 iconRect.anchorMax = new Vector2(0.5f, 0.5f);
-                iconRect.anchoredPosition = new Vector2(-72f, 10f);
-                iconRect.sizeDelta = new Vector2(72f, 72f);
+                iconRect.anchoredPosition = new Vector2(-64f, 35f);
+                iconRect.sizeDelta = new Vector2(76f, 64f);
+
+                if (!recipeDiscovered)
+                {
+                    CreateKnownRecipeText(
+                        resultIconTransform,
+                        "UnknownProduct",
+                        "?",
+                        Vector2.zero,
+                        iconRect.sizeDelta,
+                        46f,
+                        FontStyles.Normal,
+                        new Color(0.08f, 0.08f, 0.08f, 1f));
+                }
             }
 
             CreateKnownRecipeText(
                 obj.transform,
                 "RecipeName",
                 recipe.potionName,
-                new Vector2(0f, 76f),
-                new Vector2(225f, 42f),
-                23f,
-                FontStyles.Bold);
+                new Vector2(48f, 35f),
+                new Vector2(112f, 68f),
+                19f,
+                FontStyles.Normal,
+                new Color(0.08f, 0.06f, 0.04f, 1f));
 
             Transform ingredientsRow = obj.transform.Find("IngredientsRow");
             if (ingredientsRow != null)
@@ -280,32 +333,24 @@ public class GameManager : MonoBehaviour
                 rowRect.localScale = Vector3.one;
                 rowRect.localRotation = Quaternion.identity;
                 rowRect.anchoredPosition = knownRecipeIngredientsPosition;
-                rowRect.sizeDelta = new Vector2(150f, 100f);
+                rowRect.sizeDelta = new Vector2(178f, 48f);
                 rowRect.SetAsLastSibling();
 
                 for (int ingredientIndex = 0; ingredientIndex < 3; ingredientIndex++)
                 {
-                    string ingredientText = "???";
+                    if (ingredientIndex >= recipe.ingredients.Count)
+                        continue;
 
-                    if (ingredientIndex < recipe.ingredients.Count)
-                    {
-                        string ingredientName = recipe.ingredients[ingredientIndex];
-                        bool recipeDiscovered = discoveredRecipes.Contains(NormalizeName(recipe.potionName));
-                        bool ingredientDiscovered = discoveredRecipeIngredientSlots.Contains(
+                    string ingredientName = recipe.ingredients[ingredientIndex];
+                    bool ingredientDiscovered = recipeDiscovered ||
+                        discoveredRecipeIngredientSlots.Contains(
                             GetRecipeIngredientSlotKey(recipe, ingredientIndex));
 
-                        if (recipeDiscovered || ingredientDiscovered)
-                            ingredientText = ingredientName;
-                    }
-
-                    CreateKnownRecipeText(
+                    CreateKnownRecipeIngredientSlot(
                         ingredientsRow,
-                        $"Ingredient{ingredientIndex + 1}",
-                        ingredientText,
-                        new Vector2(0f, 34f - ingredientIndex * 34f),
-                        new Vector2(150f, 30f),
-                        19f,
-                        FontStyles.Normal);
+                        ingredientIndex,
+                        ingredientName,
+                        ingredientDiscovered);
                 }
             }
         }
@@ -318,7 +363,8 @@ public class GameManager : MonoBehaviour
         Vector2 anchoredPosition,
         Vector2 size,
         float fontSize,
-        FontStyles fontStyle)
+        FontStyles fontStyle,
+        Color? textColor = null)
     {
         GameObject textObject = new GameObject(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(TextMeshProUGUI));
         textObject.transform.SetParent(parent, false);
@@ -334,9 +380,81 @@ public class GameManager : MonoBehaviour
         label.fontSize = fontSize;
         label.fontStyle = fontStyle;
         label.alignment = TextAlignmentOptions.Center;
-        label.color = Color.white;
+        label.color = textColor ?? Color.white;
         label.textWrappingMode = TextWrappingModes.Normal;
         label.raycastTarget = false;
+    }
+
+    private void CreateKnownRecipeIngredientSlot(
+        Transform parent,
+        int ingredientIndex,
+        string ingredientName,
+        bool discovered)
+    {
+        GameObject slotObject = new GameObject(
+            $"Ingredient{ingredientIndex + 1}",
+            typeof(RectTransform),
+            typeof(CanvasRenderer),
+            typeof(Image));
+        slotObject.transform.SetParent(parent, false);
+
+        RectTransform slotRect = slotObject.GetComponent<RectTransform>();
+        slotRect.anchorMin = new Vector2(0.5f, 0.5f);
+        slotRect.anchorMax = new Vector2(0.5f, 0.5f);
+        slotRect.anchoredPosition = new Vector2(-57f + ingredientIndex * 57f, 0f);
+        slotRect.sizeDelta = new Vector2(48f, 42f);
+
+        Image slotImage = slotObject.GetComponent<Image>();
+        slotImage.raycastTarget = false;
+        slotImage.color = GetKnownRecipeIngredientColor(ingredientName);
+        slotImage.preserveAspect = discovered;
+
+        if (discovered)
+        {
+            slotImage.sprite = GetIconByNameInsensitive(ingredientName);
+            if (slotImage.sprite != null)
+                slotImage.color = Color.white;
+            else
+                slotImage.color = GetKnownRecipeIngredientColor(ingredientName);
+        }
+        else
+        {
+            CreateKnownRecipeText(
+                slotObject.transform,
+                "UnknownIngredient",
+                "?",
+                Vector2.zero,
+                slotRect.sizeDelta,
+                25f,
+                FontStyles.Bold,
+                Color.white);
+        }
+    }
+
+    private Color GetKnownRecipeIngredientColor(string ingredientName)
+    {
+        string normalizedIngredient = NormalizeName(ingredientName);
+
+        foreach (Market market in markets)
+        {
+            foreach (MarketItem item in market.items)
+            {
+                if (NormalizeName(item.itemName) != normalizedIngredient)
+                    continue;
+
+                switch (item.category)
+                {
+                    case ItemCategory.Oils:
+                        return knownRecipeOilColor;
+                    case ItemCategory.Herbs:
+                        return knownRecipeHerbColor;
+                    case ItemCategory.Gems:
+                        return knownRecipeGemColor;
+                }
+            }
+        }
+
+        return Color.gray;
     }
 
     public bool DiscoverRecipeIngredient(string ingredientName)
