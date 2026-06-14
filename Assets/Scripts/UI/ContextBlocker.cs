@@ -22,6 +22,9 @@ public class ContextBlocker : MonoBehaviour
     {
         if (Time.frameCount == ignoreCloseFrame)
             return;
+        if (gameManager != null &&
+            (gameManager.IsKnownRecipesOpen() || IsPointerOverBookControl()))
+            return;
         if (IsPointerInsideContext())
             return;
 
@@ -44,6 +47,33 @@ public class ContextBlocker : MonoBehaviour
             gameManager.RefreshSellUI();
             
         }
+    }
+
+    private bool IsPointerOverBookControl()
+    {
+        if (EventSystem.current == null)
+            return false;
+
+        PointerEventData pointerData = new PointerEventData(EventSystem.current)
+        {
+            position = Input.mousePosition
+        };
+        List<RaycastResult> results = new List<RaycastResult>();
+        EventSystem.current.RaycastAll(pointerData, results);
+
+        foreach (RaycastResult result in results)
+        {
+            Transform current = result.gameObject.transform;
+            while (current != null)
+            {
+                if (current.name == "BookCanvas")
+                    return true;
+
+                current = current.parent;
+            }
+        }
+
+        return false;
     }
 
     private bool IsPointerInsideContext()

@@ -124,6 +124,7 @@ public class GameManager : MonoBehaviour
     public Transform selectedItemsParent;
     public GameObject selectedItemTextPrefab;
     [SerializeField] private Button endDayButton;
+    [SerializeField] private Button marketShopButton;
 
     public GameObject buttonPrefab;
 
@@ -156,6 +157,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject knownRecipesPanel;
     [SerializeField] private Transform knownRecipesParent;
     [SerializeField] private GameObject knownRecipePrefab;
+    [SerializeField] private GameObject bookCanvasRoot;
+    [SerializeField] private Canvas bookCanvas;
+    [SerializeField] private GameObject bookRoot;
+    [SerializeField] private Button knownRecipesOpenButton;
+    [SerializeField] private CanvasGroup bookCanvasGroup;
     [SerializeField] private Vector2 knownRecipeStartPosition = new Vector2(-260f, 260f);
     [SerializeField] private Vector2 knownRecipeSpacing = new Vector2(260f, 230f);
     [SerializeField] private Vector2 knownRecipeCloneSize = new Vector2(230f, 190f);
@@ -184,6 +190,7 @@ public class GameManager : MonoBehaviour
     private Dictionary<MarketItem, int> marketStock = new Dictionary<MarketItem, int>();
     private Market currentMarket;
     private bool isMergeAnimationPlaying = false;
+    private bool craftingExitRequired;
 
 
     private HashSet<string> discoveredItems = new HashSet<string>();
@@ -214,6 +221,94 @@ public class GameManager : MonoBehaviour
     public void CloseKnownRecipes()
     {
         knownRecipesPanel.SetActive(false);
+        ApplyMarketReturnGate();
+    }
+
+    private void LateUpdate()
+    {
+        ApplyMarketReturnGate();
+    }
+
+    private void ApplyMarketReturnGate()
+    {
+        if (craftingExitRequired && endDayButton != null)
+            endDayButton.interactable = false;
+    }
+
+    public bool IsKnownRecipesOpen()
+    {
+        return knownRecipesPanel != null && knownRecipesPanel.activeInHierarchy;
+    }
+
+    public void OpenKnownRecipesBookFromMarket()
+    {
+        if (bookRoot != null)
+            bookRoot.SetActive(true);
+
+        if (bookCanvasGroup != null)
+        {
+            bookCanvasGroup.alpha = 1f;
+            bookCanvasGroup.interactable = true;
+            bookCanvasGroup.blocksRaycasts = true;
+        }
+
+        if (knownRecipesOpenButton != null)
+            knownRecipesOpenButton.onClick.Invoke();
+        else
+            OpenKnownRecipes();
+    }
+
+    public void PrepareBookCanvasForFamilyMarket()
+    {
+        if (bookCanvasRoot != null)
+            bookCanvasRoot.SetActive(true);
+
+        if (bookCanvas != null)
+        {
+            bookCanvas.overrideSorting = true;
+            bookCanvas.sortingOrder = 160;
+        }
+
+        if (bookCanvasGroup != null)
+        {
+            bookCanvasGroup.alpha = 1f;
+            bookCanvasGroup.interactable = true;
+            bookCanvasGroup.blocksRaycasts = true;
+        }
+
+        if (bookRoot != null)
+            bookRoot.SetActive(true);
+
+        if (knownRecipesOpenButton != null)
+        {
+            knownRecipesOpenButton.interactable = true;
+
+            Graphic hitTarget = knownRecipesOpenButton.targetGraphic;
+            if (hitTarget != null)
+            {
+                hitTarget.enabled = true;
+                hitTarget.raycastTarget = true;
+                Color transparentColor = hitTarget.color;
+                transparentColor.a = 0f;
+                hitTarget.color = transparentColor;
+            }
+        }
+    }
+
+    public void DisableLegacyMarketPresentation()
+    {
+        if (marketPanel == null)
+            return;
+
+        Image panelImage = marketPanel.GetComponent<Image>();
+        if (panelImage != null)
+        {
+            panelImage.enabled = false;
+            panelImage.raycastTarget = false;
+        }
+
+        foreach (Transform child in marketPanel.transform)
+            child.gameObject.SetActive(false);
     }
 
     private void OnValidate()
@@ -553,6 +648,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         DayNightCycleUI.SetLayout(dayNightCyclePosition, dayNightCycleRotation, dayNightCycleScale);
+        FamilyMarketUI.Attach(this);
         EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
         RandomizeMarketStock();
         inventoryBreather = inventoryButton.GetComponent<ButtonBreather>();
@@ -571,6 +667,9 @@ public class GameManager : MonoBehaviour
     public void StartMarketPhase()
     {
         DayNightCycleUI.SetPhase(DayNightPhase.Day);
+        FamilyMarketUI.Attach(this);
+        DisableLegacyMarketPresentation();
+        PrepareBookCanvasForFamilyMarket();
 
         marketPanel.SetActive(true);
         itemsPanel.SetActive(false);
@@ -667,10 +766,46 @@ public class GameManager : MonoBehaviour
         objectiveManager.UpdateTasksFromInventory(GetInventoryItems());
 
         RefreshMarketItemsUI(); // <-- just refresh buttons and counts
+        FamilyMarketUI.RefreshIfVisible();
+    }
+
+    public Market GetMarketForCategory(ItemCategory category)
+    {
+        foreach (Market market in markets)
+        {
+            if (market.items.Count > 0 && market.items[0].category == category)
+                return market;
+        }
+
+        return null;
+    }
+
+    public int GetMarketStock(MarketItem item)
+    {
+        return item != null && marketStock.TryGetValue(item, out int stock) ? stock : 0;
+    }
+
+    public void BuyMarketItemFromFamilyUI(MarketItem item)
+    {
+        BuyItem(item);
+    }
+
+    public void InvokeMarketShopButton()
+    {
+        if (marketShopButton != null && marketShopButton.interactable)
+            marketShopButton.onClick.Invoke();
     }
 
     void RefreshMarketItemsUI()
     {
+        if (currentMarket == null ||
+            itemsButtonsParent == null ||
+            itemsPanel == null ||
+            !itemsPanel.activeInHierarchy)
+        {
+            return;
+        }
+
         ClearChildren(itemsButtonsParent);
 
         foreach (MarketItem item in currentMarket.items)
@@ -699,6 +834,8 @@ public class GameManager : MonoBehaviour
     // ------------------- CRAFTING -------------------
     public void OpenCrafting()
     {
+        craftingExitRequired = true;
+
         if (endDayButton != null)
             endDayButton.interactable = false;
 
@@ -1065,6 +1202,8 @@ public class GameManager : MonoBehaviour
         ReturnCraftingItemsToInventory();
 
         selectedCraftingItems.Clear();
+
+        craftingExitRequired = false;
 
         if (endDayButton != null)
             endDayButton.interactable = true;
