@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -23,17 +24,21 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
     private readonly List<FamilyPage> pages = new List<FamilyPage>
     {
-        new FamilyPage("Dad", "FrameHerbs", ItemCategory.Herbs),
-        new FamilyPage("Mom", "FrameOils", ItemCategory.Oils),
-        new FamilyPage("Dota", "FrameStone", ItemCategory.Gems)
+        new FamilyPage("Dad", "seller", ItemCategory.Herbs),
+        new FamilyPage("Mom", "Flower Frame", ItemCategory.Oils),
+        new FamilyPage("Dota", "Crystal Frame", ItemCategory.Gems)
     };
 
     private readonly Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();
     private readonly List<GameObject> itemSlots = new List<GameObject>();
+    private readonly Dictionary<GameObject, Coroutine> activePurchaseVfx = new Dictionary<GameObject, Coroutine>();
 
     private GameManager gameManager;
     private GameObject contentRoot;
     private Image characterImage;
+    private Image rightUiBlockImage;
+    private RectTransform leftArrowRect;
+    private RectTransform rightArrowRect;
     private int pageIndex;
 
     public static void Attach(GameManager manager)
@@ -81,7 +86,10 @@ public sealed class FamilyMarketUI : MonoBehaviour
         }
 
         if (shouldShow)
+        {
+            ApplyFamilyMarketLayout();
             gameManager.PrepareBookCanvasForFamilyMarket();
+        }
     }
 
     private void BuildUI()
@@ -125,8 +133,13 @@ public sealed class FamilyMarketUI : MonoBehaviour
         deskRect.sizeDelta = new Vector2(0f, 320f);
         desk.raycastTarget = false;
 
-        CreateArrow(new Vector2(-855f, 25f), -1f, -1);
-        CreateArrow(new Vector2(855f, 25f), 1f, 1);
+        rightUiBlockImage = CreateImage("Seller Right UI Block", contentRoot.transform, LoadSprite("SellerRightUI"));
+        rightUiBlockImage.preserveAspect = true;
+        rightUiBlockImage.raycastTarget = false;
+
+        leftArrowRect = CreateArrow(-1f, -1);
+        rightArrowRect = CreateArrow(1f, 1);
+        ApplyFamilyMarketLayout();
 
         for (int i = 0; i < 3; i++)
             itemSlots.Add(CreateItemSlot(i));
@@ -141,9 +154,9 @@ public sealed class FamilyMarketUI : MonoBehaviour
         contentRoot.SetActive(false);
     }
 
-    private void CreateArrow(Vector2 position, float horizontalScale, int direction)
+    private RectTransform CreateArrow(float horizontalScale, int direction)
     {
-        GameObject arrowObject = CreateRect("Family Arrow", contentRoot.transform, position, new Vector2(110f, 110f));
+        GameObject arrowObject = CreateRect("Family Arrow", contentRoot.transform, Vector2.zero, new Vector2(86f, 86f));
         Image image = arrowObject.AddComponent<Image>();
         image.sprite = LoadSprite("Arrow");
         image.preserveAspect = true;
@@ -154,6 +167,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         RectTransform rect = arrowObject.GetComponent<RectTransform>();
         rect.localScale = new Vector3(horizontalScale, 1f, 1f);
+        return rect;
     }
 
     private GameObject CreateItemSlot(int slotIndex)
@@ -175,7 +189,13 @@ public sealed class FamilyMarketUI : MonoBehaviour
         Image frame = CreateImage("Category Frame", slot.transform, null);
         Stretch(frame.rectTransform);
         frame.raycastTarget = false;
-        frame.preserveAspect = false;
+        frame.preserveAspect = true;
+
+        Image purchaseFlash = CreateImage("Purchase Frame Flash", slot.transform, null);
+        Stretch(purchaseFlash.rectTransform);
+        purchaseFlash.raycastTarget = false;
+        purchaseFlash.preserveAspect = true;
+        purchaseFlash.color = Color.clear;
 
         Image icon = CreateImage("Icon", slot.transform, null);
         RectTransform iconRect = icon.rectTransform;
@@ -212,6 +232,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (gameManager == null || characterImage == null)
             return;
 
+        ApplyFamilyMarketLayout();
+
         FamilyPage page = pages[pageIndex];
         characterImage.sprite = LoadSprite(page.characterTexture);
 
@@ -231,6 +253,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             int stock = gameManager.GetMarketStock(item);
 
             slot.transform.Find("Category Frame").GetComponent<Image>().sprite = frameSprite;
+            slot.transform.Find("Purchase Frame Flash").GetComponent<Image>().sprite = frameSprite;
             slot.transform.Find("Icon").GetComponent<Image>().sprite = item.icon;
             slot.transform.Find("Item Name").GetComponent<TMP_Text>().text = item.itemName;
             slot.transform.Find("Item Details").GetComponent<TMP_Text>().text =
@@ -242,6 +265,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             button.onClick.AddListener(() =>
             {
                 gameManager.BuyMarketItemFromFamilyUI(item);
+                PlayItemPurchaseVfx(slot);
                 RefreshPage();
             });
 
@@ -270,6 +294,101 @@ public sealed class FamilyMarketUI : MonoBehaviour
     {
         pageIndex = (pageIndex + direction + pages.Count) % pages.Count;
         RefreshPage();
+    }
+
+    private void PlayItemPurchaseVfx(GameObject slot)
+    {
+        if (slot == null || !slot.activeInHierarchy)
+            return;
+
+        if (activePurchaseVfx.TryGetValue(slot, out Coroutine running) && running != null)
+            StopCoroutine(running);
+
+        activePurchaseVfx[slot] = StartCoroutine(PlayItemPurchaseVfxRoutine(slot));
+    }
+
+    private IEnumerator PlayItemPurchaseVfxRoutine(GameObject slot)
+    {
+        RectTransform slotRect = slot.GetComponent<RectTransform>();
+        Image frame = slot.transform.Find("Category Frame")?.GetComponent<Image>();
+        Image flash = slot.transform.Find("Purchase Frame Flash")?.GetComponent<Image>();
+        RectTransform iconRect = slot.transform.Find("Icon")?.GetComponent<RectTransform>();
+
+        if (slotRect == null || frame == null || flash == null || iconRect == null)
+            yield break;
+
+        Vector3 slotStartScale = slotRect.localScale;
+        Vector3 iconStartScale = iconRect.localScale;
+        Color frameStartColor = frame.color;
+        Color flashColor = new Color(1f, 0.86f, 0.24f, 0f);
+        float duration = 0.42f;
+        float elapsed = 0f;
+
+        flash.transform.SetAsLastSibling();
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float pulse = Mathf.Sin(t * Mathf.PI);
+            float snap = 1f - Mathf.Pow(1f - t, 3f);
+
+            slotRect.localScale = slotStartScale * (1f + pulse * 0.07f);
+            iconRect.localScale = iconStartScale * (1f + pulse * 0.16f);
+            frame.color = Color.Lerp(frameStartColor, new Color(1f, 0.94f, 0.46f, frameStartColor.a), pulse);
+
+            flash.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.04f, 1.22f, snap);
+            flashColor.a = Mathf.Lerp(0.62f, 0f, snap);
+            flash.color = flashColor;
+            flash.rectTransform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(-4f, 4f, pulse));
+
+            yield return null;
+        }
+
+        slotRect.localScale = slotStartScale;
+        iconRect.localScale = iconStartScale;
+        frame.color = frameStartColor;
+        flash.color = Color.clear;
+        flash.rectTransform.localScale = Vector3.one;
+        flash.rectTransform.localRotation = Quaternion.identity;
+        activePurchaseVfx.Remove(slot);
+    }
+
+    private void ApplyFamilyMarketLayout()
+    {
+        if (gameManager == null)
+            return;
+
+        ApplyRightUiBlockLayout();
+        ApplyArrowLayout(leftArrowRect, gameManager.FamilyMarketLeftArrowPosition, -1f);
+        ApplyArrowLayout(rightArrowRect, gameManager.FamilyMarketRightArrowPosition, 1f);
+    }
+
+    private void ApplyRightUiBlockLayout()
+    {
+        if (rightUiBlockImage == null || gameManager == null)
+            return;
+
+        RectTransform rect = rightUiBlockImage.rectTransform;
+        SetCenteredRect(rect);
+        rect.anchoredPosition = gameManager.FamilyMarketRightUiPosition;
+        rect.sizeDelta = gameManager.FamilyMarketRightUiSize;
+        rect.localScale = gameManager.FamilyMarketRightUiScale;
+        rect.localRotation = Quaternion.Euler(0f, 0f, gameManager.FamilyMarketRightUiRotation);
+    }
+
+    private void ApplyArrowLayout(RectTransform arrowRect, Vector2 position, float horizontalDirection)
+    {
+        if (arrowRect == null || gameManager == null)
+            return;
+
+        SetCenteredRect(arrowRect);
+        arrowRect.anchoredPosition = position;
+        arrowRect.sizeDelta = gameManager.FamilyMarketArrowSize;
+        arrowRect.localScale = Vector3.Scale(
+            gameManager.FamilyMarketArrowScale,
+            new Vector3(horizontalDirection, 1f, 1f));
+        arrowRect.localRotation = Quaternion.Euler(0f, 0f, gameManager.FamilyMarketArrowRotation);
     }
 
     private void CreateCommandButton(
@@ -302,7 +421,34 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (spriteCache.TryGetValue(resourceName, out Sprite sprite))
             return sprite;
 
-        Texture2D texture = Resources.Load<Texture2D>($"FamilyMarket/{resourceName}");
+        string resourcePath = $"FamilyMarket/{resourceName}";
+
+        Sprite directSprite = Resources.Load<Sprite>(resourcePath);
+        if (directSprite != null)
+        {
+            spriteCache.Add(resourceName, directSprite);
+            return directSprite;
+        }
+
+        Sprite[] slicedSprites = Resources.LoadAll<Sprite>(resourcePath);
+        if (slicedSprites != null && slicedSprites.Length > 0)
+        {
+            sprite = slicedSprites[0];
+
+            for (int i = 0; i < slicedSprites.Length; i++)
+            {
+                if (slicedSprites[i].name == resourceName || slicedSprites[i].name == resourceName + "_0")
+                {
+                    sprite = slicedSprites[i];
+                    break;
+                }
+            }
+
+            spriteCache.Add(resourceName, sprite);
+            return sprite;
+        }
+
+        Texture2D texture = Resources.Load<Texture2D>(resourcePath);
         if (texture == null)
         {
             Debug.LogError($"Missing Family Market texture: {resourceName}");
@@ -370,5 +516,12 @@ public sealed class FamilyMarketUI : MonoBehaviour
         rect.anchorMax = Vector2.one;
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
+    }
+
+    private static void SetCenteredRect(RectTransform rect)
+    {
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
     }
 }

@@ -1,3 +1,4 @@
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,203 +11,340 @@ public enum DayNightPhase
 
 public sealed class DayNightCycleUI : MonoBehaviour
 {
+    private const int SortingOrder = 420;
+
     private static DayNightCycleUI instance;
     private static DayNightPhase currentPhase = DayNightPhase.Night;
-    private static Vector2 currentPosition = new Vector2(0f, -18f);
-    private static float currentRotation;
-    private static Vector3 currentScale = Vector3.one;
 
-    private DayNightSemicircleGraphic indicator;
-    private RectTransform indicatorRect;
+    [Header("Your Scene UI")]
+    [SerializeField] private RectTransform sceneClockRoot;
+    [SerializeField] private Image sceneArrow;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-    private static void CreateRuntimeInstance()
+    [Header("Phase Arrow Copies")]
+    [SerializeField] private GameObject dayArrow;
+    [SerializeField] private GameObject eveningArrow;
+    [SerializeField] private GameObject nightArrow;
+
+    [Header("Your Phase Targets")]
+    [SerializeField] private RectTransform dayTarget;
+    [SerializeField] private RectTransform eveningTarget;
+    [SerializeField] private RectTransform nightTarget;
+
+    [Header("Arrow Tip")]
+    [Tooltip("Place a child RectTransform on the visible tip of ClockArrow and assign it here. The script rotates ClockArrow so this child points at the phase target.")]
+    [SerializeField] private RectTransform arrowTipTransform;
+
+    private RectTransform arrowRect;
+    private Coroutine arrowAnimation;
+    private float currentArrowRotation;
+
+    private void Awake()
     {
-        EnsureInstance();
+        if (instance != null && instance != this)
+        {
+            enabled = false;
+            return;
+        }
+
+        instance = this;
+        Initialize();
+        ApplyPhase(currentPhase, true);
+    }
+
+    private void OnDestroy()
+    {
+        if (instance == this)
+            instance = null;
     }
 
     public static void SetPhase(DayNightPhase phase)
     {
+        SetPhase(phase, false);
+    }
+
+    public static void SetPhase(DayNightPhase phase, bool instant)
+    {
         currentPhase = phase;
-        EnsureInstance();
-        instance.indicator.SetPhase(phase);
+
+        if (!EnsureSceneInstance())
+            return;
+
+        instance.ApplyPhase(phase, instant);
+    }
+
+    public static void SetLayout(Vector2 anchoredPosition, Vector2 size, float rotation, Vector3 scale)
+    {
+        EnsureSceneInstance();
     }
 
     public static void SetLayout(Vector2 anchoredPosition, float rotation, Vector3 scale)
     {
-        currentPosition = anchoredPosition;
-        currentRotation = rotation;
-        currentScale = scale;
-        EnsureInstance();
-        instance.ApplyLayout();
+        EnsureSceneInstance();
     }
 
-    private static void EnsureInstance()
+    public static void SetPartLayout(
+        Vector2 facePosition,
+        Vector2 faceSize,
+        Vector3 faceScale,
+        float faceRotation,
+        Vector2 circlePosition,
+        Vector2 circleSize,
+        Vector3 circleScale,
+        float circleRotation,
+        Vector2 arrowPosition,
+        Vector2 arrowSize,
+        Vector2 arrowPivot,
+        Vector3 arrowScale)
+    {
+        EnsureSceneInstance();
+    }
+
+    private static bool EnsureSceneInstance()
     {
         if (instance != null)
-            return;
+            return true;
 
-        GameObject root = new GameObject(
-            "Day Night Cycle UI",
-            typeof(RectTransform),
-            typeof(Canvas),
-            typeof(CanvasScaler));
+        instance = FindFirstObjectByType<DayNightCycleUI>();
+        if (instance == null)
+        {
+            Debug.LogError("DayNightCycleUI scene object is missing. Add it to your DayNightClock UI object.");
+            return false;
+        }
 
-        DontDestroyOnLoad(root);
-        instance = root.AddComponent<DayNightCycleUI>();
-        instance.BuildUI();
+        instance.Initialize();
+        return true;
     }
 
-    private void BuildUI()
+    private void Initialize()
+    {
+        if (sceneClockRoot == null)
+            sceneClockRoot = transform as RectTransform;
+
+        if (sceneArrow != null)
+            arrowRect = sceneArrow.rectTransform;
+
+        if (arrowTipTransform == null)
+            arrowTipTransform = FindArrowTipChild();
+
+        if (arrowRect != null)
+        {
+            currentArrowRotation = NormalizeAngle(arrowRect.localEulerAngles.z);
+        }
+
+        FindPhaseArrowCopies();
+
+        EnsureClockDrawsAboveMarket();
+    }
+
+    private void EnsureClockDrawsAboveMarket()
     {
         Canvas canvas = GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        if (canvas == null)
+            canvas = gameObject.AddComponent<Canvas>();
+
         canvas.overrideSorting = true;
-        canvas.sortingOrder = 250;
-
-        CanvasScaler scaler = GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f;
-
-        GameObject indicatorObject = new GameObject(
-            "Cycle Semicircle",
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(DayNightSemicircleGraphic));
-        indicatorObject.transform.SetParent(transform, false);
-
-        indicatorRect = indicatorObject.GetComponent<RectTransform>();
-        indicatorRect.anchorMin = new Vector2(0.5f, 1f);
-        indicatorRect.anchorMax = new Vector2(0.5f, 1f);
-        indicatorRect.pivot = new Vector2(0.5f, 1f);
-        indicatorRect.sizeDelta = new Vector2(280f, 140f);
-        ApplyLayout();
-
-        indicator = indicatorObject.GetComponent<DayNightSemicircleGraphic>();
-        indicator.raycastTarget = false;
-        indicator.SetPhase(currentPhase);
+        canvas.sortingOrder = SortingOrder;
     }
 
-    private void ApplyLayout()
+    private void ApplyPhase(DayNightPhase phase, bool instant)
     {
-        if (indicatorRect == null)
+        if (sceneClockRoot == null)
             return;
 
-        indicatorRect.anchoredPosition = currentPosition;
-        indicatorRect.localRotation = Quaternion.Euler(0f, 0f, currentRotation);
-        indicatorRect.localScale = currentScale;
-    }
-}
-
-public sealed class DayNightSemicircleGraphic : MaskableGraphic
-{
-    private const int StepsPerSegment = 18;
-    private static readonly Color DayColor = new Color(1f, 0.84f, 0.12f, 1f);
-    private static readonly Color EveningColor = new Color(1f, 0.36f, 0.06f, 1f);
-    private static readonly Color NightColor = new Color(0.015f, 0.02f, 0.04f, 1f);
-    private static readonly Color BorderColor = new Color(0.82f, 0.82f, 0.78f, 0.8f);
-
-    private DayNightPhase phase = DayNightPhase.Night;
-
-    public void SetPhase(DayNightPhase newPhase)
-    {
-        phase = newPhase;
-        SetVerticesDirty();
-    }
-
-    protected override void OnPopulateMesh(VertexHelper vertexHelper)
-    {
-        vertexHelper.Clear();
-
-        Rect rect = GetPixelAdjustedRect();
-        Vector2 center = new Vector2(rect.center.x, rect.yMin);
-        float outerRadius = Mathf.Min(rect.width * 0.46f, rect.height * 0.92f);
-
-        AddArc(vertexHelper, center, outerRadius + 5f, outerRadius - 2f, 0f, 180f, BorderColor, 54);
-
-        DrawPhaseSegment(vertexHelper, center, DayNightPhase.Day, DayColor, 122f, 178f, outerRadius);
-        DrawPhaseSegment(vertexHelper, center, DayNightPhase.Evening, EveningColor, 62f, 118f, outerRadius);
-        DrawPhaseSegment(vertexHelper, center, DayNightPhase.Night, NightColor, 2f, 58f, outerRadius);
-    }
-
-    private void DrawPhaseSegment(
-        VertexHelper vertexHelper,
-        Vector2 center,
-        DayNightPhase segmentPhase,
-        Color segmentColor,
-        float startAngle,
-        float endAngle,
-        float outerRadius)
-    {
-        bool isActive = phase == segmentPhase;
-        float radius = isActive ? outerRadius : outerRadius * 0.86f;
-        Color color = segmentColor;
-        color.a = isActive ? 1f : 0.42f;
-
-        AddPieSegment(
-            vertexHelper,
-            center,
-            radius,
-            startAngle,
-            endAngle,
-            color,
-            StepsPerSegment);
-    }
-
-    private static void AddPieSegment(
-        VertexHelper vertexHelper,
-        Vector2 center,
-        float radius,
-        float startAngle,
-        float endAngle,
-        Color color,
-        int steps)
-    {
-        int centerIndex = vertexHelper.currentVertCount;
-        vertexHelper.AddVert(center, color, Vector2.zero);
-
-        for (int step = 0; step <= steps; step++)
+        if (arrowAnimation != null)
         {
-            float angle = Mathf.Lerp(startAngle, endAngle, step / (float)steps) * Mathf.Deg2Rad;
-            Vector2 point = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
-            vertexHelper.AddVert(point, color, Vector2.zero);
+            StopCoroutine(arrowAnimation);
+            arrowAnimation = null;
+        }
 
-            if (step > 0)
-                vertexHelper.AddTriangle(centerIndex, centerIndex + step, centerIndex + step + 1);
+        if (HasPhaseArrowCopies())
+        {
+            ApplyPhaseArrowVisibility(phase);
+            return;
+        }
+
+        if (arrowRect == null)
+            return;
+
+        float targetRotation = GetRotationForPhase(phase);
+
+        if (instant)
+        {
+            ApplyArrowRotation(targetRotation);
+            return;
+        }
+
+        arrowAnimation = StartCoroutine(AnimateArrowTo(targetRotation));
+    }
+
+    private IEnumerator AnimateArrowTo(float targetRotation)
+    {
+        float startRotation = currentArrowRotation;
+        float delta = Mathf.DeltaAngle(startRotation, targetRotation);
+        float duration = Mathf.Clamp(Mathf.Abs(delta) / 180f * 0.7f, 0.28f, 0.7f);
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / duration);
+            float eased = Mathf.SmoothStep(0f, 1f, t);
+            ApplyArrowRotation(startRotation + delta * eased);
+            yield return null;
+        }
+
+        ApplyArrowRotation(targetRotation);
+        arrowAnimation = null;
+    }
+
+    private float GetRotationForPhase(DayNightPhase phase)
+    {
+        RectTransform target = GetTargetForPhase(phase);
+        if (target == null || arrowRect == null || sceneClockRoot == null)
+            return currentArrowRotation;
+
+        Vector2 targetPoint = GetLocalPoint(sceneClockRoot, target);
+        Vector2 arrowPivotPoint = arrowRect.anchoredPosition;
+        Vector2 targetDirection = targetPoint - arrowPivotPoint;
+        Vector2 tip = GetArrowTipLocalPoint();
+
+        if (targetDirection.sqrMagnitude < 0.001f || tip.sqrMagnitude < 0.001f)
+            return currentArrowRotation;
+
+        float targetAngle = Mathf.Atan2(targetDirection.y, targetDirection.x) * Mathf.Rad2Deg;
+        float tipAngle = Mathf.Atan2(tip.y, tip.x) * Mathf.Rad2Deg;
+        return NormalizeAngle(targetAngle - tipAngle);
+    }
+
+    private RectTransform GetTargetForPhase(DayNightPhase phase)
+    {
+        switch (phase)
+        {
+            case DayNightPhase.Day:
+                return dayTarget;
+            case DayNightPhase.Evening:
+                return eveningTarget;
+            case DayNightPhase.Night:
+                return nightTarget;
+            default:
+                return nightTarget;
         }
     }
 
-    private static void AddArc(
-        VertexHelper vertexHelper,
-        Vector2 center,
-        float outerRadius,
-        float innerRadius,
-        float startAngle,
-        float endAngle,
-        Color color,
-        int steps)
+    private RectTransform FindArrowTipChild()
     {
-        int startIndex = vertexHelper.currentVertCount;
+        if (arrowRect == null)
+            return null;
 
-        for (int step = 0; step <= steps; step++)
+        RectTransform exact = arrowRect.Find("ArrowTip") as RectTransform;
+        if (exact != null)
+            return exact;
+
+        exact = arrowRect.Find("Arrow Tip") as RectTransform;
+        if (exact != null)
+            return exact;
+
+        exact = arrowRect.Find("Tip") as RectTransform;
+        if (exact != null)
+            return exact;
+
+        for (int i = 0; i < arrowRect.childCount; i++)
         {
-            float angle = Mathf.Lerp(startAngle, endAngle, step / (float)steps) * Mathf.Deg2Rad;
-            Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-            vertexHelper.AddVert(center + direction * outerRadius, color, Vector2.zero);
-            vertexHelper.AddVert(center + direction * innerRadius, color, Vector2.zero);
-
-            if (step == 0)
-                continue;
-
-            int previousOuter = startIndex + (step - 1) * 2;
-            int previousInner = previousOuter + 1;
-            int currentOuter = startIndex + step * 2;
-            int currentInner = currentOuter + 1;
-
-            vertexHelper.AddTriangle(previousOuter, currentOuter, currentInner);
-            vertexHelper.AddTriangle(previousOuter, currentInner, previousInner);
+            if (arrowRect.GetChild(i) is RectTransform child &&
+                child.name.ToLowerInvariant().Contains("tip"))
+            {
+                return child;
+            }
         }
+
+        return null;
+    }
+
+    private void FindPhaseArrowCopies()
+    {
+        if (sceneClockRoot == null)
+            return;
+
+        if (dayArrow == null)
+            dayArrow = FindChildGameObject("DayArrow", "Day Arrow", "ClockArrowDay");
+
+        if (eveningArrow == null)
+            eveningArrow = FindChildGameObject("EveningArrow", "Evening Arrow", "EveArrow", "Eve Arrow", "ClockArrowEvening");
+
+        if (nightArrow == null)
+            nightArrow = FindChildGameObject("NightArrow", "Night Arrow", "ClockArrowNight");
+    }
+
+    private GameObject FindChildGameObject(params string[] names)
+    {
+        for (int i = 0; i < names.Length; i++)
+        {
+            Transform child = sceneClockRoot.Find(names[i]);
+            if (child != null)
+                return child.gameObject;
+        }
+
+        return null;
+    }
+
+    private bool HasPhaseArrowCopies()
+    {
+        return dayArrow != null || eveningArrow != null || nightArrow != null;
+    }
+
+    private void ApplyPhaseArrowVisibility(DayNightPhase phase)
+    {
+        SetArrowCopyActive(dayArrow, phase == DayNightPhase.Day);
+        SetArrowCopyActive(eveningArrow, phase == DayNightPhase.Evening);
+        SetArrowCopyActive(nightArrow, phase == DayNightPhase.Night);
+
+        if (sceneArrow != null &&
+            sceneArrow.gameObject != dayArrow &&
+            sceneArrow.gameObject != eveningArrow &&
+            sceneArrow.gameObject != nightArrow)
+        {
+            sceneArrow.gameObject.SetActive(false);
+        }
+    }
+
+    private static void SetArrowCopyActive(GameObject arrow, bool active)
+    {
+        if (arrow != null && arrow.activeSelf != active)
+            arrow.SetActive(active);
+    }
+
+    private static Vector2 GetLocalPoint(RectTransform root, RectTransform target)
+    {
+        Vector3 worldPoint = target.TransformPoint(target.rect.center);
+        return root.InverseTransformPoint(worldPoint);
+    }
+
+    private Vector2 GetArrowTipLocalPoint()
+    {
+        if (arrowTipTransform == null || arrowRect == null)
+        {
+            Debug.LogWarning("DayNightCycleUI needs an ArrowTip child assigned under ClockArrow.");
+            return Vector2.zero;
+        }
+
+        Vector3 worldTipPoint = arrowTipTransform.TransformPoint(arrowTipTransform.rect.center);
+        return arrowRect.InverseTransformPoint(worldTipPoint);
+    }
+
+    private void ApplyArrowRotation(float rotation)
+    {
+        currentArrowRotation = NormalizeAngle(rotation);
+        arrowRect.localRotation = Quaternion.Euler(0f, 0f, currentArrowRotation);
+    }
+
+    private static float NormalizeAngle(float angle)
+    {
+        while (angle > 180f)
+            angle -= 360f;
+
+        while (angle <= -180f)
+            angle += 360f;
+
+        return angle;
     }
 }
