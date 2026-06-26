@@ -1,9 +1,10 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+[ExecuteAlways]
 public sealed class FamilyMarketUI : MonoBehaviour
 {
     private sealed class FamilyPage
@@ -33,42 +34,94 @@ public sealed class FamilyMarketUI : MonoBehaviour
     private readonly List<GameObject> itemSlots = new List<GameObject>();
     private readonly Dictionary<GameObject, Coroutine> activePurchaseVfx = new Dictionary<GameObject, Coroutine>();
 
-    private GameManager gameManager;
-    private GameObject contentRoot;
-    private Image characterImage;
-    private Image rightUiBlockImage;
-    private RectTransform leftArrowRect;
-    private RectTransform rightArrowRect;
+    [SerializeField] private GameManager gameManager;
+    [SerializeField] private GameObject contentRoot;
+    [SerializeField] private Image characterImage;
+    [SerializeField] private Image dadCharacterImage;
+    [SerializeField] private Image momCharacterImage;
+    [SerializeField] private Image dotaCharacterImage;
+    [SerializeField] private Image rightUiBlockImage;
+    [SerializeField] private RectTransform leftArrowRect;
+    [SerializeField] private RectTransform rightArrowRect;
     private int pageIndex;
 
     public static void Attach(GameManager manager)
     {
         if (instance == null)
-        {
-            GameObject root = new GameObject(
-                "Family Market UI",
-                typeof(RectTransform),
-                typeof(Canvas),
-                typeof(CanvasScaler),
-                typeof(GraphicRaycaster));
-            root.transform.SetParent(manager.transform, false);
-            instance = root.AddComponent<FamilyMarketUI>();
-            instance.BuildUI();
-        }
+            instance = FindFirstObjectByType<FamilyMarketUI>(FindObjectsInactive.Include);
+
+        if (instance == null)
+            instance = CreateFamilyMarketUIObject(manager.transform);
 
         instance.gameManager = manager;
+        instance.BuildUI();
         instance.KeepExistingMarketHudVisible();
         instance.RefreshPage();
     }
 
+    [ContextMenu("Build / Refresh Editable Preview")]
+    public void BuildEditablePreview()
+    {
+        if (gameManager == null)
+            gameManager = FindFirstObjectByType<GameManager>(FindObjectsInactive.Include);
+
+        BuildUI();
+        CacheBuiltChildren();
+
+        if (contentRoot != null)
+            contentRoot.SetActive(true);
+
+        RefreshPage();
+    }
+
+    private static FamilyMarketUI CreateFamilyMarketUIObject(Transform parent)
+    {
+        GameObject root = new GameObject(
+            "Family Market UI",
+            typeof(RectTransform),
+            typeof(Canvas),
+            typeof(CanvasScaler),
+            typeof(GraphicRaycaster));
+
+        if (parent != null)
+            root.transform.SetParent(parent, false);
+
+        FamilyMarketUI ui = root.AddComponent<FamilyMarketUI>();
+        ui.BuildUI();
+        return ui;
+    }
+
+#if UNITY_EDITOR
+    [UnityEditor.MenuItem("Tools/Family Market/Create Editable UI")]
+    private static void CreateEditableFamilyMarketUI()
+    {
+        FamilyMarketUI ui = FindFirstObjectByType<FamilyMarketUI>(FindObjectsInactive.Include);
+        GameManager manager = FindFirstObjectByType<GameManager>(FindObjectsInactive.Include);
+
+        if (ui == null)
+            ui = CreateFamilyMarketUIObject(manager != null ? manager.transform : null);
+
+        ui.gameManager = manager;
+        ui.BuildEditablePreview();
+        UnityEditor.Selection.activeGameObject = ui.gameObject;
+        UnityEditor.EditorUtility.SetDirty(ui.gameObject);
+
+        if (ui.contentRoot != null)
+            UnityEditor.EditorUtility.SetDirty(ui.contentRoot);
+    }
+#endif
+
     public static void RefreshIfVisible()
     {
-        if (instance != null && instance.contentRoot.activeSelf)
+        if (instance != null && instance.contentRoot != null && instance.contentRoot.activeSelf)
             instance.RefreshPage();
     }
 
     private void Update()
     {
+        if (!Application.isPlaying)
+            return;
+
         if (gameManager == null || contentRoot == null)
             return;
 
@@ -94,6 +147,13 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
     private void BuildUI()
     {
+        CacheBuiltChildren();
+        if (contentRoot != null)
+        {
+            EnsureCharacterImages();
+            return;
+        }
+
         Canvas canvas = GetComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceCamera;
         canvas.worldCamera = Camera.main;
@@ -114,15 +174,10 @@ public sealed class FamilyMarketUI : MonoBehaviour
         Stretch(background.rectTransform);
         background.raycastTarget = true;
 
-        characterImage = CreateImage("Family Member", contentRoot.transform, null);
-        RectTransform characterRect = characterImage.rectTransform;
-        characterRect.anchorMin = new Vector2(0.5f, 0.5f);
-        characterRect.anchorMax = new Vector2(0.5f, 0.5f);
-        characterRect.pivot = new Vector2(0.5f, 0.5f);
-        characterRect.anchoredPosition = new Vector2(0f, 75f);
-        characterRect.sizeDelta = new Vector2(650f, 760f);
-        characterImage.preserveAspect = true;
-        characterImage.raycastTarget = false;
+        dadCharacterImage = CreateCharacterImage("Dad Family Member", "Dad");
+        momCharacterImage = CreateCharacterImage("Mom Family Member", "Mom");
+        dotaCharacterImage = CreateCharacterImage("Dota Family Member", "Dota");
+        characterImage = dadCharacterImage;
 
         Image desk = CreateImage("Desk", contentRoot.transform, LoadSprite("Desk"));
         RectTransform deskRect = desk.rectTransform;
@@ -151,7 +206,26 @@ public sealed class FamilyMarketUI : MonoBehaviour
             "Enter shop",
             () => gameManager?.InvokeMarketShopButton());
 
-        contentRoot.SetActive(false);
+        contentRoot.SetActive(!Application.isPlaying);
+        CacheBuiltChildren();
+    }
+
+    private void EnsureCharacterImages()
+    {
+        if (contentRoot == null)
+            return;
+
+        if (dadCharacterImage == null)
+            dadCharacterImage = CreateCharacterImage("Dad Family Member", "Dad");
+
+        if (momCharacterImage == null)
+            momCharacterImage = CreateCharacterImage("Mom Family Member", "Mom");
+
+        if (dotaCharacterImage == null)
+            dotaCharacterImage = CreateCharacterImage("Dota Family Member", "Dota");
+
+        if (characterImage == null)
+            characterImage = dadCharacterImage;
     }
 
     private RectTransform CreateArrow(float horizontalScale, int direction)
@@ -168,6 +242,25 @@ public sealed class FamilyMarketUI : MonoBehaviour
         RectTransform rect = arrowObject.GetComponent<RectTransform>();
         rect.localScale = new Vector3(horizontalScale, 1f, 1f);
         return rect;
+    }
+
+    private Image CreateCharacterImage(string objectName, string spriteName)
+    {
+        Image image = CreateImage(objectName, contentRoot.transform, LoadSprite(spriteName));
+        SetupCharacterRect(image.rectTransform);
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+        image.gameObject.SetActive(false);
+        return image;
+    }
+
+    private static void SetupCharacterRect(RectTransform characterRect)
+    {
+        characterRect.anchorMin = new Vector2(0.5f, 0.5f);
+        characterRect.anchorMax = new Vector2(0.5f, 0.5f);
+        characterRect.pivot = new Vector2(0.5f, 0.5f);
+        characterRect.anchoredPosition = new Vector2(0f, 75f);
+        characterRect.sizeDelta = new Vector2(650f, 760f);
     }
 
     private GameObject CreateItemSlot(int slotIndex)
@@ -229,13 +322,13 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
     private void RefreshPage()
     {
-        if (gameManager == null || characterImage == null)
+        if (gameManager == null)
             return;
 
         ApplyFamilyMarketLayout();
 
         FamilyPage page = pages[pageIndex];
-        characterImage.sprite = LoadSprite(page.characterTexture);
+        ApplyCharacterVisibility(page.characterTexture);
 
         Market market = gameManager.GetMarketForCategory(page.category);
         Sprite frameSprite = LoadSprite(page.frameTexture);
@@ -288,6 +381,85 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         coinCanvas.overrideSorting = true;
         coinCanvas.sortingOrder = 110;
+    }
+
+    private void ApplyCharacterVisibility(string characterTexture)
+    {
+        SetImageActive(dadCharacterImage, characterTexture == "Dad");
+        SetImageActive(momCharacterImage, characterTexture == "Mom");
+        SetImageActive(dotaCharacterImage, characterTexture == "Dota");
+
+        if (characterImage != null &&
+            characterImage != dadCharacterImage &&
+            characterImage != momCharacterImage &&
+            characterImage != dotaCharacterImage)
+        {
+            characterImage.gameObject.SetActive(false);
+        }
+    }
+
+    private static void SetImageActive(Image image, bool active)
+    {
+        if (image != null && image.gameObject.activeSelf != active)
+            image.gameObject.SetActive(active);
+    }
+
+    private void CacheBuiltChildren()
+    {
+        if (contentRoot == null)
+        {
+            Transform content = transform.Find("Family Market Content");
+            if (content != null)
+                contentRoot = content.gameObject;
+        }
+
+        if (contentRoot == null)
+            return;
+
+        Transform contentTransform = contentRoot.transform;
+
+        if (characterImage == null)
+            characterImage = contentTransform.Find("Family Member")?.GetComponent<Image>();
+
+        if (dadCharacterImage == null)
+            dadCharacterImage = contentTransform.Find("Dad Family Member")?.GetComponent<Image>();
+
+        if (momCharacterImage == null)
+            momCharacterImage = contentTransform.Find("Mom Family Member")?.GetComponent<Image>();
+
+        if (dotaCharacterImage == null)
+            dotaCharacterImage = contentTransform.Find("Dota Family Member")?.GetComponent<Image>();
+
+        if (characterImage == null)
+            characterImage = dadCharacterImage;
+
+        if (rightUiBlockImage == null)
+            rightUiBlockImage = contentTransform.Find("Seller Right UI Block")?.GetComponent<Image>();
+
+        if (leftArrowRect == null || rightArrowRect == null)
+        {
+            List<RectTransform> arrows = new List<RectTransform>();
+            for (int i = 0; i < contentTransform.childCount; i++)
+            {
+                Transform child = contentTransform.GetChild(i);
+                if (child.name == "Family Arrow" && child is RectTransform rect)
+                    arrows.Add(rect);
+            }
+
+            if (leftArrowRect == null && arrows.Count > 0)
+                leftArrowRect = arrows[0];
+
+            if (rightArrowRect == null && arrows.Count > 1)
+                rightArrowRect = arrows[1];
+        }
+
+        itemSlots.Clear();
+        for (int i = 1; i <= 3; i++)
+        {
+            Transform slot = contentTransform.Find($"Market Item Slot {i}");
+            if (slot != null)
+                itemSlots.Add(slot.gameObject);
+        }
     }
 
     private void ChangePage(int direction)
