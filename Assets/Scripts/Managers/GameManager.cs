@@ -244,6 +244,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Vector2 familyMarketArrowSize = new Vector2(86f, 86f);
     [SerializeField] private Vector3 familyMarketArrowScale = Vector3.one;
     [SerializeField] private float familyMarketArrowRotation;
+    [Header("Family Market Inventory Button")]
+    [SerializeField] private Sprite familyMarketInventoryIcon;
+    [SerializeField] private Vector2 familyMarketInventoryButtonPosition = new Vector2(765f, 315f);
+    [SerializeField] private Vector2 familyMarketInventoryButtonSize = new Vector2(120f, 120f);
+    [SerializeField] private Vector3 familyMarketInventoryButtonScale = Vector3.one;
+    [SerializeField] private float familyMarketInventoryButtonRotation;
 
     [Header("Day Transition")]
     [SerializeField] private int currentDay = 1;
@@ -266,6 +272,11 @@ public class GameManager : MonoBehaviour
 
     private bool isEndingDay;
     private Canvas dayTransitionCanvas;
+    private RectTransform sellPanelRightUiRect;
+    private Image sellPanelRightUiImage;
+    private RectTransform sellPanelInventoryButtonRect;
+    private Image sellPanelInventoryButtonImage;
+    private Sprite sellerRightUiSprite;
 
     public List<InventoryItem> GetInventoryItems()
     {
@@ -281,6 +292,11 @@ public class GameManager : MonoBehaviour
     public Vector2 FamilyMarketArrowSize => familyMarketArrowSize;
     public Vector3 FamilyMarketArrowScale => familyMarketArrowScale;
     public float FamilyMarketArrowRotation => familyMarketArrowRotation;
+    public Sprite FamilyMarketInventoryIcon => familyMarketInventoryIcon;
+    public Vector2 FamilyMarketInventoryButtonPosition => familyMarketInventoryButtonPosition;
+    public Vector2 FamilyMarketInventoryButtonSize => familyMarketInventoryButtonSize;
+    public Vector3 FamilyMarketInventoryButtonScale => familyMarketInventoryButtonScale;
+    public float FamilyMarketInventoryButtonRotation => familyMarketInventoryButtonRotation;
 
     public ObjectiveManager objectiveManager;
 
@@ -723,6 +739,7 @@ public class GameManager : MonoBehaviour
         DayNightCycleUI.SetPhase(dayNightStartingPhase, true);
         FamilyMarketUI.Attach(this);
         EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
+        EnsureSellPanelRightUI();
         RandomizeMarketStock();
         inventoryBreather = inventoryButton.GetComponent<ButtonBreather>();
         PopulateInventoryPanel();
@@ -886,6 +903,107 @@ public class GameManager : MonoBehaviour
     {
         if (marketShopButton != null && marketShopButton.interactable)
             marketShopButton.onClick.Invoke();
+    }
+
+    public void InvokeInventoryButton()
+    {
+        if (inventoryButton != null && inventoryButton.interactable)
+            inventoryButton.onClick.Invoke();
+    }
+
+    private void EnsureSellPanelRightUI()
+    {
+        if (sellPanel == null)
+            return;
+
+        if (sellPanelRightUiRect == null)
+        {
+            Transform existingBlock = sellPanel.transform.Find("Sell Panel Right UI Block");
+            if (existingBlock != null)
+            {
+                sellPanelRightUiRect = existingBlock as RectTransform;
+                sellPanelRightUiImage = existingBlock.GetComponent<Image>();
+            }
+        }
+
+        if (sellPanelRightUiRect == null)
+        {
+            Debug.LogWarning("Sell Panel Right UI Block is missing from the SellPanel scene hierarchy.");
+        }
+        else
+        {
+            if (sellPanelRightUiImage == null)
+                sellPanelRightUiImage = sellPanelRightUiRect.GetComponent<Image>();
+
+            if (sellPanelRightUiImage != null)
+            {
+                sellPanelRightUiImage.sprite = LoadSellerRightUiSprite();
+                sellPanelRightUiImage.color = Color.white;
+                sellPanelRightUiImage.preserveAspect = true;
+                sellPanelRightUiImage.raycastTarget = false;
+            }
+        }
+
+        if (sellPanelInventoryButtonRect == null)
+        {
+            Transform existingButton = sellPanel.transform.Find("Sell Panel Inventory Button");
+            if (existingButton != null)
+            {
+                sellPanelInventoryButtonRect = existingButton as RectTransform;
+                sellPanelInventoryButtonImage = existingButton.GetComponent<Image>();
+            }
+        }
+
+        if (sellPanelInventoryButtonRect == null)
+        {
+            Debug.LogWarning("Sell Panel Inventory Button is missing from the SellPanel scene hierarchy.");
+        }
+        else
+        {
+            if (sellPanelInventoryButtonImage == null)
+                sellPanelInventoryButtonImage = sellPanelInventoryButtonRect.GetComponent<Image>();
+
+            if (sellPanelInventoryButtonImage != null)
+            {
+                sellPanelInventoryButtonImage.sprite = familyMarketInventoryIcon;
+                sellPanelInventoryButtonImage.color = Color.white;
+                sellPanelInventoryButtonImage.preserveAspect = true;
+                sellPanelInventoryButtonImage.raycastTarget = true;
+            }
+
+            Button button = sellPanelInventoryButtonRect.GetComponent<Button>();
+            if (button != null && sellPanelInventoryButtonImage != null)
+                button.targetGraphic = sellPanelInventoryButtonImage;
+        }
+
+    }
+
+
+    private Sprite LoadSellerRightUiSprite()
+    {
+        if (sellerRightUiSprite != null)
+            return sellerRightUiSprite;
+
+        const string resourcePath = "FamilyMarket/SellerRightUI";
+        sellerRightUiSprite = Resources.Load<Sprite>(resourcePath);
+        if (sellerRightUiSprite != null)
+            return sellerRightUiSprite;
+
+        Sprite[] sprites = Resources.LoadAll<Sprite>(resourcePath);
+        if (sprites != null && sprites.Length > 0)
+        {
+            sellerRightUiSprite = sprites[0];
+            for (int i = 0; i < sprites.Length; i++)
+            {
+                if (sprites[i].name == "SellerRightUI" || sprites[i].name == "SellerRightUI_0")
+                {
+                    sellerRightUiSprite = sprites[i];
+                    break;
+                }
+            }
+        }
+
+        return sellerRightUiSprite;
     }
 
     void RefreshMarketItemsUI()
@@ -1351,6 +1469,7 @@ public class GameManager : MonoBehaviour
         itemsPanel.SetActive(false);
         craftingPanel.SetActive(false);
         sellPanel.SetActive(true);
+        EnsureSellPanelRightUI();
         ReturnCraftingItemsToInventory();
         RefreshSellUI();
     }

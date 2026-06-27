@@ -43,6 +43,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
     [SerializeField] private Image rightUiBlockImage;
     [SerializeField] private RectTransform leftArrowRect;
     [SerializeField] private RectTransform rightArrowRect;
+    [SerializeField] private RectTransform inventoryButtonRect;
+    [SerializeField] private Image inventoryButtonImage;
     private int pageIndex;
 
     public static void Attach(GameManager manager)
@@ -151,6 +153,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (contentRoot != null)
         {
             EnsureCharacterImages();
+            EnsureFamilyMarketControls();
             return;
         }
 
@@ -194,6 +197,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         leftArrowRect = CreateArrow(-1f, -1);
         rightArrowRect = CreateArrow(1f, 1);
+        CreateInventoryButton();
         ApplyFamilyMarketLayout();
 
         for (int i = 0; i < 3; i++)
@@ -242,6 +246,85 @@ public sealed class FamilyMarketUI : MonoBehaviour
         RectTransform rect = arrowObject.GetComponent<RectTransform>();
         rect.localScale = new Vector3(horizontalScale, 1f, 1f);
         return rect;
+    }
+
+    private void CreateInventoryButton()
+    {
+        GameObject buttonObject = CreateRect(
+            "Family Market Inventory Button",
+            contentRoot.transform,
+            Vector2.zero,
+            new Vector2(120f, 120f));
+
+        inventoryButtonRect = buttonObject.GetComponent<RectTransform>();
+        inventoryButtonImage = buttonObject.AddComponent<Image>();
+        inventoryButtonImage.sprite = gameManager != null ? gameManager.FamilyMarketInventoryIcon : null;
+        inventoryButtonImage.preserveAspect = true;
+
+        Button button = buttonObject.AddComponent<Button>();
+        button.targetGraphic = inventoryButtonImage;
+        button.onClick.AddListener(() => gameManager?.InvokeInventoryButton());
+    }
+
+    private void EnsureFamilyMarketControls()
+    {
+        CacheBuiltChildren();
+
+        if (leftArrowRect != null)
+            ConfigureArrowButton(leftArrowRect, -1);
+
+        if (rightArrowRect != null)
+            ConfigureArrowButton(rightArrowRect, 1);
+
+        if (inventoryButtonRect == null)
+            CreateInventoryButton();
+
+        ConfigureInventoryButton();
+        ApplyFamilyMarketLayout();
+    }
+
+    private void ConfigureArrowButton(RectTransform arrowRect, int direction)
+    {
+        Button button = arrowRect.GetComponent<Button>();
+        Image image = arrowRect.GetComponent<Image>();
+
+        if (button == null)
+            button = arrowRect.gameObject.AddComponent<Button>();
+
+        if (image != null)
+        {
+            image.raycastTarget = true;
+            button.targetGraphic = image;
+        }
+
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(() => ChangePage(direction));
+        button.interactable = true;
+    }
+
+    private void ConfigureInventoryButton()
+    {
+        if (inventoryButtonRect == null)
+            return;
+
+        if (inventoryButtonImage == null)
+            inventoryButtonImage = inventoryButtonRect.GetComponent<Image>();
+
+        if (inventoryButtonImage == null)
+            inventoryButtonImage = inventoryButtonRect.gameObject.AddComponent<Image>();
+
+        inventoryButtonImage.sprite = gameManager != null ? gameManager.FamilyMarketInventoryIcon : null;
+        inventoryButtonImage.preserveAspect = true;
+        inventoryButtonImage.raycastTarget = true;
+
+        Button button = inventoryButtonRect.GetComponent<Button>();
+        if (button == null)
+            button = inventoryButtonRect.gameObject.AddComponent<Button>();
+
+        button.targetGraphic = inventoryButtonImage;
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(() => gameManager?.InvokeInventoryButton());
+        button.interactable = true;
     }
 
     private Image CreateCharacterImage(string objectName, string spriteName)
@@ -436,6 +519,16 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (rightUiBlockImage == null)
             rightUiBlockImage = contentTransform.Find("Seller Right UI Block")?.GetComponent<Image>();
 
+        if (inventoryButtonRect == null)
+        {
+            Transform inventoryButton = contentTransform.Find("Family Market Inventory Button");
+            if (inventoryButton != null)
+            {
+                inventoryButtonRect = inventoryButton.GetComponent<RectTransform>();
+                inventoryButtonImage = inventoryButton.GetComponent<Image>();
+            }
+        }
+
         if (leftArrowRect == null || rightArrowRect == null)
         {
             List<RectTransform> arrows = new List<RectTransform>();
@@ -534,6 +627,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         ApplyRightUiBlockLayout();
         ApplyArrowLayout(leftArrowRect, gameManager.FamilyMarketLeftArrowPosition, -1f);
         ApplyArrowLayout(rightArrowRect, gameManager.FamilyMarketRightArrowPosition, 1f);
+        ApplyInventoryButtonLayout();
     }
 
     private void ApplyRightUiBlockLayout()
@@ -547,6 +641,19 @@ public sealed class FamilyMarketUI : MonoBehaviour
         rect.sizeDelta = gameManager.FamilyMarketRightUiSize;
         rect.localScale = gameManager.FamilyMarketRightUiScale;
         rect.localRotation = Quaternion.Euler(0f, 0f, gameManager.FamilyMarketRightUiRotation);
+    }
+
+    private void ApplyInventoryButtonLayout()
+    {
+        if (inventoryButtonRect == null || gameManager == null)
+            return;
+
+        SetCenteredRect(inventoryButtonRect);
+        inventoryButtonRect.anchoredPosition = gameManager.FamilyMarketInventoryButtonPosition;
+        inventoryButtonRect.sizeDelta = gameManager.FamilyMarketInventoryButtonSize;
+        inventoryButtonRect.localScale = gameManager.FamilyMarketInventoryButtonScale;
+        inventoryButtonRect.localRotation = Quaternion.Euler(0f, 0f, gameManager.FamilyMarketInventoryButtonRotation);
+        inventoryButtonRect.SetAsLastSibling();
     }
 
     private void ApplyArrowLayout(RectTransform arrowRect, Vector2 position, float horizontalDirection)
