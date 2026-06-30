@@ -7,6 +7,13 @@ using UnityEngine.UI;
 [ExecuteAlways]
 public sealed class FamilyMarketUI : MonoBehaviour
 {
+    private enum RightPanelTab
+    {
+        Objectives,
+        Inventory,
+        KnownRecipes
+    }
+
     private sealed class FamilyPage
     {
         public string characterTexture;
@@ -45,6 +52,15 @@ public sealed class FamilyMarketUI : MonoBehaviour
     [SerializeField] private RectTransform rightArrowRect;
     [SerializeField] private RectTransform inventoryButtonRect;
     [SerializeField] private Image inventoryButtonImage;
+    [SerializeField] private RectTransform rightPanelTabsRoot;
+    [SerializeField] private RectTransform rightPanelContentRoot;
+    [SerializeField] private Button objectivesTabButton;
+    [SerializeField] private Button inventoryTabButton;
+    [SerializeField] private Button knownRecipesTabButton;
+    [SerializeField] private GameObject objectivesTabContent;
+    [SerializeField] private GameObject inventoryTabContent;
+    [SerializeField] private GameObject knownRecipesTabContent;
+    [SerializeField] private RightPanelTab activeRightPanelTab = RightPanelTab.Objectives;
     private int pageIndex;
 
     public static void Attach(GameManager manager)
@@ -154,6 +170,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         {
             EnsureCharacterImages();
             EnsureFamilyMarketControls();
+            EnsureRightPanelTabs();
             return;
         }
 
@@ -194,10 +211,10 @@ public sealed class FamilyMarketUI : MonoBehaviour
         rightUiBlockImage = CreateImage("Seller Right UI Block", contentRoot.transform, LoadSprite("SellerRightUI"));
         rightUiBlockImage.preserveAspect = true;
         rightUiBlockImage.raycastTarget = false;
+        EnsureRightPanelTabs();
 
         leftArrowRect = CreateArrow(-1f, -1);
         rightArrowRect = CreateArrow(1f, 1);
-        CreateInventoryButton();
         ApplyFamilyMarketLayout();
 
         for (int i = 0; i < 3; i++)
@@ -263,7 +280,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         Button button = buttonObject.AddComponent<Button>();
         button.targetGraphic = inventoryButtonImage;
-        button.onClick.AddListener(() => gameManager?.InvokeInventoryButton());
+        button.onClick.AddListener(() => ShowRightPanelTab(RightPanelTab.Inventory));
     }
 
     private void EnsureFamilyMarketControls()
@@ -276,10 +293,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (rightArrowRect != null)
             ConfigureArrowButton(rightArrowRect, 1);
 
-        if (inventoryButtonRect == null)
-            CreateInventoryButton();
-
         ConfigureInventoryButton();
+        EnsureRightPanelTabs();
         ApplyFamilyMarketLayout();
     }
 
@@ -323,8 +338,214 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         button.targetGraphic = inventoryButtonImage;
         button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(() => gameManager?.InvokeInventoryButton());
+        button.onClick.AddListener(() => ShowRightPanelTab(RightPanelTab.Inventory));
         button.interactable = true;
+    }
+
+    private void EnsureRightPanelTabs()
+    {
+        if (rightUiBlockImage == null)
+            return;
+
+        if (rightPanelTabsRoot == null)
+            rightPanelTabsRoot = rightUiBlockImage.transform.Find("Right Panel Tabs Root")?.GetComponent<RectTransform>();
+
+        if (rightPanelTabsRoot == null)
+        {
+            GameObject root = CreateRect("Right Panel Tabs Root", rightUiBlockImage.transform, Vector2.zero, Vector2.zero);
+            rightPanelTabsRoot = root.GetComponent<RectTransform>();
+            rightPanelTabsRoot.anchorMin = new Vector2(0.12f, 0.11f);
+            rightPanelTabsRoot.anchorMax = new Vector2(0.88f, 0.86f);
+            rightPanelTabsRoot.offsetMin = Vector2.zero;
+            rightPanelTabsRoot.offsetMax = Vector2.zero;
+        }
+
+        if (rightPanelContentRoot == null)
+            rightPanelContentRoot = rightPanelTabsRoot.Find("Right Panel Content Root")?.GetComponent<RectTransform>();
+
+        if (rightPanelContentRoot == null)
+        {
+            GameObject content = CreateRect("Right Panel Content Root", rightPanelTabsRoot, Vector2.zero, Vector2.zero);
+            rightPanelContentRoot = content.GetComponent<RectTransform>();
+            Stretch(rightPanelContentRoot);
+            rightPanelContentRoot.offsetMin = Vector2.zero;
+            rightPanelContentRoot.offsetMax = new Vector2(0f, -78f);
+        }
+
+        DisableGeneratedButton("Objectives Tab Button");
+        DisableGeneratedButton("Inventory Tab Button");
+        DisableGeneratedButton("Known Recipes Tab Button");
+        DisableGeneratedButton("Family Market Inventory Button");
+
+        objectivesTabButton = FindExistingTabButton(objectivesTabButton, "objective");
+        inventoryTabButton = FindExistingTabButton(inventoryTabButton, "inventory");
+        knownRecipesTabButton = FindExistingTabButton(knownRecipesTabButton, "recipe");
+
+        ConfigureExistingTabButton(objectivesTabButton, RightPanelTab.Objectives);
+        ConfigureExistingTabButton(inventoryTabButton, RightPanelTab.Inventory);
+        ConfigureExistingTabButton(knownRecipesTabButton, RightPanelTab.KnownRecipes);
+
+        objectivesTabContent = EnsureTabContent(objectivesTabContent, "Objectives Tab Content", "Objectives");
+        inventoryTabContent = EnsureTabContent(inventoryTabContent, "Inventory Tab Content", "Inventory");
+        knownRecipesTabContent = EnsureTabContent(knownRecipesTabContent, "Known Recipes Tab Content", "Known Recipes");
+
+        RefreshRightPanelTabs();
+    }
+
+    private Button FindExistingTabButton(Button currentButton, string namePart)
+    {
+        if (IsUsableUserButton(currentButton))
+            return currentButton;
+
+        return FindButtonByNamePart(contentRoot != null ? contentRoot.transform : transform, namePart);
+    }
+
+    private void ConfigureExistingTabButton(Button button, RightPanelTab tab)
+    {
+        if (!IsUsableUserButton(button))
+            return;
+
+        if (button.targetGraphic != null)
+            button.targetGraphic.raycastTarget = true;
+
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(() => ShowRightPanelTab(tab));
+        button.interactable = true;
+    }
+
+    private bool IsUsableUserButton(Button button)
+    {
+        return button != null &&
+            button.gameObject.activeSelf &&
+            !IsGeneratedButtonName(button.gameObject.name);
+    }
+
+    private Button FindButtonByNamePart(Transform root, string namePart)
+    {
+        if (root == null)
+            return null;
+
+        string lowerNamePart = namePart.ToLowerInvariant();
+        Button[] buttons = root.GetComponentsInChildren<Button>(true);
+
+        for (int i = 0; i < buttons.Length; i++)
+        {
+            Button button = buttons[i];
+            string lowerName = button.gameObject.name.ToLowerInvariant();
+
+            if (IsGeneratedButtonName(button.gameObject.name))
+                continue;
+
+            if (lowerName.Contains(lowerNamePart))
+                return button;
+        }
+
+        return null;
+    }
+
+    private void DisableGeneratedButton(string objectName)
+    {
+        if (contentRoot == null)
+            return;
+
+        Transform generated = FindDeepChild(contentRoot.transform, objectName);
+        if (generated != null)
+            generated.gameObject.SetActive(false);
+    }
+
+    private static bool IsGeneratedButtonName(string objectName)
+    {
+        return objectName == "Objectives Tab Button" ||
+            objectName == "Inventory Tab Button" ||
+            objectName == "Known Recipes Tab Button" ||
+            objectName == "Family Market Inventory Button";
+    }
+
+    private static Transform FindDeepChild(Transform root, string objectName)
+    {
+        if (root == null)
+            return null;
+
+        if (root.name == objectName)
+            return root;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform found = FindDeepChild(root.GetChild(i), objectName);
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
+    private GameObject EnsureTabContent(GameObject content, string objectName, string placeholderText)
+    {
+        if (content == null && rightPanelContentRoot != null)
+        {
+            Transform existing = rightPanelContentRoot.Find(objectName);
+            if (existing != null)
+                content = existing.gameObject;
+        }
+
+        if (content == null)
+        {
+            content = CreateRect(objectName, rightPanelContentRoot, Vector2.zero, Vector2.zero);
+            RectTransform rect = content.GetComponent<RectTransform>();
+            Stretch(rect);
+
+            TMP_Text text = CreateText(
+                "Placeholder",
+                content.transform,
+                placeholderText,
+                Vector2.zero,
+                new Vector2(600f, 140f),
+                38f,
+                TextAlignmentOptions.Center);
+            text.color = new Color(0.25f, 0.09f, 0.06f, 0.88f);
+        }
+
+        return content;
+    }
+
+    private void ShowRightPanelTab(RightPanelTab tab)
+    {
+        activeRightPanelTab = tab;
+        RefreshRightPanelTabs();
+    }
+
+    private void RefreshRightPanelTabs()
+    {
+        SetTabContentActive(objectivesTabContent, activeRightPanelTab == RightPanelTab.Objectives);
+        SetTabContentActive(inventoryTabContent, activeRightPanelTab == RightPanelTab.Inventory);
+        SetTabContentActive(knownRecipesTabContent, activeRightPanelTab == RightPanelTab.KnownRecipes);
+
+        ApplyTabButtonVisual(objectivesTabButton, activeRightPanelTab == RightPanelTab.Objectives);
+        ApplyTabButtonVisual(inventoryTabButton, activeRightPanelTab == RightPanelTab.Inventory);
+        ApplyTabButtonVisual(knownRecipesTabButton, activeRightPanelTab == RightPanelTab.KnownRecipes);
+    }
+
+    private static void SetTabContentActive(GameObject content, bool active)
+    {
+        if (content != null && content.activeSelf != active)
+            content.SetActive(active);
+    }
+
+    private static void ApplyTabButtonVisual(Button button, bool active)
+    {
+        if (button == null)
+            return;
+
+        Image image = button.targetGraphic as Image;
+        if (image == null)
+            image = button.GetComponent<Image>();
+
+        if (image == null)
+            return;
+
+        image.color = active
+            ? new Color(0.62f, 0.24f, 0.16f, 0.96f)
+            : new Color(0.24f, 0.09f, 0.07f, 0.82f);
     }
 
     private Image CreateCharacterImage(string objectName, string spriteName)
@@ -409,6 +630,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             return;
 
         ApplyFamilyMarketLayout();
+        EnsureRightPanelTabs();
 
         FamilyPage page = pages[pageIndex];
         ApplyCharacterVisibility(page.characterTexture);
@@ -519,15 +741,31 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (rightUiBlockImage == null)
             rightUiBlockImage = contentTransform.Find("Seller Right UI Block")?.GetComponent<Image>();
 
-        if (inventoryButtonRect == null)
+        if (rightUiBlockImage != null)
         {
-            Transform inventoryButton = contentTransform.Find("Family Market Inventory Button");
-            if (inventoryButton != null)
+            if (rightPanelTabsRoot == null)
+                rightPanelTabsRoot = rightUiBlockImage.transform.Find("Right Panel Tabs Root")?.GetComponent<RectTransform>();
+
+            if (rightPanelTabsRoot != null)
             {
-                inventoryButtonRect = inventoryButton.GetComponent<RectTransform>();
-                inventoryButtonImage = inventoryButton.GetComponent<Image>();
+                if (rightPanelContentRoot == null)
+                    rightPanelContentRoot = rightPanelTabsRoot.Find("Right Panel Content Root")?.GetComponent<RectTransform>();
+
+                if (rightPanelContentRoot != null)
+                {
+                    if (objectivesTabContent == null)
+                        objectivesTabContent = rightPanelContentRoot.Find("Objectives Tab Content")?.gameObject;
+
+                    if (inventoryTabContent == null)
+                        inventoryTabContent = rightPanelContentRoot.Find("Inventory Tab Content")?.gameObject;
+
+                    if (knownRecipesTabContent == null)
+                        knownRecipesTabContent = rightPanelContentRoot.Find("Known Recipes Tab Content")?.gameObject;
+                }
             }
         }
+
+        DisableGeneratedButton("Family Market Inventory Button");
 
         if (leftArrowRect == null || rightArrowRect == null)
         {
@@ -801,6 +1039,13 @@ public sealed class FamilyMarketUI : MonoBehaviour
     {
         rect.anchorMin = new Vector2(0.5f, 0.5f);
         rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+    }
+
+    private static void SetTopCenteredRect(RectTransform rect)
+    {
+        rect.anchorMin = new Vector2(0.5f, 1f);
+        rect.anchorMax = new Vector2(0.5f, 1f);
         rect.pivot = new Vector2(0.5f, 0.5f);
     }
 }
