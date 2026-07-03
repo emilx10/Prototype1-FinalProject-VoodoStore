@@ -207,6 +207,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         deskRect.anchoredPosition = Vector2.zero;
         deskRect.sizeDelta = new Vector2(0f, 320f);
         desk.raycastTarget = false;
+        ConfigureDeskFrontLayer(desk.gameObject);
 
         rightUiBlockImage = CreateImage("Seller Right UI Block", contentRoot.transform, LoadSprite("SellerRightUI"));
         rightUiBlockImage.preserveAspect = true;
@@ -582,6 +583,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         Button button = slot.AddComponent<Button>();
         button.targetGraphic = background;
+        ConfigureFrontUiLayer(slot, 120);
 
         Image frame = CreateImage("Category Frame", slot.transform, null);
         Stretch(frame.rectTransform);
@@ -766,6 +768,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         }
 
         DisableGeneratedButton("Family Market Inventory Button");
+        ConfigureDeskFrontLayer(contentTransform.Find("Desk")?.gameObject);
 
         if (leftArrowRect == null || rightArrowRect == null)
         {
@@ -789,7 +792,10 @@ public sealed class FamilyMarketUI : MonoBehaviour
         {
             Transform slot = contentTransform.Find($"Market Item Slot {i}");
             if (slot != null)
+            {
+                ConfigureFrontUiLayer(slot.gameObject, 120);
                 itemSlots.Add(slot.gameObject);
+            }
         }
     }
 
@@ -866,6 +872,24 @@ public sealed class FamilyMarketUI : MonoBehaviour
         ApplyArrowLayout(leftArrowRect, gameManager.FamilyMarketLeftArrowPosition, -1f);
         ApplyArrowLayout(rightArrowRect, gameManager.FamilyMarketRightArrowPosition, 1f);
         ApplyInventoryButtonLayout();
+    }
+
+    private void ConfigureDeskFrontLayer(GameObject deskObject)
+    {
+        ConfigureFrontUiLayer(deskObject, 110);
+    }
+
+    private void ConfigureFrontUiLayer(GameObject uiObject, int sortingOrder)
+    {
+        if (uiObject == null)
+            return;
+
+        Canvas canvas = uiObject.GetComponent<Canvas>();
+        if (canvas == null)
+            canvas = uiObject.AddComponent<Canvas>();
+
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = sortingOrder;
     }
 
     private void ApplyRightUiBlockLayout()
