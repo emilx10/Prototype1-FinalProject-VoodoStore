@@ -85,6 +85,9 @@ public class GameManager : MonoBehaviour
     private const int KnownRecipeColumns = 3;
     private const float MergeDissolveStart = -2f;
     private const float MergeDissolveEnd = 1f;
+    private const float ShopOpenVolume = 0.3f;
+    private const float PurchaseVolumeMultiplier = 0.5f;
+    private const float MysteriousVolumeMultiplier = 0.3f;
 
     private HashSet<string> discoveredRecipes = new HashSet<string>();
     private HashSet<string> discoveredRecipeIngredientSlots = new HashSet<string>();
@@ -793,7 +796,7 @@ public class GameManager : MonoBehaviour
         //marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
         EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
-        ad.PlaySfx(vol, SFX.EnteredShop, pitch);
+        ad.PlaySfx(ShopOpenVolume, GetShopOpenSfx(market), 1f);
 
         ClearChildren(itemsButtonsParent);
 
@@ -869,7 +872,7 @@ public class GameManager : MonoBehaviour
         UpdateCoinsUI();
         ShowFloatingCoins(-item.price);
         PlayPurchaseCoinBurst();
-        ad.PlaySfx(vol, SFX.Buying, pitch);
+        ad.PlaySfx(vol * PurchaseVolumeMultiplier, SFX.Buying, pitch);
 
         OnItemBought?.Invoke(item.icon);
         objectiveManager.UpdateTasksFromInventory(GetInventoryItems());
@@ -887,6 +890,24 @@ public class GameManager : MonoBehaviour
         }
 
         return null;
+    }
+
+    private SFX GetShopOpenSfx(Market market)
+    {
+        if (market != null && market.items != null && market.items.Count > 0)
+        {
+            switch (market.items[0].category)
+            {
+                case ItemCategory.Oils:
+                    return SFX.ShopOils;
+                case ItemCategory.Gems:
+                    return SFX.ShopGems;
+                case ItemCategory.Herbs:
+                    return SFX.ShopHerbs;
+            }
+        }
+
+        return SFX.EnteredShop;
     }
 
     public int GetMarketStock(MarketItem item)
@@ -1383,7 +1404,7 @@ public class GameManager : MonoBehaviour
 
             if (match)
             {
-                ad.PlaySfx(vol, SFX.MergePotion, pitch);
+                ad.PlaySfx(vol * MysteriousVolumeMultiplier, SFX.MergePotion, pitch);
                 AddToInventory(recipe.potionName, recipe.category, "", recipe.icon);
                 DiscoverRecipe(recipe);
                 craftedSomething = true;

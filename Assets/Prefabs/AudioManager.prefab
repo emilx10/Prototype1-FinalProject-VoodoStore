@@ -62,3 +62,8 @@ MonoBehaviour:
   audioMixer: {fileID: 0}
   sfxPool: {fileID: 2002832806821332944}
   anySound: {fileID: 0}
+  SFX_Hover: {fileID: 8300000, guid: 88d31b4c6f3103747b8c679b040839d8, type: 3}
+  SFX_Click: {fileID: 8300000, guid: b58541add3f21624a9ff9a27df3ff613, type: 3}
+  ShopOils: {fileID: 8300000, guid: 95c04d9ab81847a58476a15d674c4f22, type: 3}
+  ShopGems: {fileID: 8300000, guid: 9777e1ae344a4554bebf547cff48e9d6, type: 3}
+  ShopHerbs: {fileID: 8300000, guid: 6914fb7049e34e7abec74b7f5eca2a20, type: 3}

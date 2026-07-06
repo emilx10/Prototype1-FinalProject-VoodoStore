@@ -11,7 +11,12 @@ public enum SFX
     Objective,
     MergePotion,
     EnteredShop,
-    Buying
+    Buying,
+    SFX_Hover,
+    SFX_Click,
+    ShopOils,
+    ShopGems,
+    ShopHerbs
 }
 
 public class AudioManager : MonoBehaviour
@@ -35,6 +40,11 @@ public class AudioManager : MonoBehaviour
     [SerializeField] public AudioClip Objective;
     [SerializeField] public AudioClip MergePotion;
     [SerializeField] public AudioClip EnteredShop;
+    [SerializeField] public AudioClip SFX_Hover;
+    [SerializeField] public AudioClip SFX_Click;
+    [SerializeField] public AudioClip ShopOils;
+    [SerializeField] public AudioClip ShopGems;
+    [SerializeField] public AudioClip ShopHerbs;
 
 
     public void Awake()
@@ -77,6 +87,21 @@ public class AudioManager : MonoBehaviour
                 break;
             case SFX.Buying:
                 PlaySfx(volume, Buying, pitch);
+                break;
+            case SFX.SFX_Hover:
+                PlaySfx(volume, SFX_Hover, pitch);
+                break;
+            case SFX.SFX_Click:
+                PlaySfx(volume, SFX_Click, pitch);
+                break;
+            case SFX.ShopOils:
+                PlaySfx(volume, ShopOils, pitch);
+                break;
+            case SFX.ShopGems:
+                PlaySfx(volume, ShopGems, pitch);
+                break;
+            case SFX.ShopHerbs:
+                PlaySfx(volume, ShopHerbs, pitch);
                 break;
             default:
                 break;
