@@ -234,23 +234,6 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Vector2 dayNightClockArrowPivot = new Vector2(0f, 0.5f);
     [SerializeField] private Vector3 dayNightClockArrowScale = Vector3.one;
 
-    [Header("Family Market Right UI Block")]
-    [SerializeField] private Vector2 familyMarketRightUiPosition = new Vector2(500f, 30f);
-    [SerializeField] private Vector2 familyMarketRightUiSize = new Vector2(900f, 980f);
-    [SerializeField] private Vector3 familyMarketRightUiScale = Vector3.one;
-    [SerializeField] private float familyMarketRightUiRotation;
-    [SerializeField] private Vector2 familyMarketLeftArrowPosition = new Vector2(-920f, -330f);
-    [SerializeField] private Vector2 familyMarketRightArrowPosition = new Vector2(-70f, -330f);
-    [SerializeField] private Vector2 familyMarketArrowSize = new Vector2(86f, 86f);
-    [SerializeField] private Vector3 familyMarketArrowScale = Vector3.one;
-    [SerializeField] private float familyMarketArrowRotation;
-    [Header("Family Market Inventory Button")]
-    [SerializeField] private Sprite familyMarketInventoryIcon;
-    [SerializeField] private Vector2 familyMarketInventoryButtonPosition = new Vector2(765f, 315f);
-    [SerializeField] private Vector2 familyMarketInventoryButtonSize = new Vector2(120f, 120f);
-    [SerializeField] private Vector3 familyMarketInventoryButtonScale = Vector3.one;
-    [SerializeField] private float familyMarketInventoryButtonRotation;
-
     [Header("Day Transition")]
     [SerializeField] private int currentDay = 1;
     [SerializeField] private int gameOverDay = 20;
@@ -278,25 +261,12 @@ public class GameManager : MonoBehaviour
     private Image sellPanelInventoryButtonImage;
     private Sprite sellerRightUiSprite;
 
+    public Sprite familyMarketInventoryIcon;
+
     public List<InventoryItem> GetInventoryItems()
     {
         return inventory;
     }
-
-    public Vector2 FamilyMarketRightUiPosition => familyMarketRightUiPosition;
-    public Vector2 FamilyMarketRightUiSize => familyMarketRightUiSize;
-    public Vector3 FamilyMarketRightUiScale => familyMarketRightUiScale;
-    public float FamilyMarketRightUiRotation => familyMarketRightUiRotation;
-    public Vector2 FamilyMarketLeftArrowPosition => familyMarketLeftArrowPosition;
-    public Vector2 FamilyMarketRightArrowPosition => familyMarketRightArrowPosition;
-    public Vector2 FamilyMarketArrowSize => familyMarketArrowSize;
-    public Vector3 FamilyMarketArrowScale => familyMarketArrowScale;
-    public float FamilyMarketArrowRotation => familyMarketArrowRotation;
-    public Sprite FamilyMarketInventoryIcon => familyMarketInventoryIcon;
-    public Vector2 FamilyMarketInventoryButtonPosition => familyMarketInventoryButtonPosition;
-    public Vector2 FamilyMarketInventoryButtonSize => familyMarketInventoryButtonSize;
-    public Vector3 FamilyMarketInventoryButtonScale => familyMarketInventoryButtonScale;
-    public float FamilyMarketInventoryButtonRotation => familyMarketInventoryButtonRotation;
 
     public ObjectiveManager objectiveManager;
 

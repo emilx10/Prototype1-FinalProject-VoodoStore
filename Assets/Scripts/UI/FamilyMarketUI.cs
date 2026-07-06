@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -40,6 +40,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
     private readonly Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();
     private readonly List<GameObject> itemSlots = new List<GameObject>();
     private readonly Dictionary<GameObject, Coroutine> activePurchaseVfx = new Dictionary<GameObject, Coroutine>();
+    private const string GeneratedObjectiveContentName = "Generated Objectives Content";
+    private const string GeneratedInventoryContentName = "Generated Inventory Content";
 
     [SerializeField] private GameManager gameManager;
     [SerializeField] private GameObject contentRoot;
@@ -61,6 +63,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
     [SerializeField] private GameObject inventoryTabContent;
     [SerializeField] private GameObject knownRecipesTabContent;
     [SerializeField] private RightPanelTab activeRightPanelTab = RightPanelTab.Objectives;
+    [SerializeField] private bool preserveManualLayout = true;
     private int pageIndex;
 
     public static void Attach(GameManager manager)
@@ -158,7 +161,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         if (shouldShow)
         {
-            ApplyFamilyMarketLayout();
             gameManager.PrepareBookCanvasForFamilyMarket();
         }
     }
@@ -166,26 +168,16 @@ public sealed class FamilyMarketUI : MonoBehaviour
     private void BuildUI()
     {
         CacheBuiltChildren();
+        if (!preserveManualLayout || contentRoot == null)
+            ConfigureRootCanvas();
+
         if (contentRoot != null)
         {
-            EnsureCharacterImages();
+            DisableGeneratedFamilyMembers();
             EnsureFamilyMarketControls();
             EnsureRightPanelTabs();
             return;
         }
-
-        Canvas canvas = GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceCamera;
-        canvas.worldCamera = Camera.main;
-        canvas.planeDistance = 10f;
-        canvas.overrideSorting = true;
-        canvas.sortingOrder = 90;
-
-        CanvasScaler scaler = GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
-        scaler.matchWidthOrHeight = 0.5f;
 
         contentRoot = CreateRect("Family Market Content", transform, Vector2.zero, Vector2.zero);
         Stretch(contentRoot.GetComponent<RectTransform>());
@@ -193,11 +185,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
         Image background = CreateImage("Shop Background", contentRoot.transform, LoadSprite("Shop"));
         Stretch(background.rectTransform);
         background.raycastTarget = true;
-
-        dadCharacterImage = CreateCharacterImage("Dad Family Member", "Dad");
-        momCharacterImage = CreateCharacterImage("Mom Family Member", "Mom");
-        dotaCharacterImage = CreateCharacterImage("Dota Family Member", "Dota");
-        characterImage = dadCharacterImage;
 
         Image desk = CreateImage("Desk", contentRoot.transform, LoadSprite("Desk"));
         RectTransform deskRect = desk.rectTransform;
@@ -216,7 +203,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         leftArrowRect = CreateArrow(-1f, -1);
         rightArrowRect = CreateArrow(1f, 1);
-        ApplyFamilyMarketLayout();
 
         for (int i = 0; i < 3; i++)
             itemSlots.Add(CreateItemSlot(i));
@@ -232,22 +218,62 @@ public sealed class FamilyMarketUI : MonoBehaviour
         CacheBuiltChildren();
     }
 
+    private void ConfigureRootCanvas()
+    {
+        RectTransform rootRect = GetComponent<RectTransform>();
+        if (rootRect != null)
+            Stretch(rootRect);
+
+        Canvas canvas = GetComponent<Canvas>();
+        if (canvas == null)
+            canvas = gameObject.AddComponent<Canvas>();
+
+        canvas.renderMode = RenderMode.ScreenSpaceCamera;
+        canvas.worldCamera = Camera.main;
+        canvas.planeDistance = 10f;
+        canvas.overrideSorting = true;
+        canvas.sortingOrder = 90;
+
+        CanvasScaler scaler = GetComponent<CanvasScaler>();
+        if (scaler == null)
+            scaler = gameObject.AddComponent<CanvasScaler>();
+
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+
+        if (GetComponent<GraphicRaycaster>() == null)
+            gameObject.AddComponent<GraphicRaycaster>();
+    }
+
     private void EnsureCharacterImages()
     {
         if (contentRoot == null)
             return;
 
-        if (dadCharacterImage == null)
-            dadCharacterImage = CreateCharacterImage("Dad Family Member", "Dad");
+        DisableGeneratedFamilyMembers();
+    }
 
-        if (momCharacterImage == null)
-            momCharacterImage = CreateCharacterImage("Mom Family Member", "Mom");
+    private void DisableGeneratedFamilyMembers()
+    {
+        if (contentRoot == null)
+            return;
 
-        if (dotaCharacterImage == null)
-            dotaCharacterImage = CreateCharacterImage("Dota Family Member", "Dota");
+        DisableGeneratedImage("Dad Family Member", ref dadCharacterImage);
+        DisableGeneratedImage("Mom Family Member", ref momCharacterImage);
+        DisableGeneratedImage("Dota Family Member", ref dotaCharacterImage);
+        DisableGeneratedImage("Family Member", ref characterImage);
+    }
 
-        if (characterImage == null)
-            characterImage = dadCharacterImage;
+    private void DisableGeneratedImage(string objectName, ref Image image)
+    {
+        Transform generated = FindDeepChild(contentRoot.transform, objectName);
+        if (generated != null)
+            generated.gameObject.SetActive(false);
+
+        if (image != null && image.gameObject.name == objectName)
+            image = null;
     }
 
     private RectTransform CreateArrow(float horizontalScale, int direction)
@@ -256,10 +282,12 @@ public sealed class FamilyMarketUI : MonoBehaviour
         Image image = arrowObject.AddComponent<Image>();
         image.sprite = LoadSprite("Arrow");
         image.preserveAspect = true;
+        image.raycastTarget = true;
 
         Button button = arrowObject.AddComponent<Button>();
         button.targetGraphic = image;
         button.onClick.AddListener(() => ChangePage(direction));
+        ConfigureFrontUiLayer(arrowObject, 140);
 
         RectTransform rect = arrowObject.GetComponent<RectTransform>();
         rect.localScale = new Vector3(horizontalScale, 1f, 1f);
@@ -276,7 +304,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         inventoryButtonRect = buttonObject.GetComponent<RectTransform>();
         inventoryButtonImage = buttonObject.AddComponent<Image>();
-        inventoryButtonImage.sprite = gameManager != null ? gameManager.FamilyMarketInventoryIcon : null;
         inventoryButtonImage.preserveAspect = true;
 
         Button button = buttonObject.AddComponent<Button>();
@@ -296,7 +323,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         ConfigureInventoryButton();
         EnsureRightPanelTabs();
-        ApplyFamilyMarketLayout();
     }
 
     private void ConfigureArrowButton(RectTransform arrowRect, int direction)
@@ -329,7 +355,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (inventoryButtonImage == null)
             inventoryButtonImage = inventoryButtonRect.gameObject.AddComponent<Image>();
 
-        inventoryButtonImage.sprite = gameManager != null ? gameManager.FamilyMarketInventoryIcon : null;
         inventoryButtonImage.preserveAspect = true;
         inventoryButtonImage.raycastTarget = true;
 
@@ -524,6 +549,297 @@ public sealed class FamilyMarketUI : MonoBehaviour
         ApplyTabButtonVisual(objectivesTabButton, activeRightPanelTab == RightPanelTab.Objectives);
         ApplyTabButtonVisual(inventoryTabButton, activeRightPanelTab == RightPanelTab.Inventory);
         ApplyTabButtonVisual(knownRecipesTabButton, activeRightPanelTab == RightPanelTab.KnownRecipes);
+
+        if (activeRightPanelTab == RightPanelTab.Objectives)
+            PopulateObjectivesTab();
+
+        if (activeRightPanelTab == RightPanelTab.Inventory)
+            PopulateInventoryTab();
+    }
+
+    private void PopulateObjectivesTab()
+    {
+        if (objectivesTabContent == null)
+            return;
+
+        Transform contentTransform = objectivesTabContent.transform;
+        Transform generated = EnsureStretchChild(contentTransform, GeneratedObjectiveContentName);
+        SetChildrenActive(generated, false);
+
+        ObjectiveManager objectiveManager = gameManager != null ? gameManager.objectiveManager : null;
+        if (objectiveManager == null)
+            objectiveManager = FindFirstObjectByType<ObjectiveManager>(FindObjectsInactive.Include);
+
+        if (objectiveManager == null || objectiveManager.objectives == null || objectiveManager.objectives.Count == 0)
+        {
+            SetPanelText(generated, "Empty State Text", "No objectives yet", new Vector2(0f, 80f), new Vector2(620f, 80f), 32f, TextAlignmentOptions.Center);
+            return;
+        }
+
+        if (Application.isPlaying && gameManager != null)
+            objectiveManager.UpdateTasksFromInventory(gameManager.GetInventoryItems());
+
+        Objective objective = objectiveManager.objectives[0];
+        float y = -30f;
+
+        SetPanelText(
+            generated,
+            "Objective Title Text",
+            $"Craft a {objective.potionDisplayName} Potion",
+            new Vector2(0f, y),
+            new Vector2(640f, 70f),
+            32f,
+            TextAlignmentOptions.Center);
+
+        y -= 82f;
+        SetPanelText(
+            generated,
+            "Ingredients Header Text",
+            "Ingredients",
+            new Vector2(-245f, y),
+            new Vector2(260f, 44f),
+            24f,
+            TextAlignmentOptions.Left);
+
+        y -= 48f;
+        for (int i = 0; i < objective.ingredients.Count; i++)
+        {
+            bool discovered = objective.discovered != null &&
+                i < objective.discovered.Count &&
+                objective.discovered[i];
+
+            string ingredientText = discovered ? objective.ingredients[i] : "???";
+            SetPanelText(
+                generated,
+                $"Ingredient Row {i + 1}",
+                $"- {ingredientText}",
+                new Vector2(-210f, y),
+                new Vector2(520f, 38f),
+                21f,
+                TextAlignmentOptions.Left);
+            y -= 38f;
+        }
+
+        y -= 20f;
+        SetPanelText(
+            generated,
+            "Tasks Header Text",
+            "Tasks",
+            new Vector2(-245f, y),
+            new Vector2(260f, 44f),
+            24f,
+            TextAlignmentOptions.Left);
+
+        y -= 48f;
+        for (int i = 0; i < objective.missions.Count; i++)
+        {
+            Mission mission = objective.missions[i];
+            string progress = mission.type == MissionType.BuyItems
+                ? (mission.completed ? " 1/1" : " 0/1")
+                : string.Empty;
+            string status = mission.completed ? "[x] " : "- ";
+
+            TMP_Text missionText = SetPanelText(
+                generated,
+                $"Mission Row {i + 1}",
+                $"{status}{mission.missionText}{progress}",
+                new Vector2(-195f, y),
+                new Vector2(560f, 42f),
+                20f,
+                TextAlignmentOptions.Left);
+            missionText.alpha = mission.completed ? 0.62f : 1f;
+            y -= 42f;
+        }
+    }
+
+    private void PopulateInventoryTab()
+    {
+        if (inventoryTabContent == null)
+            return;
+
+        Transform generated = EnsureStretchChild(inventoryTabContent.transform, GeneratedInventoryContentName);
+        SetChildrenActive(generated, false);
+
+        List<InventoryItem> inventory = gameManager != null ? gameManager.GetInventoryItems() : null;
+        if (inventory == null || inventory.Count == 0)
+        {
+            SetPanelText(generated, "Inventory Empty State Text", "Inventory is empty", new Vector2(0f, 80f), new Vector2(620f, 80f), 32f, TextAlignmentOptions.Center);
+            return;
+        }
+
+        ObjectiveManager objectiveManager = gameManager != null ? gameManager.objectiveManager : null;
+        if (objectiveManager == null)
+            objectiveManager = FindFirstObjectByType<ObjectiveManager>(FindObjectsInactive.Include);
+
+        int visibleIndex = 0;
+        for (int i = 0; i < inventory.Count; i++)
+        {
+            InventoryItem item = inventory[i];
+            if (item == null || item.count <= 0)
+                continue;
+
+            visibleIndex++;
+            Transform row = EnsureInventoryRow(generated, visibleIndex);
+            row.gameObject.SetActive(true);
+
+            Image icon = row.Find("Icon")?.GetComponent<Image>();
+            if (icon != null)
+            {
+                icon.sprite = item.icon;
+                icon.enabled = item.icon != null;
+            }
+
+            TMP_Text nameText = row.Find("Name Text")?.GetComponent<TMP_Text>();
+            if (nameText != null)
+                nameText.text = item.itemName;
+
+            TMP_Text countText = row.Find("Count Text")?.GetComponent<TMP_Text>();
+            if (countText != null)
+                countText.text = "x" + item.count;
+
+            Button investigateButton = row.Find("Investigate Button")?.GetComponent<Button>();
+            FillInvestigateButton fillButton = investigateButton != null ? investigateButton.GetComponent<FillInvestigateButton>() : null;
+            if (investigateButton != null && fillButton != null)
+            {
+                bool canInvestigate = objectiveManager != null &&
+                    objectiveManager.CanInvestigateToday() &&
+                    objectiveManager.CanAffordInvestigation();
+
+                fillButton.itemName = item.itemName;
+                investigateButton.interactable = canInvestigate;
+            }
+        }
+
+        if (visibleIndex == 0)
+            SetPanelText(generated, "Inventory Empty State Text", "Inventory is empty", new Vector2(0f, 80f), new Vector2(620f, 80f), 32f, TextAlignmentOptions.Center);
+    }
+
+    private Transform EnsureInventoryRow(Transform parent, int rowIndex)
+    {
+        string rowName = $"Inventory Row {rowIndex}";
+        Transform existing = parent.Find(rowName);
+        if (existing != null)
+            return existing;
+
+        GameObject row = CreateRect(
+            rowName,
+            parent,
+            new Vector2(0f, -38f - ((rowIndex - 1) * 86f)),
+            new Vector2(640f, 78f));
+
+        RectTransform rowRect = row.GetComponent<RectTransform>();
+        SetTopCenteredRect(rowRect);
+
+        Image icon = CreateImage("Icon", row.transform, null);
+        RectTransform iconRect = icon.rectTransform;
+        iconRect.anchoredPosition = new Vector2(-270f, 0f);
+        iconRect.sizeDelta = new Vector2(58f, 58f);
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+
+        TMP_Text nameText = CreateText(
+            "Name Text",
+            row.transform,
+            string.Empty,
+            new Vector2(-105f, 12f),
+            new Vector2(300f, 34f),
+            21f,
+            TextAlignmentOptions.Left);
+        nameText.color = new Color(0.23f, 0.08f, 0.045f, 0.95f);
+        nameText.fontStyle = FontStyles.Bold;
+
+        TMP_Text countText = CreateText(
+            "Count Text",
+            row.transform,
+            string.Empty,
+            new Vector2(130f, 12f),
+            new Vector2(90f, 34f),
+            21f,
+            TextAlignmentOptions.Center);
+        countText.color = new Color(0.23f, 0.08f, 0.045f, 0.95f);
+        countText.fontStyle = FontStyles.Bold;
+
+        GameObject buttonObject = CreateRect(
+            "Investigate Button",
+            row.transform,
+            new Vector2(205f, -20f),
+            new Vector2(170f, 42f));
+        Image buttonImage = buttonObject.AddComponent<Image>();
+        buttonImage.color = new Color(0.32f, 0.1f, 0.075f, 0.86f);
+        Button button = buttonObject.AddComponent<Button>();
+        button.targetGraphic = buttonImage;
+
+        Image fill = CreateImage("Investigate Fill", buttonObject.transform, null);
+        Stretch(fill.rectTransform);
+        fill.color = new Color(0.82f, 0.48f, 0.18f, 0.75f);
+        fill.type = Image.Type.Filled;
+        fill.fillMethod = Image.FillMethod.Horizontal;
+        fill.fillOrigin = 0;
+        fill.fillAmount = 0f;
+        fill.raycastTarget = false;
+
+        TMP_Text label = CreateText(
+            "Investigate Label",
+            buttonObject.transform,
+            "Investigate",
+            Vector2.zero,
+            new Vector2(160f, 34f),
+            18f,
+            TextAlignmentOptions.Center);
+        label.color = new Color(1f, 0.88f, 0.62f, 1f);
+        label.fontStyle = FontStyles.Bold;
+
+        FillInvestigateButton fillButton = buttonObject.AddComponent<FillInvestigateButton>();
+        fillButton.button = button;
+        fillButton.outLineImage = buttonImage;
+        fillButton.fillImage = fill;
+
+        return row.transform;
+    }
+
+    private Transform EnsureStretchChild(Transform parent, string objectName)
+    {
+        Transform existing = parent.Find(objectName);
+        if (existing != null)
+            return existing;
+
+        GameObject obj = CreateRect(objectName, parent, Vector2.zero, Vector2.zero);
+        Stretch(obj.GetComponent<RectTransform>());
+        return obj.transform;
+    }
+
+    private TMP_Text SetPanelText(
+        Transform parent,
+        string objectName,
+        string value,
+        Vector2 position,
+        Vector2 size,
+        float fontSize,
+        TextAlignmentOptions alignment)
+    {
+        TMP_Text text = parent.Find(objectName)?.GetComponent<TMP_Text>();
+        if (text == null)
+        {
+            text = CreateText(objectName, parent, value, position, size, fontSize, alignment);
+        }
+        else
+        {
+            text.text = value;
+        }
+
+        text.gameObject.SetActive(true);
+        text.color = new Color(0.23f, 0.08f, 0.045f, 0.95f);
+        text.fontStyle = FontStyles.Bold;
+        return text;
+    }
+
+    private static void SetChildrenActive(Transform parent, bool active)
+    {
+        if (parent == null)
+            return;
+
+        for (int i = 0; i < parent.childCount; i++)
+            parent.GetChild(i).gameObject.SetActive(active);
     }
 
     private static void SetTabContentActive(GameObject content, bool active)
@@ -631,11 +947,9 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (gameManager == null)
             return;
 
-        ApplyFamilyMarketLayout();
         EnsureRightPanelTabs();
 
         FamilyPage page = pages[pageIndex];
-        ApplyCharacterVisibility(page.characterTexture);
 
         Market market = gameManager.GetMarketForCategory(page.category);
         Sprite frameSprite = LoadSprite(page.frameTexture);
@@ -692,17 +1006,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
     private void ApplyCharacterVisibility(string characterTexture)
     {
-        SetImageActive(dadCharacterImage, characterTexture == "Dad");
-        SetImageActive(momCharacterImage, characterTexture == "Mom");
-        SetImageActive(dotaCharacterImage, characterTexture == "Dota");
-
-        if (characterImage != null &&
-            characterImage != dadCharacterImage &&
-            characterImage != momCharacterImage &&
-            characterImage != dotaCharacterImage)
-        {
-            characterImage.gameObject.SetActive(false);
-        }
+        DisableGeneratedFamilyMembers();
     }
 
     private static void SetImageActive(Image image, bool active)
@@ -783,9 +1087,12 @@ public sealed class FamilyMarketUI : MonoBehaviour
             if (leftArrowRect == null && arrows.Count > 0)
                 leftArrowRect = arrows[0];
 
-            if (rightArrowRect == null && arrows.Count > 1)
+        if (rightArrowRect == null && arrows.Count > 1)
                 rightArrowRect = arrows[1];
         }
+
+        ConfigureArrowFrontLayer(leftArrowRect);
+        ConfigureArrowFrontLayer(rightArrowRect);
 
         itemSlots.Clear();
         for (int i = 1; i <= 3; i++)
@@ -863,20 +1170,19 @@ public sealed class FamilyMarketUI : MonoBehaviour
         activePurchaseVfx.Remove(slot);
     }
 
-    private void ApplyFamilyMarketLayout()
-    {
-        if (gameManager == null)
-            return;
-
-        ApplyRightUiBlockLayout();
-        ApplyArrowLayout(leftArrowRect, gameManager.FamilyMarketLeftArrowPosition, -1f);
-        ApplyArrowLayout(rightArrowRect, gameManager.FamilyMarketRightArrowPosition, 1f);
-        ApplyInventoryButtonLayout();
-    }
 
     private void ConfigureDeskFrontLayer(GameObject deskObject)
     {
         ConfigureFrontUiLayer(deskObject, 110);
+    }
+
+    private void ConfigureArrowFrontLayer(RectTransform arrowRect)
+    {
+        if (arrowRect == null)
+            return;
+
+        ConfigureFrontUiLayer(arrowRect.gameObject, 140);
+        arrowRect.SetAsLastSibling();
     }
 
     private void ConfigureFrontUiLayer(GameObject uiObject, int sortingOrder)
@@ -890,6 +1196,9 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         canvas.overrideSorting = true;
         canvas.sortingOrder = sortingOrder;
+
+        if (uiObject.GetComponent<GraphicRaycaster>() == null)
+            uiObject.AddComponent<GraphicRaycaster>();
     }
 
     private void ApplyRightUiBlockLayout()
@@ -899,10 +1208,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         RectTransform rect = rightUiBlockImage.rectTransform;
         SetCenteredRect(rect);
-        rect.anchoredPosition = gameManager.FamilyMarketRightUiPosition;
-        rect.sizeDelta = gameManager.FamilyMarketRightUiSize;
-        rect.localScale = gameManager.FamilyMarketRightUiScale;
-        rect.localRotation = Quaternion.Euler(0f, 0f, gameManager.FamilyMarketRightUiRotation);
     }
 
     private void ApplyInventoryButtonLayout()
@@ -911,26 +1216,9 @@ public sealed class FamilyMarketUI : MonoBehaviour
             return;
 
         SetCenteredRect(inventoryButtonRect);
-        inventoryButtonRect.anchoredPosition = gameManager.FamilyMarketInventoryButtonPosition;
-        inventoryButtonRect.sizeDelta = gameManager.FamilyMarketInventoryButtonSize;
-        inventoryButtonRect.localScale = gameManager.FamilyMarketInventoryButtonScale;
-        inventoryButtonRect.localRotation = Quaternion.Euler(0f, 0f, gameManager.FamilyMarketInventoryButtonRotation);
         inventoryButtonRect.SetAsLastSibling();
     }
 
-    private void ApplyArrowLayout(RectTransform arrowRect, Vector2 position, float horizontalDirection)
-    {
-        if (arrowRect == null || gameManager == null)
-            return;
-
-        SetCenteredRect(arrowRect);
-        arrowRect.anchoredPosition = position;
-        arrowRect.sizeDelta = gameManager.FamilyMarketArrowSize;
-        arrowRect.localScale = Vector3.Scale(
-            gameManager.FamilyMarketArrowScale,
-            new Vector3(horizontalDirection, 1f, 1f));
-        arrowRect.localRotation = Quaternion.Euler(0f, 0f, gameManager.FamilyMarketArrowRotation);
-    }
 
     private void CreateCommandButton(
         string objectName,
