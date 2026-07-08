@@ -272,13 +272,18 @@ public class GameManager : MonoBehaviour
 
     public void OpenKnownRecipes()
     {
+        if (knownRecipesPanel == null)
+            return;
+
         knownRecipesPanel.SetActive(true);
         PopulateKnownRecipesUI();
     }
 
     public void CloseKnownRecipes()
     {
-        knownRecipesPanel.SetActive(false);
+        if (knownRecipesPanel != null)
+            knownRecipesPanel.SetActive(false);
+
         ApplyMarketReturnGate();
     }
 
@@ -319,33 +324,32 @@ public class GameManager : MonoBehaviour
     public void PrepareBookCanvasForFamilyMarket()
     {
         if (bookCanvasRoot != null)
-            bookCanvasRoot.SetActive(true);
+            bookCanvasRoot.SetActive(false);
 
         if (bookCanvas != null)
         {
             bookCanvas.overrideSorting = true;
-            bookCanvas.sortingOrder = 160;
+            bookCanvas.sortingOrder = 0;
         }
 
         if (bookCanvasGroup != null)
         {
-            bookCanvasGroup.alpha = 1f;
-            bookCanvasGroup.interactable = true;
-            bookCanvasGroup.blocksRaycasts = true;
+            bookCanvasGroup.alpha = 0f;
+            bookCanvasGroup.interactable = false;
+            bookCanvasGroup.blocksRaycasts = false;
         }
 
         if (bookRoot != null)
-            bookRoot.SetActive(true);
+            bookRoot.SetActive(false);
 
         if (knownRecipesOpenButton != null)
         {
-            knownRecipesOpenButton.interactable = true;
+            knownRecipesOpenButton.interactable = false;
 
             Graphic hitTarget = knownRecipesOpenButton.targetGraphic;
             if (hitTarget != null)
             {
-                hitTarget.enabled = true;
-                hitTarget.raycastTarget = true;
+                hitTarget.raycastTarget = false;
                 Color transparentColor = hitTarget.color;
                 transparentColor.a = 0f;
                 hitTarget.color = transparentColor;
@@ -652,9 +656,11 @@ public class GameManager : MonoBehaviour
             break;
         }
 
-        if (knownRecipesPanel.activeInHierarchy)
+        if (knownRecipesPanel != null && knownRecipesPanel.activeInHierarchy)
             PopulateKnownRecipesUI();
 
+        FamilyMarketUI.RefreshIfVisible();
+        SellPanelRightUIBinder.RefreshVisible();
         return true;
     }
 
@@ -662,8 +668,30 @@ public class GameManager : MonoBehaviour
     {
         discoveredRecipes.Add(NormalizeName(recipe.potionName));
 
-        if (knownRecipesPanel.activeInHierarchy)
+        if (knownRecipesPanel != null && knownRecipesPanel.activeInHierarchy)
             PopulateKnownRecipesUI();
+
+        FamilyMarketUI.RefreshIfVisible();
+        SellPanelRightUIBinder.RefreshVisible();
+    }
+
+    public bool IsRecipeDiscovered(Recipe recipe)
+    {
+        return recipe != null && discoveredRecipes.Contains(NormalizeName(recipe.potionName));
+    }
+
+    public bool IsRecipeIngredientSlotDiscovered(Recipe recipe, int ingredientIndex)
+    {
+        if (recipe == null || ingredientIndex < 0 || ingredientIndex >= recipe.ingredients.Count)
+            return false;
+
+        return IsRecipeDiscovered(recipe) ||
+            discoveredRecipeIngredientSlots.Contains(GetRecipeIngredientSlotKey(recipe, ingredientIndex));
+    }
+
+    public Sprite GetKnownRecipeIngredientIcon(string ingredientName)
+    {
+        return GetIconByNameInsensitive(ingredientName);
     }
 
     private static string GetRecipeIngredientSlotKey(Recipe recipe, int ingredientIndex)
@@ -711,7 +739,6 @@ public class GameManager : MonoBehaviour
         EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
         EnsureSellPanelRightUI();
         RandomizeMarketStock();
-        inventoryBreather = inventoryButton.GetComponent<ButtonBreather>();
         PopulateInventoryPanel();
         UpdateCoinsUI();
         priceSlider.minValue = 0;
@@ -872,7 +899,13 @@ public class GameManager : MonoBehaviour
     public void InvokeMarketShopButton()
     {
         if (marketShopButton != null && marketShopButton.interactable)
+        {
             marketShopButton.onClick.Invoke();
+            if (marketShopButton.onClick.GetPersistentEventCount() > 0)
+                return;
+        }
+
+        OpenSell();
     }
 
     public void InvokeInventoryButton()
@@ -946,6 +979,95 @@ public class GameManager : MonoBehaviour
                 button.targetGraphic = sellPanelInventoryButtonImage;
         }
 
+        SellPanelRightUIBinder binder = sellPanelRightUiRect != null
+            ? sellPanelRightUiRect.GetComponent<SellPanelRightUIBinder>()
+            : null;
+        if (binder != null)
+        {
+            binder.SetGameManager(this);
+            binder.Refresh();
+        }
+    }
+
+#if UNITY_EDITOR
+    [ContextMenu("Build / Refresh Sell Panel Right UI Copy")]
+    private void BuildRefreshSellPanelRightUICopy()
+    {
+        if (sellPanel == null)
+        {
+            Debug.LogWarning("Cannot copy the Seller Right UI Block because SellPanel is not assigned.");
+            return;
+        }
+
+        FamilyMarketUI familyMarketUI = FindFirstObjectByType<FamilyMarketUI>(FindObjectsInactive.Include);
+        if (familyMarketUI != null)
+            familyMarketUI.BuildEditablePreview();
+
+        Transform sourceBlock = familyMarketUI != null
+            ? FindDeepChild(familyMarketUI.transform, "Seller Right UI Block")
+            : null;
+        if (sourceBlock == null)
+        {
+            Debug.LogWarning("Cannot find Family UI Seller Right UI Block to copy.");
+            return;
+        }
+
+        Transform existingBlock = sellPanel.transform.Find("Sell Panel Right UI Block");
+        if (existingBlock != null)
+            DestroyImmediate(existingBlock.gameObject);
+
+        GameObject copy = Instantiate(sourceBlock.gameObject, sellPanel.transform, false);
+        copy.name = "Sell Panel Right UI Block";
+
+        RectTransform sourceRect = sourceBlock as RectTransform;
+        RectTransform copyRect = copy.GetComponent<RectTransform>();
+        if (sourceRect != null && copyRect != null)
+        {
+            copyRect.anchorMin = sourceRect.anchorMin;
+            copyRect.anchorMax = sourceRect.anchorMax;
+            copyRect.pivot = sourceRect.pivot;
+            copyRect.anchoredPosition = sourceRect.anchoredPosition;
+            copyRect.sizeDelta = sourceRect.sizeDelta;
+            copyRect.localRotation = sourceRect.localRotation;
+            copyRect.localScale = sourceRect.localScale;
+        }
+
+        SellPanelRightUIBinder binder = copy.GetComponent<SellPanelRightUIBinder>();
+        if (binder == null)
+            binder = copy.AddComponent<SellPanelRightUIBinder>();
+        binder.SetGameManager(this);
+
+        Transform oldInventoryButton = sellPanel.transform.Find("Sell Panel Inventory Button");
+        if (oldInventoryButton != null)
+            oldInventoryButton.gameObject.SetActive(false);
+
+        sellPanelRightUiRect = copyRect;
+        sellPanelRightUiImage = copy.GetComponent<Image>();
+        sellPanelInventoryButtonRect = null;
+        sellPanelInventoryButtonImage = null;
+
+        UnityEditor.EditorUtility.SetDirty(copy);
+        UnityEditor.EditorUtility.SetDirty(this);
+        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+    }
+#endif
+
+    private static Transform FindDeepChild(Transform root, string objectName)
+    {
+        if (root == null)
+            return null;
+
+        if (root.name == objectName)
+            return root;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform found = FindDeepChild(root.GetChild(i), objectName);
+            if (found != null)
+                return found;
+        }
+
+        return null;
     }
 
 
@@ -1450,6 +1572,7 @@ public class GameManager : MonoBehaviour
 
         RefreshSellUI();
         PopulateInventoryPanel();
+        SellPanelRightUIBinder.RefreshVisible();
         ShowFloatingCoins(price);
         UpdateCoinsUI();
         ad.PlaySfx(vol,SFX.Selling,pitch);
