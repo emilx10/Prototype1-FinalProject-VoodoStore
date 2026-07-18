@@ -46,7 +46,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioPool
   poolSize: 50
-  outputMixer: {fileID: 0}
+  outputMixer: {fileID: 24300002, guid: 307962dba6affba41a586615fc64e484, type: 2}
 --- !u!114 &525170302204512396
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -59,11 +59,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c2f47e4ce255601408b8140e5a43f6ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
-  audioMixer: {fileID: 0}
+  audioMixer: {fileID: 24100000, guid: 307962dba6affba41a586615fc64e484, type: 2}
   sfxPool: {fileID: 2002832806821332944}
-  anySound: {fileID: 0}
+  Selling: {fileID: 8300000, guid: 12fccea12dea45649a6c255a2133d8d0, type: 3}
+  Buying: {fileID: 8300000, guid: c4b4ac1db8faab644ace4765b8f92308, type: 3}
+  JunkMerge: {fileID: 8300000, guid: 9b5d042716fc43c69575971089c3aabb, type: 3}
+  Objective: {fileID: 8300000, guid: 45c485f05cd2fbb45a13083e87dc5d5f, type: 3}
+  MergePotion: {fileID: 8300000, guid: fde6fd1f0f0aa134da76399cfb65810a, type: 3}
+  EnteredShop: {fileID: 8300000, guid: 04481685d5e6a4b42b423cbcee60590a, type: 3}
   SFX_Hover: {fileID: 8300000, guid: 88d31b4c6f3103747b8c679b040839d8, type: 3}
   SFX_Click: {fileID: 8300000, guid: b58541add3f21624a9ff9a27df3ff613, type: 3}
   ShopOils: {fileID: 8300000, guid: 95c04d9ab81847a58476a15d674c4f22, type: 3}
   ShopGems: {fileID: 8300000, guid: 9777e1ae344a4554bebf547cff48e9d6, type: 3}
   ShopHerbs: {fileID: 8300000, guid: 6914fb7049e34e7abec74b7f5eca2a20, type: 3}
+  BookOpen: {fileID: 8300000, guid: 6908f2a7bc5a4764880f607b593a7d0c, type: 3}
+  Coins: {fileID: 8300000, guid: 12fccea12dea45649a6c255a2133d8d0, type: 3}

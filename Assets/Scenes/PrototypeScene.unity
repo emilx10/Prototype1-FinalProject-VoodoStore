@@ -51454,7 +51454,7 @@ PrefabInstance:
     - target: {fileID: 525170302204512396, guid: 4c464941762fe164684bce1959c2b181, type: 3}
       propertyPath: JunkMerge
       value: 
-      objectReference: {fileID: 8300000, guid: 6fe424151b4fc6e4296ca1a12538919e, type: 3}
+      objectReference: {fileID: 8300000, guid: 9b5d042716fc43c69575971089c3aabb, type: 3}
     - target: {fileID: 525170302204512396, guid: 4c464941762fe164684bce1959c2b181, type: 3}
       propertyPath: Objective
       value: 
@@ -51487,6 +51487,14 @@ PrefabInstance:
       propertyPath: ShopHerbs
       value: 
       objectReference: {fileID: 8300000, guid: 6914fb7049e34e7abec74b7f5eca2a20, type: 3}
+    - target: {fileID: 525170302204512396, guid: 4c464941762fe164684bce1959c2b181, type: 3}
+      propertyPath: BookOpen
+      value: 
+      objectReference: {fileID: 8300000, guid: 6908f2a7bc5a4764880f607b593a7d0c, type: 3}
+    - target: {fileID: 525170302204512396, guid: 4c464941762fe164684bce1959c2b181, type: 3}
+      propertyPath: Coins
+      value: 
+      objectReference: {fileID: 8300000, guid: 12fccea12dea45649a6c255a2133d8d0, type: 3}
     - target: {fileID: 525170302204512396, guid: 4c464941762fe164684bce1959c2b181, type: 3}
       propertyPath: MergePotion
       value: 

@@ -209,7 +209,7 @@ public class SellItems : MonoBehaviour
         img.transform.localScale = endScaleVector;
 
         // Play coin sound
-        AudioManager.Instance.PlaySfx(0.1f, SFX.Buying, 1.1f);
+        AudioManager.Instance.PlaySfx(0.2f, SFX.Coins, 1.1f);
 
         Destroy(img.gameObject);
     }

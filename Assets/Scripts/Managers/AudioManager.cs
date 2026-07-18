@@ -16,7 +16,9 @@ public enum SFX
     SFX_Click,
     ShopOils,
     ShopGems,
-    ShopHerbs
+    ShopHerbs,
+    BookOpen,
+    Coins
 }
 
 public class AudioManager : MonoBehaviour
@@ -45,6 +47,8 @@ public class AudioManager : MonoBehaviour
     [SerializeField] public AudioClip ShopOils;
     [SerializeField] public AudioClip ShopGems;
     [SerializeField] public AudioClip ShopHerbs;
+    [SerializeField] public AudioClip BookOpen;
+    [SerializeField] public AudioClip Coins;
 
 
     public void Awake()
@@ -102,6 +106,12 @@ public class AudioManager : MonoBehaviour
                 break;
             case SFX.ShopHerbs:
                 PlaySfx(volume, ShopHerbs, pitch);
+                break;
+            case SFX.BookOpen:
+                PlaySfx(volume, BookOpen, pitch);
+                break;
+            case SFX.Coins:
+                PlaySfx(volume, Coins, pitch);
                 break;
             default:
                 break;

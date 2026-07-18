@@ -87,7 +87,9 @@ public class GameManager : MonoBehaviour
     private const float MergeDissolveEnd = 1f;
     private const float ShopOpenVolume = 0.3f;
     private const float PurchaseVolumeMultiplier = 0.5f;
-    private const float MysteriousVolumeMultiplier = 0.3f;
+    private const float ItemPurchaseVolume = 0.3f;
+    private const float MysteriousVolumeMultiplier = 0.4f;
+    private const float BookOpenVolume = 0.5f;
 
     private HashSet<string> discoveredRecipes = new HashSet<string>();
     private HashSet<string> discoveredRecipeIngredientSlots = new HashSet<string>();
@@ -278,7 +280,11 @@ public class GameManager : MonoBehaviour
         if (knownRecipesPanel == null)
             return;
 
+        bool wasClosed = !knownRecipesPanel.activeSelf;
         knownRecipesPanel.SetActive(true);
+        if (wasClosed && ad != null)
+            ad.PlaySfx(BookOpenVolume, SFX.BookOpen, 1f);
+
         PopulateKnownRecipesUI();
     }
 
@@ -793,7 +799,7 @@ public class GameManager : MonoBehaviour
         //marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
         EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
-        ad.PlaySfx(ShopOpenVolume, GetShopOpenSfx(market), 1f);
+        ad.PlaySfx(ShopOpenVolume, SFX.EnteredShop, 1f);
 
         ClearChildren(itemsButtonsParent);
 
@@ -870,6 +876,7 @@ public class GameManager : MonoBehaviour
         ShowFloatingCoins(-item.price);
         PlayPurchaseCoinBurst();
         ad.PlaySfx(vol * PurchaseVolumeMultiplier, SFX.Buying, pitch);
+        ad.PlaySfx(ItemPurchaseVolume, GetItemPurchaseSfx(item.category), 1f);
 
         OnItemBought?.Invoke(item.icon);
         objectiveManager.UpdateTasksFromInventory(GetInventoryItems());
@@ -889,22 +896,23 @@ public class GameManager : MonoBehaviour
         return null;
     }
 
-    private SFX GetShopOpenSfx(Market market)
+    private SFX GetItemPurchaseSfx(ItemCategory category)
     {
-        if (market != null && market.items != null && market.items.Count > 0)
+        switch (category)
         {
-            switch (market.items[0].category)
-            {
-                case ItemCategory.Oils:
-                    return SFX.ShopOils;
-                case ItemCategory.Gems:
-                    return SFX.ShopGems;
-                case ItemCategory.Herbs:
-                    return SFX.ShopHerbs;
-            }
+            case ItemCategory.Oils:
+                return SFX.ShopOils;
+            case ItemCategory.Gems:
+                return SFX.ShopGems;
+            case ItemCategory.Herbs:
+                return SFX.ShopHerbs;
+            case ItemCategory.Potion:
+                return SFX.MergePotion;
+            case ItemCategory.Junk:
+                return SFX.JunkMerge;
+            default:
+                return SFX.Buying;
         }
-
-        return SFX.EnteredShop;
     }
 
     public int GetMarketStock(MarketItem item)

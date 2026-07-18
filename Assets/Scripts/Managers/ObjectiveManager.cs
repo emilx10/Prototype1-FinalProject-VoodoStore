@@ -274,7 +274,7 @@ public class ObjectiveManager : MonoBehaviour
             if (mission.type == type && !mission.completed)
             {
                 mission.completed = true;
-                ad.PlaySfx(vol, SFX.Objective, pitch);
+                ad.PlaySfx(0.2f, SFX.Objective, pitch);
                 break; // complete only the first matching one
             }
         }
