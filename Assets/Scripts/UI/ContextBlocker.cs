@@ -28,17 +28,27 @@ public class ContextBlocker : MonoBehaviour
         if (IsPointerInsideContext())
             return;
 
-        contextMenu.SetActive(false);
+        if (contextMenu != null)
+            contextMenu.SetActive(false);
+
         gameObject.SetActive(false);
         
-        foreach (GameObject go in GOToEnable)
+        if (GOToEnable != null)
         {
-            go.SetActive(true);
+            foreach (GameObject go in GOToEnable)
+            {
+                if (go != null)
+                    go.SetActive(true);
+            }
         }
 
-        foreach (Button b in ButtonToEnable)
+        if (ButtonToEnable != null)
         {
-            b.interactable = true;
+            foreach (Button b in ButtonToEnable)
+            {
+                if (b != null)
+                    b.interactable = true;
+            }
         }
 
         if (gameManager != null)

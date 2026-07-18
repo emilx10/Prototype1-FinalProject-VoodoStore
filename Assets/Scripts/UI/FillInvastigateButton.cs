@@ -27,7 +27,8 @@ public class FillInvestigateButton : MonoBehaviour, IPointerDownHandler, IPointe
         if(outLineImage == null)
             outLineImage = GetComponent<Image>();
 
-        fillImage.fillAmount = 0f;
+        if (fillImage != null)
+            fillImage.fillAmount = 0f;
 
         objectiveManager = FindObjectOfType<ObjectiveManager>();
         gameManager = FindObjectOfType<GameManager>();
@@ -45,12 +46,14 @@ public class FillInvestigateButton : MonoBehaviour, IPointerDownHandler, IPointe
         if (isHolding)
         {
             timer += Time.deltaTime;
-            fillImage.fillAmount = timer / holdTime;
+            if (fillImage != null)
+                fillImage.fillAmount = timer / holdTime;
 
             if (timer >= holdTime)
             {
                 isHolding = false;
-                fillImage.fillAmount = 1f;
+                if (fillImage != null)
+                    fillImage.fillAmount = 1f;
 
                 TryInvestigate();
             }
@@ -67,10 +70,20 @@ public class FillInvestigateButton : MonoBehaviour, IPointerDownHandler, IPointe
             objectiveManager.CanAffordInvestigation();
         if (!canUse)
         {
+            if (outLineImage != null)
+            {
+                Color c = outLineImage.color;
+                c.a = 0.5f;
+                outLineImage.color = c;
+            }
+        }
+        else if (outLineImage != null)
+        {
             Color c = outLineImage.color;
-            c.a = 0.5f;
+            c.a = 1f;
             outLineImage.color = c;
         }
+
         button.interactable = canUse;
     }
 
@@ -85,7 +98,10 @@ public class FillInvestigateButton : MonoBehaviour, IPointerDownHandler, IPointe
         bool success = objectiveManager.InvestigateItem(itemName);
 
         if (success && gameManager != null)
+        {
             gameManager.PopulateInventoryPanel();
+            FamilyMarketUI.RefreshIfVisible();
+        }
 
         ResetFill();
         UpdateButtonState();
@@ -94,7 +110,8 @@ public class FillInvestigateButton : MonoBehaviour, IPointerDownHandler, IPointe
     void ResetFill()
     {
         timer = 0f;
-        fillImage.fillAmount = 0f;
+        if (fillImage != null)
+            fillImage.fillAmount = 0f;
     }
 
     public void OnPointerDown(PointerEventData eventData)
