@@ -296,7 +296,11 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
     private RectTransform CreateArrow(float horizontalScale, int direction)
     {
-        GameObject arrowObject = CreateRect("Family Arrow", contentRoot.transform, Vector2.zero, new Vector2(86f, 86f));
+        GameObject arrowObject = CreateRect(
+            direction < 0 ? "Family Arrow Left" : "Family Arrow Right",
+            contentRoot.transform,
+            Vector2.zero,
+            new Vector2(86f, 86f));
         Image image = arrowObject.AddComponent<Image>();
         image.sprite = LoadSprite("Arrow");
         image.preserveAspect = true;
@@ -361,6 +365,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(() => ChangePage(direction));
         button.interactable = true;
+        arrowRect.gameObject.SetActive(true);
+        ConfigureArrowFrontLayer(arrowRect);
     }
 
     private void ConfigureInventoryButton()
@@ -1266,7 +1272,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (recipeName != null)
         {
             recipeName.text = recipe.potionName;
-            ConfigureKnownRecipeNameText(recipeName);
         }
 
         Transform ingredientsRow = card.Find("IngredientsRow");
@@ -1316,18 +1321,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
             default:
                 return null;
         }
-    }
-
-    private static void ConfigureKnownRecipeNameText(TMP_Text text)
-    {
-        if (text == null)
-            return;
-
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 10f;
-        text.fontSizeMax = Mathf.Max(text.fontSize, 20f);
-        text.overflowMode = TextOverflowModes.Ellipsis;
-        text.textWrappingMode = TextWrappingModes.Normal;
     }
 
     private Color GetKnownRecipeIngredientColor(string ingredientName)
@@ -1427,12 +1420,14 @@ public sealed class FamilyMarketUI : MonoBehaviour
         TextAlignmentOptions alignment)
     {
         TMP_Text text = parent.Find(objectName)?.GetComponent<TMP_Text>();
+        bool createdText = false;
         if (text == null)
         {
             if (Application.isPlaying)
                 return null;
 
             text = CreateText(objectName, parent, value, position, size, fontSize, alignment);
+            createdText = true;
         }
         else
         {
@@ -1440,8 +1435,12 @@ public sealed class FamilyMarketUI : MonoBehaviour
         }
 
         text.gameObject.SetActive(true);
-        text.color = new Color(0.23f, 0.08f, 0.045f, 0.95f);
-        text.fontStyle = FontStyles.Bold;
+        if (createdText)
+        {
+            text.color = new Color(0.23f, 0.08f, 0.045f, 0.95f);
+            text.fontStyle = FontStyles.Bold;
+        }
+
         return text;
     }
 
@@ -1465,16 +1464,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (button == null)
             return;
 
-        Image image = button.targetGraphic as Image;
-        if (image == null)
-            image = button.GetComponent<Image>();
-
-        if (image == null)
-            return;
-
-        image.color = active
-            ? new Color(0.62f, 0.24f, 0.16f, 0.96f)
-            : new Color(0.24f, 0.09f, 0.07f, 0.82f);
+        // Tab selection changes panel visibility only. Button colors are owned by the scene layout.
     }
 
     private Image CreateCharacterImage(string objectName, string spriteName)
@@ -1613,7 +1603,6 @@ public sealed class FamilyMarketUI : MonoBehaviour
             coinCanvas = coinGraphics.AddComponent<Canvas>();
 
         coinCanvas.overrideSorting = true;
-        coinCanvas.sortingOrder = 110;
     }
 
     private void ApplyCharacterVisibility(string characterTexture)
@@ -1686,22 +1675,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         DisableGeneratedButton("Family Market Inventory Button");
         ConfigureDeskFrontLayer(contentTransform.Find("Desk")?.gameObject);
 
-        if (leftArrowRect == null || rightArrowRect == null)
-        {
-            List<RectTransform> arrows = new List<RectTransform>();
-            for (int i = 0; i < contentTransform.childCount; i++)
-            {
-                Transform child = contentTransform.GetChild(i);
-                if (child.name == "Family Arrow" && child is RectTransform rect)
-                    arrows.Add(rect);
-            }
-
-            if (leftArrowRect == null && arrows.Count > 0)
-                leftArrowRect = arrows[0];
-
-        if (rightArrowRect == null && arrows.Count > 1)
-                rightArrowRect = arrows[1];
-        }
+        ResolveFamilyArrows(contentTransform);
 
         ConfigureArrowFrontLayer(leftArrowRect);
         ConfigureArrowFrontLayer(rightArrowRect);
@@ -1716,6 +1690,66 @@ public sealed class FamilyMarketUI : MonoBehaviour
                 itemSlots.Add(slot.gameObject);
             }
         }
+    }
+
+    private void ResolveFamilyArrows(Transform contentTransform)
+    {
+        List<RectTransform> arrows = new List<RectTransform>();
+
+        AddFamilyArrow(arrows, leftArrowRect);
+        AddFamilyArrow(arrows, rightArrowRect);
+
+        for (int i = 0; i < contentTransform.childCount; i++)
+        {
+            Transform child = contentTransform.GetChild(i);
+            if (child is RectTransform rect)
+                AddFamilyArrow(arrows, rect);
+        }
+
+        if (arrows.Count == 0)
+            return;
+
+        if (arrows.Count == 1)
+        {
+            RectTransform onlyArrow = arrows[0];
+            if (onlyArrow.localScale.x < 0f || onlyArrow.anchoredPosition.x < 0f)
+                leftArrowRect = onlyArrow;
+            else
+                rightArrowRect = onlyArrow;
+            return;
+        }
+
+        RectTransform leftCandidate = arrows[0];
+        RectTransform rightCandidate = arrows[0];
+
+        for (int i = 1; i < arrows.Count; i++)
+        {
+            RectTransform arrow = arrows[i];
+            if (arrow.anchoredPosition.x < leftCandidate.anchoredPosition.x)
+                leftCandidate = arrow;
+
+            if (arrow.anchoredPosition.x > rightCandidate.anchoredPosition.x)
+                rightCandidate = arrow;
+        }
+
+        if (leftCandidate != rightCandidate)
+        {
+            leftArrowRect = leftCandidate;
+            rightArrowRect = rightCandidate;
+        }
+    }
+
+    private static void AddFamilyArrow(List<RectTransform> arrows, RectTransform arrow)
+    {
+        if (arrow == null || !IsFamilyArrowName(arrow.name) || arrows.Contains(arrow))
+            return;
+
+        arrows.Add(arrow);
+    }
+
+    private static bool IsFamilyArrowName(string objectName)
+    {
+        return objectName.StartsWith("Family Arrow");
     }
 
     private void ChangePage(int direction)

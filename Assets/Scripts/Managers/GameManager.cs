@@ -969,8 +969,9 @@ public class GameManager : MonoBehaviour
 
             if (sellPanelRightUiImage != null)
             {
-                sellPanelRightUiImage.sprite = LoadSellerRightUiSprite();
-                sellPanelRightUiImage.color = Color.white;
+                if (sellPanelRightUiImage.sprite == null)
+                    sellPanelRightUiImage.sprite = LoadSellerRightUiSprite();
+
                 sellPanelRightUiImage.preserveAspect = true;
                 sellPanelRightUiImage.raycastTarget = false;
             }
@@ -1016,6 +1017,45 @@ public class GameManager : MonoBehaviour
             binder.SetGameManager(this);
             binder.Refresh();
         }
+
+        EnsureSellPanelCraftButtonClickable();
+    }
+
+    private void EnsureSellPanelCraftButtonClickable()
+    {
+        if (sellPanel == null)
+            return;
+
+        Transform craftButtonTransform = FindDeepChild(sellPanel.transform, "CraftItemsButton");
+        if (craftButtonTransform == null)
+            return;
+
+        Button craftButton = craftButtonTransform.GetComponent<Button>();
+        if (craftButton == null)
+            return;
+
+        Canvas craftCanvas = craftButtonTransform.GetComponent<Canvas>();
+        if (craftCanvas == null)
+            craftCanvas = craftButtonTransform.gameObject.AddComponent<Canvas>();
+
+        craftCanvas.overrideSorting = true;
+
+        int minimumSortingOrder = 151;
+        Canvas rightPanelCanvas = sellPanelRightUiRect != null ? sellPanelRightUiRect.GetComponent<Canvas>() : null;
+        if (rightPanelCanvas != null && rightPanelCanvas.overrideSorting)
+            minimumSortingOrder = Mathf.Max(minimumSortingOrder, rightPanelCanvas.sortingOrder + 10);
+
+        if (craftCanvas.sortingOrder < minimumSortingOrder)
+            craftCanvas.sortingOrder = minimumSortingOrder;
+
+        if (craftButtonTransform.GetComponent<GraphicRaycaster>() == null)
+            craftButtonTransform.gameObject.AddComponent<GraphicRaycaster>();
+
+        Graphic targetGraphic = craftButton.targetGraphic;
+        if (targetGraphic != null)
+            targetGraphic.raycastTarget = true;
+
+        craftButton.interactable = true;
     }
 
 #if UNITY_EDITOR

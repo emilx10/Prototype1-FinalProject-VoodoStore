@@ -280,7 +280,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         }
 
         SetNamedChildActive(card.Find("ResultIcon"), "UnknownProduct", false);
-        ConfigureRecipeNameText(SetExistingText(card, "RecipeName", recipe.potionName));
+        SetExistingText(card, "RecipeName", recipe.potionName);
 
         Transform ingredientsRow = card.Find("IngredientsRow");
         if (ingredientsRow == null)
@@ -412,18 +412,6 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             : value.Trim().ToLowerInvariant();
     }
 
-    private static void ConfigureRecipeNameText(TMP_Text text)
-    {
-        if (text == null)
-            return;
-
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 10f;
-        text.fontSizeMax = Mathf.Max(text.fontSize, 20f);
-        text.overflowMode = TextOverflowModes.Ellipsis;
-        text.textWrappingMode = TextWrappingModes.Normal;
-    }
-
     private static TMP_Text SetExistingText(Transform parent, string objectName, string value)
     {
         TMP_Text text = parent != null ? parent.Find(objectName)?.GetComponent<TMP_Text>() : null;
@@ -462,16 +450,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         if (button == null)
             return;
 
-        Image image = button.targetGraphic as Image;
-        if (image == null)
-            image = button.GetComponent<Image>();
-
-        if (image == null)
-            return;
-
-        image.color = active
-            ? new Color(0.62f, 0.24f, 0.16f, 0.96f)
-            : new Color(0.24f, 0.09f, 0.07f, 0.82f);
+        // Tab selection changes panel visibility only. Button colors are owned by the scene layout.
     }
 
     private static void UpdateScrollHeight(RectTransform content, int visibleCount, float spacing)

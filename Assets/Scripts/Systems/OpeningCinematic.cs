@@ -8,7 +8,8 @@ using UnityEngine.UI;
 public sealed class OpeningCinematic : MonoBehaviour
 {
     private const string TargetSceneName = "PrototypeScene";
-    private const float IntroDuration = 13.8f;
+    private const float IntroHoldDuration = 8.2f;
+    private const float TransitionDuration = 4.2f;
 
     private static bool hasPlayedThisSession;
 
@@ -26,6 +27,8 @@ public sealed class OpeningCinematic : MonoBehaviour
     private CanvasGroup titleGroup;
     private RectTransform newspaperRect;
     private CanvasGroup newspaperGroup;
+    private RectTransform clickPromptRect;
+    private CanvasGroup clickPromptGroup;
     private bool skipRequested;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -75,46 +78,48 @@ public sealed class OpeningCinematic : MonoBehaviour
     {
         float elapsed = 0f;
 
-        while (elapsed < IntroDuration && !skipRequested)
+        while (elapsed < IntroHoldDuration && !skipRequested)
         {
             elapsed += Time.unscaledDeltaTime;
 
-            AnimateFade(elapsed);
+            AnimateIntroFade(elapsed);
             AnimateBars(elapsed);
             AnimateCemetery(elapsed);
             AnimateCamera(elapsed);
             AnimateNewspaper(elapsed);
             AnimateTitle(elapsed);
+            AnimateClickPrompt(elapsed, false);
 
+            yield return null;
+        }
+
+        while (!skipRequested && !Input.GetMouseButtonDown(0))
+        {
+            AnimateIntroFade(IntroHoldDuration);
+            AnimateBars(IntroHoldDuration);
+            AnimateCemetery(IntroHoldDuration);
+            AnimateCamera(IntroHoldDuration);
+            AnimateNewspaper(IntroHoldDuration);
+            AnimateTitle(IntroHoldDuration);
+            AnimateClickPrompt(IntroHoldDuration, true);
+
+            yield return null;
+        }
+
+        ClearSelectedUI();
+        float transitionElapsed = 0f;
+        while (transitionElapsed < TransitionDuration)
+        {
+            transitionElapsed += Time.unscaledDeltaTime;
+
+            AnimateTransition(transitionElapsed);
             yield return null;
         }
     }
 
-    private void AnimateFade(float elapsed)
+    private void AnimateIntroFade(float elapsed)
     {
-        float alpha;
-
-        if (elapsed < 1.15f)
-        {
-            alpha = 1f - Smooth01(elapsed / 1.15f);
-        }
-        else if (elapsed < 9.75f)
-        {
-            alpha = 0f;
-        }
-        else if (elapsed < 10.35f)
-        {
-            alpha = Smooth01((elapsed - 9.75f) / 0.6f);
-        }
-        else if (elapsed < 11.05f)
-        {
-            alpha = 1f - Smooth01((elapsed - 10.35f) / 0.7f);
-        }
-        else
-        {
-            alpha = 0f;
-        }
-
+        float alpha = elapsed < 1.15f ? 1f - Smooth01(elapsed / 1.15f) : 0f;
         SetImageAlpha(fadeImage, alpha);
     }
 
@@ -125,10 +130,6 @@ public sealed class OpeningCinematic : MonoBehaviour
         if (elapsed < 1.3f)
         {
             amount = Smooth01(elapsed / 1.3f);
-        }
-        else if (elapsed > 12.85f)
-        {
-            amount = 1f - Smooth01((elapsed - 12.85f) / 0.75f);
         }
         else
         {
@@ -153,21 +154,21 @@ public sealed class OpeningCinematic : MonoBehaviour
             return;
         }
 
-        Rect tombView = new Rect(0.075f, 0.035f, 0.62f, 0.62f);
-        Rect shopView = new Rect(0.37f, 0.39f, 0.58f, 0.58f);
+        Rect houseView = new Rect(0.62f, 0.47f, 0.29f, 0.29f);
+        Rect graveView = new Rect(0.075f, 0.035f, 0.62f, 0.62f);
 
-        if (elapsed < 6.65f)
+        if (elapsed < 1.2f)
         {
-            cemeteryImage.uvRect = tombView;
+            cemeteryImage.uvRect = houseView;
             cemeteryGroup.alpha = 1f;
             SetImageAlpha(cinematicBackdrop, 1f);
             return;
         }
 
-        float shopProgress = Smooth01(Mathf.InverseLerp(6.65f, 9.55f, elapsed));
-        cemeteryImage.uvRect = LerpRect(tombView, shopView, shopProgress);
-        cemeteryGroup.alpha = elapsed < 10.35f ? 1f : 0f;
-        SetImageAlpha(cinematicBackdrop, elapsed < 10.35f ? 1f : 0f);
+        float graveProgress = Smooth01(Mathf.InverseLerp(1.2f, 3.9f, elapsed));
+        cemeteryImage.uvRect = LerpRect(houseView, graveView, graveProgress);
+        cemeteryGroup.alpha = 1f;
+        SetImageAlpha(cinematicBackdrop, 1f);
     }
 
     private void AnimateNewspaper(float elapsed)
@@ -177,57 +178,89 @@ public sealed class OpeningCinematic : MonoBehaviour
             return;
         }
 
-        if (elapsed < 1.2f)
+        if (elapsed < 3.95f)
         {
             newspaperGroup.alpha = 0f;
             return;
         }
 
-        if (elapsed < 1.85f)
+        if (elapsed < 4.65f)
         {
-            float progress = Smooth01((elapsed - 1.2f) / 0.65f);
+            float progress = Smooth01((elapsed - 3.95f) / 0.7f);
             newspaperGroup.alpha = progress;
             newspaperRect.localScale = Vector3.one * Mathf.Lerp(0.76f, 1f, progress);
             newspaperRect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(-5f, -1f, progress));
             return;
         }
 
-        if (elapsed < 6.15f)
-        {
-            newspaperGroup.alpha = 1f;
-            newspaperRect.localScale = Vector3.one;
-            newspaperRect.localRotation = Quaternion.Euler(0f, 0f, -1f);
-            return;
-        }
-
-        float exitProgress = Smooth01((elapsed - 6.15f) / 0.5f);
-        newspaperGroup.alpha = 1f - exitProgress;
-        newspaperRect.localScale = Vector3.one * Mathf.Lerp(1f, 1.06f, exitProgress);
+        newspaperGroup.alpha = 1f;
+        newspaperRect.localScale = Vector3.one;
+        newspaperRect.localRotation = Quaternion.Euler(0f, 0f, -1f);
     }
 
     private void AnimateTitle(float elapsed)
     {
-        float alpha;
+        titleGroup.alpha = 0f;
+    }
 
-        if (elapsed < 11.15f)
-        {
-            alpha = 0f;
-        }
-        else if (elapsed < 11.8f)
-        {
-            alpha = Smooth01((elapsed - 11.15f) / 0.65f);
-        }
-        else if (elapsed < 12.75f)
-        {
-            alpha = 1f;
-        }
+    private void AnimateClickPrompt(float elapsed, bool waitingForClick)
+    {
+        if (clickPromptRect == null || clickPromptGroup == null)
+            return;
+
+        float introAlpha = elapsed < 6.4f ? 0f : Smooth01(Mathf.InverseLerp(6.4f, 7.1f, elapsed));
+        clickPromptGroup.alpha = waitingForClick ? 0.74f + Mathf.Sin(Time.unscaledTime * 4.5f) * 0.18f : introAlpha;
+        clickPromptRect.localScale = Vector3.one * (waitingForClick ? 1f + Mathf.Sin(Time.unscaledTime * 4.5f) * 0.035f : 1f);
+    }
+
+    private void AnimateTransition(float elapsed)
+    {
+        float fadeAlpha;
+        if (elapsed < 0.65f)
+            fadeAlpha = Smooth01(elapsed / 0.65f);
+        else if (elapsed < 1.25f)
+            fadeAlpha = 1f;
+        else if (elapsed < 2f)
+            fadeAlpha = 1f - Smooth01((elapsed - 1.25f) / 0.75f);
         else
-        {
-            alpha = 1f - Smooth01((elapsed - 12.75f) / 0.65f);
-        }
+            fadeAlpha = 0f;
 
-        titleGroup.alpha = alpha;
-        titleText.rectTransform.anchoredPosition = new Vector2(0f, Mathf.Lerp(-12f, 14f, alpha));
+        SetImageAlpha(fadeImage, fadeAlpha);
+
+        float hideIntro = Smooth01(Mathf.InverseLerp(0f, 0.55f, elapsed));
+        if (cemeteryGroup != null)
+            cemeteryGroup.alpha = 1f - hideIntro;
+        if (newspaperGroup != null)
+            newspaperGroup.alpha = 1f - hideIntro;
+        if (clickPromptGroup != null)
+            clickPromptGroup.alpha = 0f;
+        SetImageAlpha(cinematicBackdrop, 1f - hideIntro);
+
+        float barAmount = elapsed < 0.65f
+            ? 1f
+            : 1f - Smooth01(Mathf.InverseLerp(3.25f, 4f, elapsed));
+        float barHeight = Mathf.Lerp(0f, 72f, barAmount);
+        topBar.sizeDelta = new Vector2(0f, barHeight);
+        bottomBar.sizeDelta = new Vector2(0f, barHeight);
+
+        float titleAlpha;
+        if (elapsed < 1.2f)
+            titleAlpha = 0f;
+        else if (elapsed < 1.9f)
+            titleAlpha = Smooth01((elapsed - 1.2f) / 0.7f);
+        else if (elapsed < 3.2f)
+            titleAlpha = 1f;
+        else
+            titleAlpha = 1f - Smooth01((elapsed - 3.2f) / 0.65f);
+
+        titleGroup.alpha = titleAlpha;
+        titleText.rectTransform.anchoredPosition = new Vector2(0f, Mathf.Lerp(-12f, 14f, titleAlpha));
+
+        if (mainCamera != null)
+        {
+            mainCamera.transform.position = gameplayCameraPosition;
+            mainCamera.orthographicSize = gameplayCameraSize;
+        }
     }
 
     private void FinishCinematic()
@@ -271,6 +304,7 @@ public sealed class OpeningCinematic : MonoBehaviour
 
         CreateCemeteryImage(canvasObject.transform);
         CreateNewspaper(canvasObject.transform);
+        CreateClickPrompt(canvasObject.transform);
 
         fadeImage = CreateImage("Fade", canvasObject.transform, Color.black);
         StretchToParent(fadeImage.rectTransform);
@@ -305,7 +339,7 @@ public sealed class OpeningCinematic : MonoBehaviour
 
         RectTransform rect = cemeteryImage.rectTransform;
         StretchToParent(rect);
-        cemeteryImage.uvRect = new Rect(0.075f, 0.035f, 0.62f, 0.62f);
+        cemeteryImage.uvRect = new Rect(0.62f, 0.47f, 0.29f, 0.29f);
 
         cemeteryGroup = cemeteryObject.GetComponent<CanvasGroup>();
         cemeteryGroup.alpha = 1f;
@@ -328,7 +362,7 @@ public sealed class OpeningCinematic : MonoBehaviour
         titleGroup.blocksRaycasts = false;
 
         titleText = titleObject.AddComponent<TextMeshProUGUI>();
-        titleText.text = "VOODOO STORE";
+        titleText.text = "VOODO STORE";
         titleText.alignment = TextAlignmentOptions.Center;
         titleText.fontSize = 96f;
         titleText.fontStyle = FontStyles.SmallCaps;
@@ -481,6 +515,101 @@ public sealed class OpeningCinematic : MonoBehaviour
         label.fontSize = 25f;
         label.color = new Color(0.96f, 0.88f, 0.68f, 1f);
         label.raycastTarget = false;
+    }
+
+    private void CreateClickPrompt(Transform parent)
+    {
+        GameObject promptObject = new GameObject("Left Click Prompt", typeof(RectTransform), typeof(CanvasGroup));
+        promptObject.transform.SetParent(parent, false);
+
+        clickPromptRect = promptObject.GetComponent<RectTransform>();
+        clickPromptRect.anchorMin = new Vector2(0.5f, 0f);
+        clickPromptRect.anchorMax = new Vector2(0.5f, 0f);
+        clickPromptRect.pivot = new Vector2(0.5f, 0f);
+        clickPromptRect.anchoredPosition = new Vector2(0f, 115f);
+        clickPromptRect.sizeDelta = new Vector2(240f, 120f);
+
+        clickPromptGroup = promptObject.GetComponent<CanvasGroup>();
+        clickPromptGroup.alpha = 0f;
+        clickPromptGroup.blocksRaycasts = false;
+
+        GameObject mouseObject = new GameObject("Mouse Left Click Icon", typeof(RectTransform));
+        mouseObject.transform.SetParent(promptObject.transform, false);
+        Image mouseImage = mouseObject.AddComponent<Image>();
+        mouseImage.sprite = CreateMouseClickSprite();
+        mouseImage.preserveAspect = true;
+        mouseImage.raycastTarget = false;
+
+        RectTransform mouseRect = mouseImage.rectTransform;
+        mouseRect.anchorMin = new Vector2(0.5f, 0.5f);
+        mouseRect.anchorMax = new Vector2(0.5f, 0.5f);
+        mouseRect.pivot = new Vector2(0.5f, 0.5f);
+        mouseRect.anchoredPosition = new Vector2(-48f, 0f);
+        mouseRect.sizeDelta = new Vector2(70f, 96f);
+
+        TextMeshProUGUI label = CreatePromptText(promptObject.transform);
+        RectTransform labelRect = label.rectTransform;
+        labelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        labelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        labelRect.pivot = new Vector2(0.5f, 0.5f);
+        labelRect.anchoredPosition = new Vector2(70f, 0f);
+        labelRect.sizeDelta = new Vector2(180f, 62f);
+    }
+
+    private static TextMeshProUGUI CreatePromptText(Transform parent)
+    {
+        GameObject labelObject = new GameObject("Prompt Text", typeof(RectTransform));
+        labelObject.transform.SetParent(parent, false);
+
+        TextMeshProUGUI label = labelObject.AddComponent<TextMeshProUGUI>();
+        label.text = "LEFT CLICK";
+        label.alignment = TextAlignmentOptions.Left;
+        label.fontSize = 28f;
+        label.fontStyle = FontStyles.Bold;
+        label.color = new Color(0.96f, 0.88f, 0.68f, 1f);
+        label.outlineWidth = 0.12f;
+        label.outlineColor = new Color32(20, 8, 24, 230);
+        label.raycastTarget = false;
+        return label;
+    }
+
+    private static Sprite CreateMouseClickSprite()
+    {
+        const int width = 72;
+        const int height = 96;
+        Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        texture.name = "Generated Mouse Left Click Icon";
+
+        Color clear = Color.clear;
+        Color outline = new Color(0.96f, 0.88f, 0.68f, 1f);
+        Color fill = new Color(0.08f, 0.04f, 0.1f, 0.88f);
+        Color leftButton = new Color(0.86f, 0.25f, 0.2f, 1f);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float nx = (x + 0.5f - width * 0.5f) / (width * 0.5f);
+                float ny = (y + 0.5f - height * 0.47f) / (height * 0.5f);
+                float body = nx * nx * 1.25f + ny * ny;
+                bool inside = body <= 0.78f && y > 6 && y < height - 4;
+                bool edge = body > 0.66f && body <= 0.78f && y > 6 && y < height - 4;
+                bool topSplit = y > height * 0.55f && y < height * 0.88f && Mathf.Abs(x - width * 0.5f) < 1.5f;
+                bool leftClickArea = inside && x < width * 0.5f && y > height * 0.56f;
+                bool wheel = Mathf.Abs(x - width * 0.5f) < 3.5f && y > height * 0.48f && y < height * 0.62f;
+
+                Color pixel = clear;
+                if (inside)
+                    pixel = leftClickArea ? leftButton : fill;
+                if (edge || topSplit || wheel)
+                    pixel = outline;
+
+                texture.SetPixel(x, y, pixel);
+            }
+        }
+
+        texture.Apply();
+        return Sprite.Create(texture, new Rect(0f, 0f, width, height), new Vector2(0.5f, 0.5f), 100f);
     }
 
     private static RectTransform CreateBar(string name, Transform parent, bool top)
