@@ -90,6 +90,7 @@ public class GameManager : MonoBehaviour
     private const float ItemPurchaseVolume = 0.3f;
     private const float MysteriousVolumeMultiplier = 0.4f;
     private const float BookOpenVolume = 0.5f;
+    private const string UltimatePotionRecipeName = "ultimate potion";
 
     private HashSet<string> discoveredRecipes = new HashSet<string>();
     private HashSet<string> discoveredRecipeIngredientSlots = new HashSet<string>();
@@ -191,6 +192,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Color knownRecipeHerbColor = new Color(0.12f, 0.72f, 0.32f, 1f);
     [SerializeField] private Color knownRecipeGemColor = new Color(0.35f, 0.16f, 0.82f, 1f);
     [SerializeField] private Color knownRecipeUnknownProductColor = new Color(0.62f, 0.62f, 0.62f, 1f);
+    [Header("Ultimate Potion Recipe Highlight")]
+    [SerializeField] private Color ultimatePotionGlowColor = new Color(1f, 0.05f, 0.02f, 0.95f);
+    [SerializeField, Range(0f, 8f)] private float ultimatePotionGlowIntensity = 2.5f;
+    [SerializeField, Range(0f, 24f)] private float ultimatePotionGlowSpread = 7f;
 
     public static UnityAction<Sprite> OnItemBought;
     public static UnityAction OnSuccessfulMerge;
@@ -444,6 +449,9 @@ public class GameManager : MonoBehaviour
                 recipeBackground = obj.AddComponent<Image>();
             recipeBackground.color = new Color(0.12f, 0.08f, 0.04f, 0.16f);
             recipeBackground.raycastTarget = false;
+            Outline recipeBackgroundOutline = recipeBackground.GetComponent<Outline>();
+            if (recipeBackgroundOutline != null)
+                recipeBackgroundOutline.enabled = false;
 
             bool recipeDiscovered = discoveredRecipes.Contains(NormalizeName(recipe.potionName));
             Transform resultIconTransform = obj.transform.Find("ResultIcon");
@@ -455,6 +463,7 @@ public class GameManager : MonoBehaviour
                 resultIcon.enabled = true;
                 resultIcon.preserveAspect = recipeDiscovered;
                 resultIcon.raycastTarget = false;
+                ApplyUltimatePotionGlow(resultIcon, recipeDiscovered ? recipe : null);
 
                 RectTransform iconRect = resultIconTransform.GetComponent<RectTransform>();
                 iconRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -520,6 +529,23 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    private void ApplyUltimatePotionGlow(Graphic targetGraphic, Recipe recipe)
+    {
+        if (targetGraphic == null)
+            return;
+
+        Outline glow = targetGraphic.GetComponent<Outline>();
+        if (glow != null)
+            glow.enabled = false;
+
+        UltimatePotionAuraUtility.Apply(
+            targetGraphic as Image,
+            ShouldHighlightUltimatePotionRecipe(recipe),
+            GetUltimatePotionGlowColor(),
+            GetUltimatePotionGlowIntensity(),
+            GetUltimatePotionGlowSpread());
     }
 
     private void CreateKnownRecipeText(
@@ -620,6 +646,18 @@ public class GameManager : MonoBehaviour
             }
         }
 
+        if (recipes != null)
+        {
+            foreach (Recipe recipe in recipes)
+            {
+                if (recipe == null || NormalizeName(recipe.potionName) != normalizedIngredient)
+                    continue;
+
+                if (recipe.category == ItemCategory.Potion)
+                    return new Color(0.8f, 0.12f, 0.12f, 1f);
+            }
+        }
+
         return Color.gray;
     }
 
@@ -687,6 +725,28 @@ public class GameManager : MonoBehaviour
     public bool IsRecipeDiscovered(Recipe recipe)
     {
         return recipe != null && discoveredRecipes.Contains(NormalizeName(recipe.potionName));
+    }
+
+    public bool ShouldHighlightUltimatePotionRecipe(Recipe recipe)
+    {
+        return recipe != null && NormalizeName(recipe.potionName) == UltimatePotionRecipeName;
+    }
+
+    public Color GetUltimatePotionGlowColor()
+    {
+        Color glowColor = ultimatePotionGlowColor;
+        glowColor.a = Mathf.Clamp01(glowColor.a);
+        return glowColor;
+    }
+
+    public float GetUltimatePotionGlowIntensity()
+    {
+        return ultimatePotionGlowIntensity;
+    }
+
+    public float GetUltimatePotionGlowSpread()
+    {
+        return ultimatePotionGlowSpread;
     }
 
     public bool IsRecipeIngredientSlotDiscovered(Recipe recipe, int ingredientIndex)
@@ -1228,8 +1288,7 @@ public class GameManager : MonoBehaviour
 
         foreach (InventoryItem item in inventory)
         {
-            if (item.count <= 0) continue;
-            if (IsRecipeItem(item.itemName)) continue;
+            if (!CanUseAsCraftingIngredient(item)) continue;
 
             GameObject btn = Instantiate(buttonPrefab, craftingItemsParent);
 
@@ -1249,6 +1308,38 @@ public class GameManager : MonoBehaviour
 
             btn.GetComponent<Button>().onClick.AddListener(() => SelectCraftingItem(item));
         }
+    }
+
+    private bool CanUseAsCraftingIngredient(InventoryItem item)
+    {
+        if (item == null || item.count <= 0)
+            return false;
+
+        if (!IsRecipeItem(item.itemName))
+            return true;
+
+        return IsIngredientInAnyRecipe(item.itemName);
+    }
+
+    private bool IsIngredientInAnyRecipe(string itemName)
+    {
+        string cleanedItemName = NormalizeName(itemName);
+        if (recipes == null)
+            return false;
+
+        foreach (Recipe recipe in recipes)
+        {
+            if (recipe == null || recipe.ingredients == null)
+                continue;
+
+            for (int i = 0; i < recipe.ingredients.Count; i++)
+            {
+                if (NormalizeName(recipe.ingredients[i]) == cleanedItemName)
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     bool IsRecipeItem(string itemName)

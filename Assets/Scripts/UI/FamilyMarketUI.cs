@@ -656,7 +656,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         SetPanelText(
             generated,
             "Objective Title Text",
-            $"Craft a {objective.potionDisplayName} Potion",
+            $"Ritual Order: {objective.potionDisplayName} Potion",
             new Vector2(0f, y),
             new Vector2(640f, 70f),
             32f,
@@ -666,7 +666,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         SetPanelText(
             generated,
             "Ingredients Header Text",
-            "Ingredients",
+            "Required Relics",
             new Vector2(-245f, y),
             new Vector2(260f, 44f),
             24f,
@@ -683,7 +683,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             SetPanelText(
                 generated,
                 $"Ingredient Row {i + 1}",
-                $"- {ingredientText}",
+                $"> {ingredientText}",
                 new Vector2(-210f, y),
                 new Vector2(520f, 38f),
                 21f,
@@ -695,7 +695,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         SetPanelText(
             generated,
             "Tasks Header Text",
-            "Tasks",
+            "Preparations",
             new Vector2(-245f, y),
             new Vector2(260f, 44f),
             24f,
@@ -708,7 +708,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             string progress = mission.type == MissionType.BuyItems
                 ? (mission.completed ? " 1/1" : " 0/1")
                 : string.Empty;
-            string status = mission.completed ? "[x] " : "- ";
+            string status = mission.completed ? "[done] " : "[ ] ";
 
             TMP_Text missionText = SetPanelText(
                 generated,
@@ -1256,6 +1256,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
     private void RefreshKnownRecipeCard(Transform card, Recipe recipe)
     {
         bool recipeDiscovered = gameManager != null && gameManager.IsRecipeDiscovered(recipe);
+        DisableOldGlow(card.GetComponent<Image>());
 
         Image resultIcon = card.Find("ResultIcon")?.GetComponent<Image>();
         if (resultIcon != null)
@@ -1264,6 +1265,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             resultIcon.color = recipeDiscovered ? Color.white : new Color(0.62f, 0.62f, 0.62f, 1f);
             resultIcon.enabled = recipe.icon != null;
             resultIcon.preserveAspect = true;
+            ApplyUltimatePotionGlow(resultIcon, recipe.icon != null ? recipe : null);
         }
 
         SetNamedChildActive(card.Find("ResultIcon"), "UnknownProduct", false);
@@ -1305,6 +1307,33 @@ public sealed class FamilyMarketUI : MonoBehaviour
         }
     }
 
+    private void ApplyUltimatePotionGlow(Graphic targetGraphic, Recipe recipe)
+    {
+        if (targetGraphic == null)
+            return;
+
+        Outline glow = targetGraphic.GetComponent<Outline>();
+        if (glow != null)
+            glow.enabled = false;
+
+        UltimatePotionAuraUtility.Apply(
+            targetGraphic as Image,
+            gameManager != null && gameManager.ShouldHighlightUltimatePotionRecipe(recipe),
+            gameManager != null ? gameManager.GetUltimatePotionGlowColor() : Color.red,
+            gameManager != null ? gameManager.GetUltimatePotionGlowIntensity() : 2.5f,
+            gameManager != null ? gameManager.GetUltimatePotionGlowSpread() : 7f);
+    }
+
+    private static void DisableOldGlow(Graphic targetGraphic)
+    {
+        if (targetGraphic == null)
+            return;
+
+        Outline glow = targetGraphic.GetComponent<Outline>();
+        if (glow != null)
+            glow.enabled = false;
+    }
+
     private Sprite GetKnownRecipeIngredientFrameSprite(string ingredientName)
     {
         if (!TryGetKnownRecipeIngredientCategory(ingredientName, out ItemCategory category))
@@ -1318,6 +1347,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
                 return LoadSprite("seller");
             case ItemCategory.Gems:
                 return LoadSprite("Crystal Frame");
+            case ItemCategory.Potion:
+                return LoadSprite("MaterialSlot");
             default:
                 return null;
         }
@@ -1335,6 +1366,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
                     return new Color(0.12f, 0.72f, 0.32f, 1f);
                 case ItemCategory.Gems:
                     return new Color(0.35f, 0.16f, 0.82f, 1f);
+                case ItemCategory.Potion:
+                    return new Color(0.8f, 0.12f, 0.12f, 1f);
             }
         }
 
@@ -1361,6 +1394,18 @@ public sealed class FamilyMarketUI : MonoBehaviour
                     category = item.category;
                     return true;
                 }
+            }
+        }
+
+        if (gameManager != null && gameManager.recipes != null)
+        {
+            foreach (Recipe recipe in gameManager.recipes)
+            {
+                if (recipe == null || NormalizeLocalName(recipe.potionName) != normalizedIngredient)
+                    continue;
+
+                category = recipe.category;
+                return true;
             }
         }
 
@@ -1441,6 +1486,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             text.fontStyle = FontStyles.Bold;
         }
 
+        AtmosphericObjectiveTextStyler.Apply(text, objectName);
         return text;
     }
 
@@ -2062,4 +2108,194 @@ public sealed class FamilyMarketUI : MonoBehaviour
         rect.anchorMax = new Vector2(0.5f, 1f);
         rect.pivot = new Vector2(0.5f, 0.5f);
     }
+}
+
+public static class UltimatePotionAuraUtility
+{
+    private const string AuraObjectName = "Ultimate Potion Shader Aura";
+    private const string ShaderName = "VoodooStore/UI Alpha Aura Glow";
+    private static readonly int GlowColorId = Shader.PropertyToID("_GlowColor");
+    private static readonly int GlowIntensityId = Shader.PropertyToID("_GlowIntensity");
+    private static readonly int GlowSpreadId = Shader.PropertyToID("_GlowSpread");
+
+    public static void Apply(Image sourceImage, bool shouldGlow, Color glowColor, float intensity, float spread)
+    {
+        if (sourceImage == null)
+            return;
+
+        Outline oldOutline = sourceImage.GetComponent<Outline>();
+        if (oldOutline != null)
+            oldOutline.enabled = false;
+
+        Image auraImage = GetOrCreateAuraImage(sourceImage);
+        if (auraImage == null)
+            return;
+
+        if (!shouldGlow || sourceImage.sprite == null)
+        {
+            auraImage.gameObject.SetActive(false);
+            return;
+        }
+
+        auraImage.gameObject.SetActive(true);
+        auraImage.sprite = sourceImage.sprite;
+        auraImage.preserveAspect = sourceImage.preserveAspect;
+        auraImage.raycastTarget = false;
+        auraImage.color = Color.white;
+
+        RectTransform sourceRect = sourceImage.rectTransform;
+        RectTransform auraRect = auraImage.rectTransform;
+        auraRect.anchorMin = new Vector2(0.5f, 0.5f);
+        auraRect.anchorMax = new Vector2(0.5f, 0.5f);
+        auraRect.pivot = new Vector2(0.5f, 0.5f);
+        auraRect.anchoredPosition = Vector2.zero;
+        auraRect.localRotation = Quaternion.identity;
+        auraRect.localScale = Vector3.one;
+        auraRect.sizeDelta = sourceRect.rect.size + Vector2.one * Mathf.Max(0f, spread * 4f);
+        auraRect.SetAsFirstSibling();
+
+        Material material = GetOrCreateAuraMaterial(auraImage);
+        if (material == null)
+            return;
+
+        material.SetColor(GlowColorId, glowColor);
+        material.SetFloat(GlowIntensityId, Mathf.Max(0f, intensity));
+        material.SetFloat(GlowSpreadId, Mathf.Max(0f, spread));
+    }
+
+    private static Image GetOrCreateAuraImage(Image sourceImage)
+    {
+        Transform existing = sourceImage.transform.Find(AuraObjectName);
+        if (existing != null)
+            return existing.GetComponent<Image>();
+
+        GameObject auraObject = new GameObject(AuraObjectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        auraObject.transform.SetParent(sourceImage.transform, false);
+        return auraObject.GetComponent<Image>();
+    }
+
+    private static Material GetOrCreateAuraMaterial(Image auraImage)
+    {
+        Shader shader = Shader.Find(ShaderName);
+        if (shader == null)
+            return null;
+
+        if (auraImage.material != null && auraImage.material.shader == shader)
+            return auraImage.material;
+
+        Material material = new Material(shader)
+        {
+            name = "Generated Ultimate Potion Aura Material",
+            hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild
+        };
+        auraImage.material = material;
+        return material;
+    }
+}
+
+public static class AtmosphericObjectiveTextStyler
+{
+    private const int StyleVersion = 1;
+
+    public static void Apply(TMP_Text text, string objectName)
+    {
+        if (text == null || string.IsNullOrWhiteSpace(objectName))
+            return;
+
+        ObjectiveTextStyleMarker marker = text.GetComponent<ObjectiveTextStyleMarker>();
+        if (marker != null && marker.version >= StyleVersion)
+            return;
+
+        if (marker == null)
+            marker = text.gameObject.AddComponent<ObjectiveTextStyleMarker>();
+
+        marker.version = StyleVersion;
+        text.textWrappingMode = TextWrappingModes.Normal;
+        text.raycastTarget = false;
+
+        if (objectName.Contains("Title"))
+            ApplyTitleStyle(text);
+        else if (objectName.Contains("Header"))
+            ApplyHeaderStyle(text);
+        else if (objectName.Contains("Ingredient"))
+            ApplyIngredientStyle(text);
+        else if (objectName.Contains("Mission"))
+            ApplyMissionStyle(text);
+        else if (objectName.Contains("Empty"))
+            ApplyEmptyStyle(text);
+    }
+
+    private static void ApplyTitleStyle(TMP_Text text)
+    {
+        text.fontSize = 29f;
+        text.fontStyle = FontStyles.Bold | FontStyles.SmallCaps;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = new Color(0.98f, 0.78f, 0.42f, 1f);
+        AddShadow(text, new Color(0.08f, 0.01f, 0.01f, 0.85f), new Vector2(2f, -3f));
+        AddOutline(text, new Color(0.18f, 0.02f, 0.02f, 0.88f), new Vector2(1.4f, -1.4f));
+    }
+
+    private static void ApplyHeaderStyle(TMP_Text text)
+    {
+        text.fontSize = 23f;
+        text.fontStyle = FontStyles.Bold | FontStyles.SmallCaps;
+        text.alignment = TextAlignmentOptions.Left;
+        text.color = new Color(0.86f, 0.26f, 0.16f, 1f);
+        AddShadow(text, new Color(0.05f, 0f, 0f, 0.72f), new Vector2(1.5f, -2f));
+        AddOutline(text, new Color(0.95f, 0.62f, 0.25f, 0.35f), new Vector2(0.8f, -0.8f));
+    }
+
+    private static void ApplyIngredientStyle(TMP_Text text)
+    {
+        text.fontSize = 20f;
+        text.fontStyle = FontStyles.Bold;
+        text.alignment = TextAlignmentOptions.Left;
+        text.color = new Color(0.95f, 0.84f, 0.62f, 1f);
+        AddShadow(text, new Color(0.08f, 0.01f, 0.01f, 0.76f), new Vector2(1f, -1.5f));
+    }
+
+    private static void ApplyMissionStyle(TMP_Text text)
+    {
+        text.fontSize = 19f;
+        text.fontStyle = FontStyles.Bold;
+        text.alignment = TextAlignmentOptions.Left;
+        text.color = new Color(0.82f, 0.76f, 0.66f, 1f);
+        AddShadow(text, new Color(0.04f, 0f, 0f, 0.75f), new Vector2(1f, -1.5f));
+    }
+
+    private static void ApplyEmptyStyle(TMP_Text text)
+    {
+        text.fontSize = 29f;
+        text.fontStyle = FontStyles.Bold;
+        text.alignment = TextAlignmentOptions.Center;
+        text.color = new Color(0.9f, 0.75f, 0.5f, 1f);
+        AddShadow(text, new Color(0.08f, 0.01f, 0.01f, 0.72f), new Vector2(2f, -2f));
+    }
+
+    private static void AddShadow(TMP_Text text, Color color, Vector2 distance)
+    {
+        Shadow shadow = text.GetComponent<Shadow>();
+        if (shadow == null)
+            shadow = text.gameObject.AddComponent<Shadow>();
+
+        shadow.effectColor = color;
+        shadow.effectDistance = distance;
+        shadow.useGraphicAlpha = true;
+    }
+
+    private static void AddOutline(TMP_Text text, Color color, Vector2 distance)
+    {
+        Outline outline = text.GetComponent<Outline>();
+        if (outline == null)
+            outline = text.gameObject.AddComponent<Outline>();
+
+        outline.effectColor = color;
+        outline.effectDistance = distance;
+        outline.useGraphicAlpha = true;
+    }
+}
+
+public sealed class ObjectiveTextStyleMarker : MonoBehaviour
+{
+    public int version;
 }

@@ -165,25 +165,25 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             objectiveManager.UpdateTasksFromInventory(gameManager.GetInventoryItems());
 
         Objective objective = objectiveManager.objectives[0];
-        SetExistingText(generated, "Objective Title Text", $"Craft a {objective.potionDisplayName} Potion");
-        SetExistingText(generated, "Ingredients Header Text", "Ingredients");
+        SetExistingText(generated, "Objective Title Text", $"Ritual Order: {objective.potionDisplayName} Potion");
+        SetExistingText(generated, "Ingredients Header Text", "Required Relics");
 
         for (int i = 0; i < objective.ingredients.Count; i++)
         {
             bool discovered = objective.discovered != null &&
                 i < objective.discovered.Count &&
                 objective.discovered[i];
-            SetExistingText(generated, $"Ingredient Row {i + 1}", "- " + (discovered ? objective.ingredients[i] : "???"));
+            SetExistingText(generated, $"Ingredient Row {i + 1}", "> " + (discovered ? objective.ingredients[i] : "???"));
         }
 
-        SetExistingText(generated, "Tasks Header Text", "Tasks");
+        SetExistingText(generated, "Tasks Header Text", "Preparations");
         for (int i = 0; i < objective.missions.Count; i++)
         {
             Mission mission = objective.missions[i];
             string progress = mission.type == MissionType.BuyItems
                 ? (mission.completed ? " 1/1" : " 0/1")
                 : string.Empty;
-            string status = mission.completed ? "[x] " : "- ";
+            string status = mission.completed ? "[done] " : "[ ] ";
             TMP_Text missionText = SetExistingText(generated, $"Mission Row {i + 1}", $"{status}{mission.missionText}{progress}");
             if (missionText != null)
                 missionText.alpha = mission.completed ? 0.62f : 1f;
@@ -270,6 +270,8 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
     private void RefreshRecipeCard(Transform card, Recipe recipe)
     {
         bool recipeDiscovered = gameManager != null && gameManager.IsRecipeDiscovered(recipe);
+        DisableOldGlow(card.GetComponent<Image>());
+
         Image resultIcon = card.Find("ResultIcon")?.GetComponent<Image>();
         if (resultIcon != null)
         {
@@ -277,6 +279,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             resultIcon.color = recipeDiscovered ? Color.white : new Color(0.62f, 0.62f, 0.62f, 1f);
             resultIcon.enabled = recipe.icon != null;
             resultIcon.preserveAspect = true;
+            ApplyUltimatePotionGlow(resultIcon, recipe.icon != null ? recipe : null);
         }
 
         SetNamedChildActive(card.Find("ResultIcon"), "UnknownProduct", false);
@@ -313,6 +316,33 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         }
     }
 
+    private void ApplyUltimatePotionGlow(Graphic targetGraphic, Recipe recipe)
+    {
+        if (targetGraphic == null)
+            return;
+
+        Outline glow = targetGraphic.GetComponent<Outline>();
+        if (glow != null)
+            glow.enabled = false;
+
+        UltimatePotionAuraUtility.Apply(
+            targetGraphic as Image,
+            gameManager != null && gameManager.ShouldHighlightUltimatePotionRecipe(recipe),
+            gameManager != null ? gameManager.GetUltimatePotionGlowColor() : Color.red,
+            gameManager != null ? gameManager.GetUltimatePotionGlowIntensity() : 2.5f,
+            gameManager != null ? gameManager.GetUltimatePotionGlowSpread() : 7f);
+    }
+
+    private static void DisableOldGlow(Graphic targetGraphic)
+    {
+        if (targetGraphic == null)
+            return;
+
+        Outline glow = targetGraphic.GetComponent<Outline>();
+        if (glow != null)
+            glow.enabled = false;
+    }
+
     private Sprite GetKnownRecipeIngredientFrameSprite(string ingredientName)
     {
         if (!TryGetKnownRecipeIngredientCategory(ingredientName, out ItemCategory category))
@@ -326,6 +356,8 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
                 return LoadFamilyMarketSprite("seller");
             case ItemCategory.Gems:
                 return LoadFamilyMarketSprite("Crystal Frame");
+            case ItemCategory.Potion:
+                return LoadFamilyMarketSprite("MaterialSlot");
             default:
                 return null;
         }
@@ -343,6 +375,8 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
                     return new Color(0.12f, 0.72f, 0.32f, 1f);
                 case ItemCategory.Gems:
                     return new Color(0.35f, 0.16f, 0.82f, 1f);
+                case ItemCategory.Potion:
+                    return new Color(0.8f, 0.12f, 0.12f, 1f);
             }
         }
 
@@ -371,6 +405,21 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
                     category = item.category;
                     return true;
                 }
+            }
+        }
+
+        if (gameManager != null && gameManager.recipes != null)
+        {
+            string normalizedIngredientName = NormalizeLocalName(ingredientName);
+
+            for (int i = 0; i < gameManager.recipes.Count; i++)
+            {
+                Recipe recipe = gameManager.recipes[i];
+                if (recipe == null || NormalizeLocalName(recipe.potionName) != normalizedIngredientName)
+                    continue;
+
+                category = recipe.category;
+                return true;
             }
         }
 
@@ -420,6 +469,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
 
         text.text = value;
         text.gameObject.SetActive(true);
+        AtmosphericObjectiveTextStyler.Apply(text, objectName);
         return text;
     }
 

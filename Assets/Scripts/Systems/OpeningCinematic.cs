@@ -315,7 +315,6 @@ public sealed class OpeningCinematic : MonoBehaviour
         bottomBar = CreateBar("Bottom Cinematic Bar", canvasObject.transform, false);
 
         CreateTitle(canvasObject.transform);
-        CreateSkipButton(canvasObject.transform);
     }
 
     private void CreateCemeteryImage(Transform parent)
@@ -387,8 +386,8 @@ public sealed class OpeningCinematic : MonoBehaviour
         newspaperRect.anchorMin = new Vector2(0.5f, 0.5f);
         newspaperRect.anchorMax = new Vector2(0.5f, 0.5f);
         newspaperRect.pivot = new Vector2(0.5f, 0.5f);
-        newspaperRect.anchoredPosition = new Vector2(500f, -20f);
-        newspaperRect.sizeDelta = new Vector2(700f, 780f);
+        newspaperRect.anchoredPosition = new Vector2(565f, -18f);
+        newspaperRect.sizeDelta = new Vector2(660f, 770f);
         newspaperRect.localScale = Vector3.one * 0.76f;
         newspaperRect.localRotation = Quaternion.Euler(0f, 0f, -5f);
 
@@ -397,7 +396,9 @@ public sealed class OpeningCinematic : MonoBehaviour
         newspaperGroup.blocksRaycasts = false;
 
         Image paper = newspaperObject.AddComponent<Image>();
-        paper.color = new Color32(222, 204, 164, 255);
+        paper.sprite = CreateNewspaperPaperSprite(660, 770);
+        paper.type = Image.Type.Simple;
+        paper.color = Color.white;
         paper.raycastTarget = false;
 
         Shadow shadow = newspaperObject.AddComponent<Shadow>();
@@ -408,50 +409,111 @@ public sealed class OpeningCinematic : MonoBehaviour
             "Masthead",
             newspaperObject.transform,
             "THE VOODOO GAZETTE",
-            50f,
+            46f,
             FontStyles.Bold,
             TextAlignmentOptions.Center);
-        SetNewspaperRect(masthead.rectTransform, new Vector2(0f, 348f), new Vector2(680f, 74f));
+        SetNewspaperRect(masthead.rectTransform, new Vector2(0f, 330f), new Vector2(570f, 58f));
 
         Image topRule = CreateImage("Top Rule", newspaperObject.transform, new Color32(55, 43, 32, 255));
-        SetNewspaperRect(topRule.rectTransform, new Vector2(0f, 302f), new Vector2(650f, 5f));
+        SetNewspaperRect(topRule.rectTransform, new Vector2(0f, 288f), new Vector2(550f, 4f));
+
+        TextMeshProUGUI issueLine = CreateNewspaperText(
+            "Issue Line",
+            newspaperObject.transform,
+            "No. 47                         New Bordeaux, April 17, 1927                         Price: 5 Cents",
+            15f,
+            FontStyles.Normal,
+            TextAlignmentOptions.Center);
+        SetNewspaperRect(issueLine.rectTransform, new Vector2(0f, 268f), new Vector2(550f, 28f));
+
+        Image issueRule = CreateImage("Issue Rule", newspaperObject.transform, new Color32(55, 43, 32, 255));
+        SetNewspaperRect(issueRule.rectTransform, new Vector2(0f, 248f), new Vector2(550f, 3f));
 
         TextMeshProUGUI headline = CreateNewspaperText(
             "Headline",
             newspaperObject.transform,
-            "NECROULTIMATE",
-            56f,
+            "CAN IT\nACTUALLY REVIVE?",
+            62f,
             FontStyles.Bold,
-            TextAlignmentOptions.Center);
-        SetNewspaperRect(headline.rectTransform, new Vector2(0f, 246f), new Vector2(680f, 86f));
+            TextAlignmentOptions.Left);
+        headline.enableAutoSizing = true;
+        headline.fontSizeMin = 44f;
+        headline.fontSizeMax = 62f;
+        headline.lineSpacing = -18f;
+        SetNewspaperRect(headline.rectTransform, new Vector2(-4f, 174f), new Vector2(540f, 128f));
 
-        Texture2D potionTexture = Resources.Load<Texture2D>("Cinematics/NecroUltimatePotion");
+        Image columnRule = CreateImage("Headline Underline", newspaperObject.transform, new Color32(55, 43, 32, 255));
+        SetNewspaperRect(columnRule.rectTransform, new Vector2(-154f, 86f), new Vector2(256f, 4f));
+
+        TextMeshProUGUI subHeadline = CreateNewspaperText(
+            "Sub Headline",
+            newspaperObject.transform,
+            "A FORBIDDEN POTION\nSPARKS CONTROVERSY",
+            24f,
+            FontStyles.Bold,
+            TextAlignmentOptions.Left);
+        subHeadline.lineSpacing = -6f;
+        SetNewspaperRect(subHeadline.rectTransform, new Vector2(-170f, 34f), new Vector2(300f, 74f));
+
+        TextMeshProUGUI storyLeft = CreateNewspaperText(
+            "Story Left",
+            newspaperObject.transform,
+            "Whispers among alchemists and occultists speak of a potion unlike any other - said to defy death itself.\n\nThe formula remains a secret, guarded by those who claim it holds the power to return a soul to the living world.",
+            18f,
+            FontStyles.Normal,
+            TextAlignmentOptions.Left);
+        storyLeft.enableAutoSizing = true;
+        storyLeft.fontSizeMin = 14f;
+        storyLeft.fontSizeMax = 18f;
+        storyLeft.lineSpacing = 2f;
+        SetNewspaperRect(storyLeft.rectTransform, new Vector2(-172f, -100f), new Vector2(300f, 188f));
+
+        Texture2D potionTexture = Resources.Load<Texture2D>("Cinematics/Poison");
         if (potionTexture != null)
         {
+            Image photoFrame = CreateImage("Potion Photo Frame", newspaperObject.transform, new Color32(65, 50, 35, 255));
+            SetNewspaperRect(photoFrame.rectTransform, new Vector2(173f, -30f), new Vector2(235f, 280f));
+
+            Image photoPaper = CreateImage("Potion Photo Paper", newspaperObject.transform, new Color32(188, 165, 124, 255));
+            SetNewspaperRect(photoPaper.rectTransform, new Vector2(173f, -30f), new Vector2(223f, 268f));
+
             GameObject potionObject = new GameObject("Potion Illustration", typeof(RectTransform));
             potionObject.transform.SetParent(newspaperObject.transform, false);
             RawImage potionImage = potionObject.AddComponent<RawImage>();
             potionImage.texture = potionTexture;
             potionImage.color = Color.white;
             potionImage.raycastTarget = false;
-            SetNewspaperRect(potionImage.rectTransform, new Vector2(0f, 5f), new Vector2(390f, 430f));
+            potionImage.uvRect = new Rect(0.02f, 0.13f, 0.96f, 0.74f);
+            SetNewspaperRect(potionImage.rectTransform, new Vector2(173f, -30f), new Vector2(205f, 210f));
         }
 
-        Image bottomRule = CreateImage("Bottom Rule", newspaperObject.transform, new Color32(55, 43, 32, 255));
-        SetNewspaperRect(bottomRule.rectTransform, new Vector2(0f, -236f), new Vector2(650f, 4f));
+        Image factBox = CreateImage("Fact Box", newspaperObject.transform, new Color32(165, 140, 100, 70));
+        SetNewspaperRect(factBox.rectTransform, new Vector2(-4f, -244f), new Vector2(520f, 88f));
+
+        TextMeshProUGUI fact = CreateNewspaperText(
+            "Fact",
+            newspaperObject.transform,
+            "According to the accounts, the potion's effects can only take hold\nWITHIN 20 DAYS AFTER DYING.",
+            20f,
+            FontStyles.Bold,
+            TextAlignmentOptions.Center);
+        fact.enableAutoSizing = true;
+        fact.fontSizeMin = 15f;
+        fact.fontSizeMax = 20f;
+        SetNewspaperRect(fact.rectTransform, new Vector2(30f, -244f), new Vector2(468f, 70f));
 
         TextMeshProUGUI body = CreateNewspaperText(
             "Story",
             newspaperObject.transform,
-            "A forbidden potion with an impossible promise:\nIT CAN BRING PEOPLE BACK FROM THE DEAD.",
-            34f,
+            "Many have tried. None have succeeded.\nIs this the key to life... or the greatest illusion of all?",
+            19f,
             FontStyles.Normal,
-            TextAlignmentOptions.Center);
+            TextAlignmentOptions.Left);
         body.enableAutoSizing = true;
-        body.fontSizeMin = 24f;
-        body.fontSizeMax = 34f;
-        body.lineSpacing = 5f;
-        SetNewspaperRect(body.rectTransform, new Vector2(0f, -312f), new Vector2(640f, 130f));
+        body.fontSizeMin = 15f;
+        body.fontSizeMax = 19f;
+        body.lineSpacing = 2f;
+        SetNewspaperRect(body.rectTransform, new Vector2(6f, -326f), new Vector2(520f, 74f));
     }
 
     private static TextMeshProUGUI CreateNewspaperText(
@@ -474,6 +536,96 @@ public sealed class OpeningCinematic : MonoBehaviour
         label.raycastTarget = false;
         label.textWrappingMode = TextWrappingModes.Normal;
         return label;
+    }
+
+    private static Sprite CreateNewspaperPaperSprite(int width, int height)
+    {
+        Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        texture.name = "Generated Aged Newspaper Paper";
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
+
+        Color32 clear = new Color32(0, 0, 0, 0);
+        Color baseColor = new Color32(197, 174, 132, 255);
+        Color stainColor = new Color32(117, 86, 50, 255);
+        Color edgeColor = new Color32(83, 61, 38, 255);
+
+        float seedA = 12.73f;
+        float seedB = 47.19f;
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float nx = x / (float)(width - 1);
+                float ny = y / (float)(height - 1);
+
+                float leftTear = 8f + Mathf.PerlinNoise(ny * 9.5f, seedA) * 24f + Mathf.PerlinNoise(ny * 26f, seedB) * 8f;
+                float rightTear = 9f + Mathf.PerlinNoise(ny * 8.2f, seedB) * 22f + Mathf.PerlinNoise(ny * 23f, seedA) * 8f;
+                float topTear = 7f + Mathf.PerlinNoise(nx * 10.5f, seedB) * 18f + Mathf.PerlinNoise(nx * 31f, seedA) * 6f;
+                float bottomTear = 10f + Mathf.PerlinNoise(nx * 8.5f, seedA) * 26f + Mathf.PerlinNoise(nx * 28f, seedB) * 8f;
+
+                bool outsidePaper =
+                    x < leftTear ||
+                    x > width - rightTear ||
+                    y < bottomTear ||
+                    y > height - topTear;
+
+                if (outsidePaper)
+                {
+                    texture.SetPixel(x, y, clear);
+                    continue;
+                }
+
+                float edgeDistance = Mathf.Min(
+                    Mathf.Min(x - leftTear, width - rightTear - x),
+                    Mathf.Min(y - bottomTear, height - topTear - y));
+
+                float grain = Mathf.PerlinNoise(x * 0.035f, y * 0.035f);
+                float fibers = Mathf.PerlinNoise(x * 0.12f, y * 0.018f);
+                float stainA = Mathf.PerlinNoise(x * 0.008f + 22f, y * 0.009f + 16f);
+                float stainB = Mathf.PerlinNoise(x * 0.018f + 5f, y * 0.016f + 77f);
+                float vignette = Mathf.Clamp01(1f - edgeDistance / 70f);
+                float stain = Mathf.Clamp01((stainA - 0.52f) * 1.8f + (stainB - 0.62f) * 1.2f);
+
+                Color color = baseColor;
+                color *= Mathf.Lerp(0.9f, 1.08f, grain);
+                color = Color.Lerp(color, new Color32(229, 208, 163, 255), fibers * 0.16f);
+                color = Color.Lerp(color, stainColor, stain * 0.24f);
+                color = Color.Lerp(color, edgeColor, vignette * 0.42f);
+
+                float alpha = Mathf.Lerp(0.68f, 1f, Mathf.Clamp01(edgeDistance / 16f));
+                color.a = alpha;
+                texture.SetPixel(x, y, color);
+            }
+        }
+
+        AddPaperCrease(texture, width, height, width * 0.52f, true);
+        AddPaperCrease(texture, width, height, height * 0.38f, false);
+
+        texture.Apply();
+        return Sprite.Create(texture, new Rect(0f, 0f, width, height), new Vector2(0.5f, 0.5f), 100f);
+    }
+
+    private static void AddPaperCrease(Texture2D texture, int width, int height, float center, bool vertical)
+    {
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float distance = Mathf.Abs((vertical ? x : y) - center);
+                if (distance > 3f)
+                    continue;
+
+                Color color = texture.GetPixel(x, y);
+                if (color.a <= 0f)
+                    continue;
+
+                float amount = (1f - distance / 3f) * 0.08f;
+                color = Color.Lerp(color, new Color32(82, 59, 38, 255), amount);
+                texture.SetPixel(x, y, color);
+            }
+        }
     }
 
     private static void SetNewspaperRect(RectTransform rect, Vector2 position, Vector2 size)
@@ -526,7 +678,7 @@ public sealed class OpeningCinematic : MonoBehaviour
         clickPromptRect.anchorMin = new Vector2(0.5f, 0f);
         clickPromptRect.anchorMax = new Vector2(0.5f, 0f);
         clickPromptRect.pivot = new Vector2(0.5f, 0f);
-        clickPromptRect.anchoredPosition = new Vector2(0f, 115f);
+        clickPromptRect.anchoredPosition = new Vector2(-80f, 115f);
         clickPromptRect.sizeDelta = new Vector2(240f, 120f);
 
         clickPromptGroup = promptObject.GetComponent<CanvasGroup>();
