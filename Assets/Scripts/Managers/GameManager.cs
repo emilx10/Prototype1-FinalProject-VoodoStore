@@ -1870,6 +1870,7 @@ public class GameManager : MonoBehaviour
             inventoryButton.interactable = true;
 
         OnItemAdded?.Invoke(name, category);
+        RefreshInventoryDependentUI();
     }
 
     void RemoveFromInventory(string name)
@@ -1879,6 +1880,20 @@ public class GameManager : MonoBehaviour
 
         existing.count--;
         if (existing.count <= 0) inventory.Remove(existing);
+
+        RefreshInventoryDependentUI();
+    }
+
+    private void RefreshInventoryDependentUI()
+    {
+        if (sellPanel != null && sellPanel.activeInHierarchy && sellItemsParent != null)
+            RefreshSellUI();
+
+        if (inventoryPanel != null && inventoryPanel.activeInHierarchy)
+            PopulateInventoryPanel();
+
+        SellPanelRightUIBinder.RefreshVisible();
+        FamilyMarketUI.RefreshIfVisible();
     }
     public void UpdateCoinsUI()
     {

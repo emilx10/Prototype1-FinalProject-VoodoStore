@@ -2294,8 +2294,3 @@ public static class AtmosphericObjectiveTextStyler
         outline.useGraphicAlpha = true;
     }
 }
-
-public sealed class ObjectiveTextStyleMarker : MonoBehaviour
-{
-    public int version;
-}
