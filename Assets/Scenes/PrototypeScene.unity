@@ -77276,7 +77276,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ObjectiveManager
   objectives:
-  - potionDisplayName: Love
+  - potionDisplayName: Love Potion
     ingredients:
     - Agate
     - Mint

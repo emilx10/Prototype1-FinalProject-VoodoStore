@@ -656,7 +656,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         SetPanelText(
             generated,
             "Objective Title Text",
-            $"Ritual Order: {objective.potionDisplayName} Potion",
+            $"Ritual Order: {objective.potionDisplayName}",
             new Vector2(0f, y),
             new Vector2(640f, 70f),
             32f,
@@ -690,6 +690,9 @@ public sealed class FamilyMarketUI : MonoBehaviour
                 TextAlignmentOptions.Left);
             y -= 38f;
         }
+
+        if (!objectiveManager.ShouldShowPreparations())
+            return;
 
         y -= 20f;
         SetPanelText(

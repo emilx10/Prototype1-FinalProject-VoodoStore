@@ -165,7 +165,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             objectiveManager.UpdateTasksFromInventory(gameManager.GetInventoryItems());
 
         Objective objective = objectiveManager.objectives[0];
-        SetExistingText(generated, "Objective Title Text", $"Ritual Order: {objective.potionDisplayName} Potion");
+        SetExistingText(generated, "Objective Title Text", $"Ritual Order: {objective.potionDisplayName}");
         SetExistingText(generated, "Ingredients Header Text", "Required Relics");
 
         for (int i = 0; i < objective.ingredients.Count; i++)
@@ -175,6 +175,9 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
                 objective.discovered[i];
             SetExistingText(generated, $"Ingredient Row {i + 1}", "> " + (discovered ? objective.ingredients[i] : "???"));
         }
+
+        if (!objectiveManager.ShouldShowPreparations())
+            return;
 
         SetExistingText(generated, "Tasks Header Text", "Preparations");
         for (int i = 0; i < objective.missions.Count; i++)
