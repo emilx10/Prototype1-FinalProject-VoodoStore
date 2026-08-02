@@ -2108,6 +2108,7 @@ public class GameManager : MonoBehaviour
         SetCutsceneVisible(otherRoot, false, 0f);
 
         CanvasGroup selectedGroup = SetCutsceneVisible(selectedRoot, true, 0f);
+        AudioManager.Instance?.FadeOutMusic(day20CutsceneFadeDuration);
         PlayDay20Ambience(playerWon);
 
         if (selectedGroup != null)

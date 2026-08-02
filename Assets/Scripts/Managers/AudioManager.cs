@@ -1,4 +1,5 @@
 using Unity.VisualScripting;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -32,6 +33,18 @@ public class AudioManager : MonoBehaviour
     [SerializeField] public AudioMixer audioMixer; //Unused yet
     [SerializeField] public AudioPool sfxPool;
 
+    [Header("Music")]
+    [SerializeField] private AudioMixerGroup musicOutputMixer;
+    [SerializeField] private AudioClip openingMusic;
+    [SerializeField] private AudioClip gameplayMusic;
+    [SerializeField, Range(0f, 1f)] private float openingMusicVolume = 0.4f;
+    [SerializeField, Range(0f, 1f)] private float gameplayMusicVolume = 0.15f;
+    [SerializeField, Min(0f)] private float musicCrossfadeDuration = 4.2f;
+
+    private AudioSource openingMusicSource;
+    private AudioSource gameplayMusicSource;
+    private Coroutine musicTransition;
+
 
     //Add any sound you need here!!!!!!
     [Header("Sounds")]
@@ -61,6 +74,137 @@ public class AudioManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        openingMusicSource = CreateMusicSource("Opening Music", openingMusic);
+        gameplayMusicSource = CreateMusicSource("Gameplay Music", gameplayMusic);
+    }
+
+    public void PlayOpeningMusic()
+    {
+        StopMusicTransition();
+
+        gameplayMusicSource.Stop();
+        gameplayMusicSource.volume = 0f;
+
+        openingMusicSource.clip = openingMusic;
+        openingMusicSource.volume = openingMusicVolume;
+
+        if (openingMusicSource.clip != null && !openingMusicSource.isPlaying)
+            openingMusicSource.Play();
+    }
+
+    public void CrossfadeToGameplayMusic(float duration = -1f)
+    {
+        StopMusicTransition();
+
+        float fadeDuration = duration >= 0f ? duration : musicCrossfadeDuration;
+        musicTransition = StartCoroutine(CrossfadeToGameplayMusicRoutine(fadeDuration));
+    }
+
+    public void PlayGameplayMusicImmediately()
+    {
+        StopMusicTransition();
+
+        openingMusicSource.Stop();
+        openingMusicSource.volume = 0f;
+
+        gameplayMusicSource.clip = gameplayMusic;
+        gameplayMusicSource.volume = gameplayMusicVolume;
+
+        if (gameplayMusicSource.clip != null && !gameplayMusicSource.isPlaying)
+            gameplayMusicSource.Play();
+    }
+
+    public void FadeOutMusic(float duration)
+    {
+        StopMusicTransition();
+        musicTransition = StartCoroutine(FadeOutMusicRoutine(Mathf.Max(0f, duration)));
+    }
+
+    private AudioSource CreateMusicSource(string sourceName, AudioClip clip)
+    {
+        GameObject sourceObject = new GameObject(sourceName);
+        sourceObject.transform.SetParent(transform, false);
+
+        AudioSource source = sourceObject.AddComponent<AudioSource>();
+        source.clip = clip;
+        source.loop = true;
+        source.playOnAwake = false;
+        source.spatialBlend = 0f;
+        source.volume = 0f;
+        source.outputAudioMixerGroup = musicOutputMixer;
+        return source;
+    }
+
+    private IEnumerator CrossfadeToGameplayMusicRoutine(float duration)
+    {
+        gameplayMusicSource.clip = gameplayMusic;
+        gameplayMusicSource.volume = 0f;
+
+        if (gameplayMusicSource.clip != null && !gameplayMusicSource.isPlaying)
+            gameplayMusicSource.Play();
+
+        float openingStartVolume = openingMusicSource.volume;
+
+        if (duration <= 0f)
+        {
+            openingMusicSource.volume = 0f;
+            gameplayMusicSource.volume = gameplayMusicVolume;
+        }
+        else
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(elapsed / duration);
+                float smoothProgress = progress * progress * (3f - 2f * progress);
+
+                openingMusicSource.volume = Mathf.Lerp(openingStartVolume, 0f, smoothProgress);
+                gameplayMusicSource.volume = Mathf.Lerp(0f, gameplayMusicVolume, smoothProgress);
+                yield return null;
+            }
+        }
+
+        openingMusicSource.Stop();
+        openingMusicSource.volume = 0f;
+        gameplayMusicSource.volume = gameplayMusicVolume;
+        musicTransition = null;
+    }
+
+    private IEnumerator FadeOutMusicRoutine(float duration)
+    {
+        float openingStartVolume = openingMusicSource.volume;
+        float gameplayStartVolume = gameplayMusicSource.volume;
+
+        if (duration > 0f)
+        {
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(elapsed / duration);
+                float smoothProgress = progress * progress * (3f - 2f * progress);
+
+                openingMusicSource.volume = Mathf.Lerp(openingStartVolume, 0f, smoothProgress);
+                gameplayMusicSource.volume = Mathf.Lerp(gameplayStartVolume, 0f, smoothProgress);
+                yield return null;
+            }
+        }
+
+        openingMusicSource.Stop();
+        gameplayMusicSource.Stop();
+        openingMusicSource.volume = 0f;
+        gameplayMusicSource.volume = 0f;
+        musicTransition = null;
+    }
+
+    private void StopMusicTransition()
+    {
+        if (musicTransition == null)
+            return;
+
+        StopCoroutine(musicTransition);
+        musicTransition = null;
     }
 
     private void PlaySfx(float volume, AudioClip audio, float pitch)

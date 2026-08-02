@@ -30,6 +30,7 @@ public sealed class OpeningCinematic : MonoBehaviour
     private RectTransform clickPromptRect;
     private CanvasGroup clickPromptGroup;
     private bool skipRequested;
+    private bool musicHandedOff;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetSessionState()
@@ -57,9 +58,13 @@ public sealed class OpeningCinematic : MonoBehaviour
         mainCamera = Camera.main;
         if (mainCamera == null || !mainCamera.orthographic)
         {
+            musicHandedOff = true;
+            AudioManager.Instance?.PlayGameplayMusicImmediately();
             Destroy(gameObject);
             yield break;
         }
+
+        AudioManager.Instance?.PlayOpeningMusic();
 
         gameplayCameraPosition = mainCamera.transform.position;
         gameplayCameraSize = mainCamera.orthographicSize;
@@ -106,6 +111,8 @@ public sealed class OpeningCinematic : MonoBehaviour
             yield return null;
         }
 
+        musicHandedOff = true;
+        AudioManager.Instance?.CrossfadeToGameplayMusic(TransitionDuration);
         ClearSelectedUI();
         float transitionElapsed = 0f;
         while (transitionElapsed < TransitionDuration)
@@ -825,6 +832,9 @@ public sealed class OpeningCinematic : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (Application.isPlaying && !musicHandedOff)
+            AudioManager.Instance?.PlayGameplayMusicImmediately();
+
         if (mainCamera != null)
         {
             mainCamera.transform.position = gameplayCameraPosition;
