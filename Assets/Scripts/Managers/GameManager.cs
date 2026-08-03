@@ -850,6 +850,11 @@ public class GameManager : MonoBehaviour
     // ------------------- START -------------------
     void Start()
     {
+        // The scene's serialized AudioManager is destroyed when a persistent
+        // singleton already exists after Play Again. Always use the survivor.
+        if (AudioManager.Instance != null)
+            ad = AudioManager.Instance;
+
         ApplyDayNightCycleUISettings();
         DayNightCycleUI.SetPhase(dayNightStartingPhase, true);
         FamilyMarketUI.Attach(this);
@@ -2124,9 +2129,9 @@ public class GameManager : MonoBehaviour
 #endif
     }
 
-    private IEnumerator ShowDay20OutcomeCutsceneRoutine()
+    private IEnumerator ShowDay20OutcomeCutsceneRoutine(bool? forcedPlayerWon = null)
     {
-        bool playerWon = HasResurrectionPotionInInventory();
+        bool playerWon = forcedPlayerWon ?? HasResurrectionPotionInInventory();
         EnsureDay20CutsceneObjects(true);
 
         GameObject selectedRoot = playerWon ? day20WinCutsceneRoot : day20LoseCutsceneRoot;
@@ -2685,6 +2690,9 @@ public class GameManager : MonoBehaviour
             day20WinVivianShopHoldDuration
         };
 
+        CanvasGroup previousGroup = null;
+        GameObject previousStep = null;
+
         for (int i = 0; i < steps.Length; i++)
         {
             GameObject step = steps[i];
@@ -2692,11 +2700,50 @@ public class GameManager : MonoBehaviour
             if (stepGroup == null)
                 continue;
 
-            yield return FadeCanvasGroup(stepGroup, 0f, 1f, day20WinStepFadeDuration);
+            if (previousGroup == null)
+            {
+                yield return FadeCanvasGroup(stepGroup, 0f, 1f, day20WinStepFadeDuration);
+            }
+            else
+            {
+                yield return CrossfadeCanvasGroups(
+                    previousGroup,
+                    stepGroup,
+                    day20WinStepFadeDuration);
+                SetCutsceneVisible(previousStep, false, 0f);
+            }
+
             yield return new WaitForSecondsRealtime(Mathf.Max(0f, holds[i]));
-            yield return FadeCanvasGroup(stepGroup, 1f, 0f, day20WinStepFadeDuration);
-            SetCutsceneVisible(step, false, 0f);
+            previousGroup = stepGroup;
+            previousStep = step;
         }
+    }
+
+    private IEnumerator CrossfadeCanvasGroups(CanvasGroup outgoing, CanvasGroup incoming, float duration)
+    {
+        if (outgoing == null || incoming == null || duration <= 0f)
+        {
+            if (outgoing != null)
+                outgoing.alpha = 0f;
+            if (incoming != null)
+                incoming.alpha = 1f;
+            yield break;
+        }
+
+        incoming.alpha = 0f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            float smoothProgress = progress * progress * (3f - 2f * progress);
+            outgoing.alpha = 1f - smoothProgress;
+            incoming.alpha = smoothProgress;
+            yield return null;
+        }
+
+        outgoing.alpha = 0f;
+        incoming.alpha = 1f;
     }
 
     private void HideLegacyDirectWinRootVisuals()
@@ -2984,6 +3031,8 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         currentDay = 1;
+        isEndingDay = false;
+        cheatWinCutsceneAfterResurrectionMerge = false;
         DestroyDayTransitionCanvas();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
@@ -3371,8 +3420,69 @@ public class GameManager : MonoBehaviour
         inventory.Clear();
         selectedCraftingItems.Clear();
         cheatWinCutsceneAfterResurrectionMerge = false;
+
+        string junkIngredient = FindLoseCheatIngredient();
+        if (!string.IsNullOrWhiteSpace(junkIngredient))
+        {
+            for (int i = 0; i < 3; i++)
+                AddExactInventoryItemForCheat(junkIngredient);
+        }
+        else
+        {
+            Debug.LogWarning("Lose cheat could not find an ingredient that is safe to merge into Junk.");
+        }
+
         OpenCrafting();
         RefreshInventoryDependentUI();
+    }
+
+    private string FindLoseCheatIngredient()
+    {
+        if (markets == null)
+            return null;
+
+        foreach (Market market in markets)
+        {
+            if (market == null || market.items == null)
+                continue;
+
+            foreach (MarketItem item in market.items)
+            {
+                if (item == null || string.IsNullOrWhiteSpace(item.itemName) ||
+                    item.category == ItemCategory.Potion || item.category == ItemCategory.Junk)
+                {
+                    continue;
+                }
+
+                bool createsRecipe = false;
+                if (recipes != null)
+                {
+                    foreach (Recipe recipe in recipes)
+                    {
+                        if (recipe == null || recipe.ingredients == null || recipe.ingredients.Count != 3)
+                            continue;
+
+                        createsRecipe = true;
+                        foreach (string ingredient in recipe.ingredients)
+                        {
+                            if (NormalizeName(ingredient) != NormalizeName(item.itemName))
+                            {
+                                createsRecipe = false;
+                                break;
+                            }
+                        }
+
+                        if (createsRecipe)
+                            break;
+                    }
+                }
+
+                if (!createsRecipe)
+                    return item.itemName;
+            }
+        }
+
+        return null;
     }
 
     private void PrepareDay19MergeCheatState()
@@ -3400,7 +3510,7 @@ public class GameManager : MonoBehaviour
         if (inventoryPanel != null) inventoryPanel.SetActive(false);
 
         yield return null;
-        yield return ShowDay20OutcomeCutsceneRoutine();
+        yield return ShowDay20OutcomeCutsceneRoutine(true);
         isEndingDay = false;
     }
 

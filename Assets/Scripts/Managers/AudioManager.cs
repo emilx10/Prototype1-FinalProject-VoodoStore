@@ -73,6 +73,12 @@ public class AudioManager : MonoBehaviour
         }
 
         Instance = this;
+
+        // The manager survives scene reloads, so its pool must survive with it.
+        // In the prefab the pool may be assigned from a separate scene object.
+        if (sfxPool != null && sfxPool.transform.parent != transform)
+            sfxPool.transform.SetParent(transform, true);
+
         DontDestroyOnLoad(gameObject);
         openingMusicSource = CreateMusicSource("Opening Music", openingMusic);
         gameplayMusicSource = CreateMusicSource("Gameplay Music", gameplayMusic);
@@ -209,7 +215,22 @@ public class AudioManager : MonoBehaviour
 
     private void PlaySfx(float volume, AudioClip audio, float pitch)
     {
-        sfxPool.PlaySound(volume, audio, pitch);
+        EnsureSfxPool().PlaySound(volume, audio, pitch);
+    }
+
+    private AudioPool EnsureSfxPool()
+    {
+        if (sfxPool != null)
+            return sfxPool;
+
+        sfxPool = GetComponentInChildren<AudioPool>(true);
+        if (sfxPool != null)
+            return sfxPool;
+
+        GameObject poolObject = new GameObject("Runtime SFX Pool");
+        poolObject.transform.SetParent(transform, false);
+        sfxPool = poolObject.AddComponent<AudioPool>();
+        return sfxPool;
     }
 
     public void PlaySfx(float volume, SFX sfx, float pitch)
