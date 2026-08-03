@@ -18237,7 +18237,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &583819587
 RectTransform:
   m_ObjectHideFlags: 0
@@ -28435,10 +28435,60 @@ MonoBehaviour:
   dayScreenHoldDuration: 1.25
   gameOverText: GAME OVER
   gameOverTextColor: {r: 1, g: 0, b: 0, a: 1}
+  gameWonText: YOU WON!
+  gameWonTextColor: {r: 0.72, g: 1, b: 0.78, a: 1}
+  gameLostText: YOU LOST
+  gameLostTextColor: {r: 0.95, g: 0.16, b: 0.12, a: 1}
   gameOverTextFontSize: 142
   playAgainButtonText: Play Again
   playAgainButtonColor: {r: 0.12, g: 0.02, b: 0.02, a: 0.92}
   playAgainButtonTextColor: {r: 1, g: 1, b: 1, a: 1}
+  cheatMenuCanvasRoot: {fileID: 0}
+  cheatMenuRoot: {fileID: 0}
+  cheatAddCoinsButton: {fileID: 0}
+  cheatLetMeWinButton: {fileID: 0}
+  cheatIWantToLoseButton: {fileID: 0}
+  cheatCoinsAmount: 500
+  cheatAddCoinsButtonText: ADD 500 COINS
+  cheatLetMeWinButtonText: LET ME WIN
+  cheatIWantToLoseButtonText: I WANT TO LOSE
+  cheatWinPotionName: Ultimate Potion
+  cheatWinPotionDescription: A forbidden potion said to return a soul to the living
+    world.
+  day20CutsceneCanvasRoot: {fileID: 0}
+  day20WinCutsceneRoot: {fileID: 0}
+  day20WinPotionCloseupRoot: {fileID: 0}
+  day20WinGraveSpillRoot: {fileID: 0}
+  day20WinVivianShopRoot: {fileID: 0}
+  day20LoseCutsceneRoot: {fileID: 0}
+  day20CutsceneFadeDuration: 0.55
+  day20CutsceneHoldDuration: 4.5
+  day20WinPotionCloseupHoldDuration: 3
+  day20WinGraveSpillHoldDuration: 5
+  day20WinVivianShopHoldDuration: 7
+  day20WinStepFadeDuration: 0.45
+  day20WinUnknownIdentityText: 'Identity of revived subject: Unknown'
+  day20WinAmbience: {fileID: 0}
+  day20LoseAmbience: {fileID: 0}
+  day20AmbienceVolume: 0.7
+  day20LoseStartView:
+    serializedVersion: 2
+    x: 0.075
+    y: 0.115
+    width: 0.42
+    height: 0.42
+  day20LoseEndView:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  day20LoseZoomOutDuration: 4.2
+  day20LoseTint: {r: 0.58, g: 0.64, b: 0.78, a: 1}
+  resurrectionPotionNames:
+  - Resurrection Potion
+  - Ressuruction Potion
+  - Ultimate Potion
   familyMarketInventoryIcon: {fileID: 739905185230883310, guid: f5bf9e9ba4e061440b9e3cc9714d35d4, type: 3}
   objectiveManager: {fileID: 1945514260}
 --- !u!4 &731473974
@@ -77317,6 +77367,8 @@ MonoBehaviour:
     strikeLine: {fileID: 0}
   investigationsPerDay: 1
   investigationCost: 5
+  completedObjectiveCount: 0
+  hidePreparationsAfterFirstObjective: 1
   ad: {fileID: 897825967}
   vol: 100
   pitch: 1
