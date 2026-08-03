@@ -28122,6 +28122,7 @@ GameObject:
   - component: {fileID: 731473974}
   - component: {fileID: 731473973}
   - component: {fileID: 731473975}
+  - component: {fileID: 731473976}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -28519,6 +28520,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 25f6b22ffbcd3dc489013679d6f83ba2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CloseApllicationScript
+--- !u!114 &731473976
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 731473972}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4267252bde7385b4aaa65011ddc5a0aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MinimizeGame
 --- !u!1 &732756439
 GameObject:
   m_ObjectHideFlags: 0

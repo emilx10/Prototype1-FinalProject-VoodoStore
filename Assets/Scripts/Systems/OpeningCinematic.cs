@@ -79,6 +79,26 @@ public sealed class OpeningCinematic : MonoBehaviour
         FinishCinematic();
     }
 
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F1))
+            SkipImmediately();
+    }
+
+    private void SkipImmediately()
+    {
+        if (overlayCanvas == null)
+            return;
+
+        skipRequested = true;
+        StopAllCoroutines();
+        ClearSelectedUI();
+
+        musicHandedOff = true;
+        AudioManager.Instance?.PlayGameplayMusicImmediately();
+        FinishCinematic();
+    }
+
     private IEnumerator PlayCinematic()
     {
         float elapsed = 0f;

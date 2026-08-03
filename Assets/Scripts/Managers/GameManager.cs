@@ -3368,7 +3368,28 @@ public class GameManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.L))
             ActivateLoseCheat();
+
+        if (Input.GetKeyDown(KeyCode.F1))
+            SkipDay20CutsceneCheat();
     }
+
+    private void SkipDay20CutsceneCheat()
+    {
+        if (day20CutsceneCanvasRoot == null || !day20CutsceneCanvasRoot.activeInHierarchy)
+            return;
+
+        bool playerWon = HasResurrectionPotionInInventory();
+
+        StopAllCoroutines();
+        StopDay20Ambience();
+        SetCutsceneVisible(day20WinCutsceneRoot, false, 0f);
+        SetCutsceneVisible(day20LoseCutsceneRoot, false, 0f);
+        day20CutsceneCanvasRoot.SetActive(false);
+
+        isEndingDay = false;
+        ShowGameOverScreen(playerWon);
+    }
+
     void CheckKonamiCode()
     {
         if (Input.GetKeyDown(konamiCode[konamiIndex]))
