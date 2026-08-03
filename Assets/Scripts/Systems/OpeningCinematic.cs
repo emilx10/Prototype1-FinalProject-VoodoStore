@@ -30,6 +30,7 @@ public sealed class OpeningCinematic : MonoBehaviour
     private RectTransform clickPromptRect;
     private CanvasGroup clickPromptGroup;
     private bool skipRequested;
+    private bool musicHandedOff;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetSessionState()
@@ -57,9 +58,13 @@ public sealed class OpeningCinematic : MonoBehaviour
         mainCamera = Camera.main;
         if (mainCamera == null || !mainCamera.orthographic)
         {
+            musicHandedOff = true;
+            AudioManager.Instance?.PlayGameplayMusicImmediately();
             Destroy(gameObject);
             yield break;
         }
+
+        AudioManager.Instance?.PlayOpeningMusic();
 
         gameplayCameraPosition = mainCamera.transform.position;
         gameplayCameraSize = mainCamera.orthographicSize;
@@ -106,6 +111,8 @@ public sealed class OpeningCinematic : MonoBehaviour
             yield return null;
         }
 
+        musicHandedOff = true;
+        AudioManager.Instance?.CrossfadeToGameplayMusic(TransitionDuration);
         ClearSelectedUI();
         float transitionElapsed = 0f;
         while (transitionElapsed < TransitionDuration)
@@ -154,8 +161,8 @@ public sealed class OpeningCinematic : MonoBehaviour
             return;
         }
 
-        Rect houseView = new Rect(0.62f, 0.47f, 0.29f, 0.29f);
-        Rect graveView = new Rect(0.075f, 0.035f, 0.62f, 0.62f);
+        Rect houseView = new Rect(0.58f, 0.18f, 0.38f, 0.38f);
+        Rect fullView = new Rect(0f, 0f, 1f, 1f);
 
         if (elapsed < 1.2f)
         {
@@ -166,7 +173,7 @@ public sealed class OpeningCinematic : MonoBehaviour
         }
 
         float graveProgress = Smooth01(Mathf.InverseLerp(1.2f, 3.9f, elapsed));
-        cemeteryImage.uvRect = LerpRect(houseView, graveView, graveProgress);
+        cemeteryImage.uvRect = LerpRect(houseView, fullView, graveProgress);
         cemeteryGroup.alpha = 1f;
         SetImageAlpha(cinematicBackdrop, 1f);
     }
@@ -319,7 +326,7 @@ public sealed class OpeningCinematic : MonoBehaviour
 
     private void CreateCemeteryImage(Transform parent)
     {
-        Texture2D cemeteryTexture = Resources.Load<Texture2D>("Cinematics/OpeningCemetery");
+        Texture2D cemeteryTexture = Resources.Load<Texture2D>("Cinematics/OpeningVivianFlamel");
         if (cemeteryTexture == null)
         {
             return;
@@ -338,7 +345,7 @@ public sealed class OpeningCinematic : MonoBehaviour
 
         RectTransform rect = cemeteryImage.rectTransform;
         StretchToParent(rect);
-        cemeteryImage.uvRect = new Rect(0.62f, 0.47f, 0.29f, 0.29f);
+        cemeteryImage.uvRect = new Rect(0.58f, 0.18f, 0.38f, 0.38f);
 
         cemeteryGroup = cemeteryObject.GetComponent<CanvasGroup>();
         cemeteryGroup.alpha = 1f;
@@ -825,6 +832,9 @@ public sealed class OpeningCinematic : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (Application.isPlaying && !musicHandedOff)
+            AudioManager.Instance?.PlayGameplayMusicImmediately();
+
         if (mainCamera != null)
         {
             mainCamera.transform.position = gameplayCameraPosition;

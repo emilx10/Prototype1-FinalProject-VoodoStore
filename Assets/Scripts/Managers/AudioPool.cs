@@ -9,29 +9,51 @@ public class AudioPool : MonoBehaviour
 
     private List<AudioSource> audioSources = new List<AudioSource>();
 
+    private void Awake()
+    {
+        EnsureInitialized();
+    }
+
+    private void EnsureInitialized()
+    {
+        audioSources.RemoveAll(source => source == null);
+
+        int sourcesToCreate = Mathf.Max(0, poolSize - audioSources.Count);
+        for (int i = 0; i < sourcesToCreate; i++)
+            AddSource();
+    }
+
+    private AudioSource AddSource()
+    {
+        AudioSource source = gameObject.AddComponent<AudioSource>();
+        source.outputAudioMixerGroup = outputMixer;
+        source.playOnAwake = false;
+        audioSources.Add(source);
+        return source;
+    }
+
     private void Start()
     {
-        for (int i = 0; i < poolSize; i++)
-        {
-            AudioSource source = gameObject.AddComponent<AudioSource>();
-            source.outputAudioMixerGroup = outputMixer;
-            audioSources.Add(source);
-        }
+        // Awake normally fills the pool. This also repairs it after a domain reload.
+        EnsureInitialized();
     }
 
     public void PlaySound(float volume, AudioClip audio, float pitch)
     {
-        AudioSource availableSource = audioSources.Find(source => !source.isPlaying);
+        if (audio == null)
+            return;
+
+        EnsureInitialized();
+
+        AudioSource availableSource = audioSources.Find(source => source != null && !source.isPlaying);
 
         if (availableSource == null)
-        {
-            availableSource = gameObject.AddComponent<AudioSource>();
-            audioSources.Add(availableSource);
-        }
+            availableSource = AddSource();
 
         availableSource.pitch = pitch;
         availableSource.volume = volume;
         availableSource.clip = audio;
         availableSource.Play();
     }
+
 }

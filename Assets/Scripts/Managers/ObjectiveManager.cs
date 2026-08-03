@@ -79,6 +79,11 @@ public class ObjectiveManager : MonoBehaviour
 
     void Start()
     {
+        // Rebind after scene reload; the serialized scene AudioManager may be
+        // the duplicate destroyed by the persistent singleton.
+        if (AudioManager.Instance != null)
+            ad = AudioManager.Instance;
+
         investigationsLeftToday = investigationsPerDay;
 
         // Initialize discovery and missions

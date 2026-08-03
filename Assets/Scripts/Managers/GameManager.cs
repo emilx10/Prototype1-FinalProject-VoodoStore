@@ -213,6 +213,9 @@ public class GameManager : MonoBehaviour
     private Market currentMarket;
     private bool isMergeAnimationPlaying = false;
     private bool craftingExitRequired;
+    private bool sellPromptUnlockedByMergeScreen;
+    private bool preserveSellPromptOnNextOpenSell;
+    private bool cheatWinCutsceneAfterResurrectionMerge;
     private Canvas purchaseCoinVfxCanvas;
     private CoroutineRunner purchaseCoinVfxRunner;
     private Sprite generatedPurchaseCoinSprite;
@@ -847,6 +850,11 @@ public class GameManager : MonoBehaviour
     // ------------------- START -------------------
     void Start()
     {
+        // The scene's serialized AudioManager is destroyed when a persistent
+        // singleton already exists after Play Again. Always use the survivor.
+        if (AudioManager.Instance != null)
+            ad = AudioManager.Instance;
+
         ApplyDayNightCycleUISettings();
         DayNightCycleUI.SetPhase(dayNightStartingPhase, true);
         FamilyMarketUI.Attach(this);
@@ -1311,6 +1319,7 @@ public class GameManager : MonoBehaviour
     public void OpenCrafting()
     {
         craftingExitRequired = true;
+        sellPromptUnlockedByMergeScreen = false;
 
         if (endDayButton != null)
             endDayButton.interactable = false;
@@ -1703,10 +1712,17 @@ public class GameManager : MonoBehaviour
         RefreshSelectedItemsUI();
         RefreshCraftingUI();
         PopulateInventoryPanel();
+        UnlockSellPromptAfterMergeScreen();
 
         ObjectiveManager manager = FindFirstObjectByType<ObjectiveManager>();
         if (manager != null && !string.IsNullOrWhiteSpace(craftedPotionName))
             manager.CompleteBrewedPotion(craftedPotionName);
+
+        if (cheatWinCutsceneAfterResurrectionMerge && !string.IsNullOrWhiteSpace(craftedPotionName) && IsResurrectionPotionName(craftedPotionName))
+        {
+            cheatWinCutsceneAfterResurrectionMerge = false;
+            StartCoroutine(ShowCheatWinCutsceneAfterMergeRoutine());
+        }
     }
 
     public void CancelCrafting()
@@ -1725,6 +1741,7 @@ public class GameManager : MonoBehaviour
         RefreshSelectedItemsUI();
         RefreshCraftingUI();
         PopulateInventoryPanel();
+        UnlockSellPromptAfterMergeScreen();
     }
 
     void ReturnCraftingItemsToInventory()
@@ -1765,6 +1782,16 @@ public class GameManager : MonoBehaviour
         if (endDayButton != null)
             endDayButton.interactable = false;
 
+        if (preserveSellPromptOnNextOpenSell)
+        {
+            sellPromptUnlockedByMergeScreen = true;
+            preserveSellPromptOnNextOpenSell = false;
+        }
+        else
+        {
+            sellPromptUnlockedByMergeScreen = false;
+        }
+
         DayNightCycleUI.SetPhase(DayNightPhase.Evening);
 
         marketPanel.SetActive(false);
@@ -1804,11 +1831,11 @@ public class GameManager : MonoBehaviour
     public void RefreshSellUI()
     {
         ClearChildren(sellItemsParent);
-        SetSellPromptVisible(HasSellableMergedProduct());
+        SetSellPromptVisible(sellPromptUnlockedByMergeScreen && HasInventoryItemsForSale());
 
         foreach (InventoryItem item in inventory)
         {
-            if (!IsSellableMergedProduct(item))
+            if (item == null || item.count <= 0)
                 continue;
 
             GameObject btn = Instantiate(buttonPrefab, sellItemsParent);
@@ -1859,15 +1886,23 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private bool HasSellableMergedProduct()
+    private bool HasInventoryItemsForSale()
     {
         foreach (InventoryItem item in inventory)
         {
-            if (IsSellableMergedProduct(item))
+            if (item != null && item.count > 0)
                 return true;
         }
 
         return false;
+    }
+
+    private void UnlockSellPromptAfterMergeScreen()
+    {
+        sellPromptUnlockedByMergeScreen = true;
+        preserveSellPromptOnNextOpenSell = true;
+        if (sellPanel != null && sellPanel.activeInHierarchy)
+            RefreshSellUI();
     }
 
     private bool IsSellableMergedProduct(InventoryItem item)
@@ -2094,9 +2129,9 @@ public class GameManager : MonoBehaviour
 #endif
     }
 
-    private IEnumerator ShowDay20OutcomeCutsceneRoutine()
+    private IEnumerator ShowDay20OutcomeCutsceneRoutine(bool? forcedPlayerWon = null)
     {
-        bool playerWon = HasResurrectionPotionInInventory();
+        bool playerWon = forcedPlayerWon ?? HasResurrectionPotionInInventory();
         EnsureDay20CutsceneObjects(true);
 
         GameObject selectedRoot = playerWon ? day20WinCutsceneRoot : day20LoseCutsceneRoot;
@@ -2108,6 +2143,7 @@ public class GameManager : MonoBehaviour
         SetCutsceneVisible(otherRoot, false, 0f);
 
         CanvasGroup selectedGroup = SetCutsceneVisible(selectedRoot, true, 0f);
+        AudioManager.Instance?.FadeOutMusic(day20CutsceneFadeDuration);
         PlayDay20Ambience(playerWon);
 
         if (selectedGroup != null)
@@ -2654,6 +2690,9 @@ public class GameManager : MonoBehaviour
             day20WinVivianShopHoldDuration
         };
 
+        CanvasGroup previousGroup = null;
+        GameObject previousStep = null;
+
         for (int i = 0; i < steps.Length; i++)
         {
             GameObject step = steps[i];
@@ -2661,11 +2700,50 @@ public class GameManager : MonoBehaviour
             if (stepGroup == null)
                 continue;
 
-            yield return FadeCanvasGroup(stepGroup, 0f, 1f, day20WinStepFadeDuration);
+            if (previousGroup == null)
+            {
+                yield return FadeCanvasGroup(stepGroup, 0f, 1f, day20WinStepFadeDuration);
+            }
+            else
+            {
+                yield return CrossfadeCanvasGroups(
+                    previousGroup,
+                    stepGroup,
+                    day20WinStepFadeDuration);
+                SetCutsceneVisible(previousStep, false, 0f);
+            }
+
             yield return new WaitForSecondsRealtime(Mathf.Max(0f, holds[i]));
-            yield return FadeCanvasGroup(stepGroup, 1f, 0f, day20WinStepFadeDuration);
-            SetCutsceneVisible(step, false, 0f);
+            previousGroup = stepGroup;
+            previousStep = step;
         }
+    }
+
+    private IEnumerator CrossfadeCanvasGroups(CanvasGroup outgoing, CanvasGroup incoming, float duration)
+    {
+        if (outgoing == null || incoming == null || duration <= 0f)
+        {
+            if (outgoing != null)
+                outgoing.alpha = 0f;
+            if (incoming != null)
+                incoming.alpha = 1f;
+            yield break;
+        }
+
+        incoming.alpha = 0f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            float smoothProgress = progress * progress * (3f - 2f * progress);
+            outgoing.alpha = 1f - smoothProgress;
+            incoming.alpha = smoothProgress;
+            yield return null;
+        }
+
+        outgoing.alpha = 0f;
+        incoming.alpha = 1f;
     }
 
     private void HideLegacyDirectWinRootVisuals()
@@ -2953,6 +3031,8 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         currentDay = 1;
+        isEndingDay = false;
+        cheatWinCutsceneAfterResurrectionMerge = false;
         DestroyDayTransitionCanvas();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
@@ -3282,6 +3362,12 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
         CheckKonamiCode();
+
+        if (Input.GetKeyDown(KeyCode.W))
+            ActivateWinCheat();
+
+        if (Input.GetKeyDown(KeyCode.L))
+            ActivateLoseCheat();
     }
     void CheckKonamiCode()
     {
@@ -3302,7 +3388,245 @@ public class GameManager : MonoBehaviour
     }
     void ActivateKonamiReward()
     {
-        OpenCheatMenu();
+        coins += cheatCoinsAmount;
+        UpdateCoinsUI();
+        ShowFloatingCoins(cheatCoinsAmount);
+    }
+
+    private void ActivateWinCheat()
+    {
+        Recipe resurrectionRecipe = FindResurrectionRecipe();
+        if (resurrectionRecipe == null)
+        {
+            Debug.LogWarning("Win cheat could not find a resurrection recipe.");
+            return;
+        }
+
+        PrepareDay19MergeCheatState();
+        inventory.Clear();
+        selectedCraftingItems.Clear();
+
+        foreach (string ingredientName in resurrectionRecipe.ingredients)
+            AddExactInventoryItemForCheat(ingredientName);
+
+        cheatWinCutsceneAfterResurrectionMerge = true;
+        OpenCrafting();
+        RefreshInventoryDependentUI();
+    }
+
+    private void ActivateLoseCheat()
+    {
+        PrepareDay19MergeCheatState();
+        inventory.Clear();
+        selectedCraftingItems.Clear();
+        cheatWinCutsceneAfterResurrectionMerge = false;
+
+        string junkIngredient = FindLoseCheatIngredient();
+        if (!string.IsNullOrWhiteSpace(junkIngredient))
+        {
+            for (int i = 0; i < 3; i++)
+                AddExactInventoryItemForCheat(junkIngredient);
+        }
+        else
+        {
+            Debug.LogWarning("Lose cheat could not find an ingredient that is safe to merge into Junk.");
+        }
+
+        OpenCrafting();
+        RefreshInventoryDependentUI();
+    }
+
+    private string FindLoseCheatIngredient()
+    {
+        if (markets == null)
+            return null;
+
+        foreach (Market market in markets)
+        {
+            if (market == null || market.items == null)
+                continue;
+
+            foreach (MarketItem item in market.items)
+            {
+                if (item == null || string.IsNullOrWhiteSpace(item.itemName) ||
+                    item.category == ItemCategory.Potion || item.category == ItemCategory.Junk)
+                {
+                    continue;
+                }
+
+                bool createsRecipe = false;
+                if (recipes != null)
+                {
+                    foreach (Recipe recipe in recipes)
+                    {
+                        if (recipe == null || recipe.ingredients == null || recipe.ingredients.Count != 3)
+                            continue;
+
+                        createsRecipe = true;
+                        foreach (string ingredient in recipe.ingredients)
+                        {
+                            if (NormalizeName(ingredient) != NormalizeName(item.itemName))
+                            {
+                                createsRecipe = false;
+                                break;
+                            }
+                        }
+
+                        if (createsRecipe)
+                            break;
+                    }
+                }
+
+                if (!createsRecipe)
+                    return item.itemName;
+            }
+        }
+
+        return null;
+    }
+
+    private void PrepareDay19MergeCheatState()
+    {
+        currentDay = Mathf.Max(1, gameOverDay - 1);
+        isEndingDay = false;
+        lockedItemsToday.Clear();
+        ReturnCraftingItemsToInventory();
+
+        if (sellConfirmPanel != null)
+            sellConfirmPanel.SetActive(false);
+        pendingSellItem = null;
+        DestroyDayTransitionCanvas();
+    }
+
+    private IEnumerator ShowCheatWinCutsceneAfterMergeRoutine()
+    {
+        isEndingDay = true;
+        currentDay = gameOverDay;
+
+        if (marketPanel != null) marketPanel.SetActive(false);
+        if (itemsPanel != null) itemsPanel.SetActive(false);
+        if (craftingPanel != null) craftingPanel.SetActive(false);
+        if (sellPanel != null) sellPanel.SetActive(false);
+        if (inventoryPanel != null) inventoryPanel.SetActive(false);
+
+        yield return null;
+        yield return ShowDay20OutcomeCutsceneRoutine(true);
+        isEndingDay = false;
+    }
+
+    private Recipe FindResurrectionRecipe()
+    {
+        if (recipes == null)
+            return null;
+
+        Recipe fallback = null;
+        for (int i = 0; i < recipes.Count; i++)
+        {
+            Recipe recipe = recipes[i];
+            if (recipe == null)
+                continue;
+
+            if (IsResurrectionPotionName(recipe.potionName))
+                return recipe;
+
+            if (fallback == null && NormalizeName(recipe.potionName) == NormalizeName(cheatWinPotionName))
+                fallback = recipe;
+        }
+
+        return fallback;
+    }
+
+    private bool IsResurrectionPotionName(string itemName)
+    {
+        string normalized = NormalizeName(itemName);
+        if (normalized == NormalizeName(cheatWinPotionName))
+            return true;
+
+        if (resurrectionPotionNames == null)
+            return false;
+
+        for (int i = 0; i < resurrectionPotionNames.Length; i++)
+        {
+            if (normalized == NormalizeName(resurrectionPotionNames[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private void AddExactInventoryItemForCheat(string itemName)
+    {
+        if (string.IsNullOrWhiteSpace(itemName))
+            return;
+
+        ItemCategory category = ItemCategory.Herbs;
+        string description = "";
+        Sprite icon = GetIconByNameInsensitive(itemName);
+
+        if (TryGetMarketItemByName(itemName, out MarketItem marketItem))
+        {
+            category = marketItem.category;
+            description = marketItem.description;
+            if (icon == null)
+                icon = marketItem.icon;
+        }
+        else if (TryGetRecipeByName(itemName, out Recipe recipe))
+        {
+            category = recipe.category;
+            if (icon == null)
+                icon = recipe.icon;
+        }
+
+        inventory.Add(new InventoryItem
+        {
+            itemName = itemName,
+            count = 1,
+            category = category,
+            description = description,
+            icon = icon
+        });
+    }
+
+    private bool TryGetMarketItemByName(string itemName, out MarketItem foundItem)
+    {
+        if (markets != null)
+        {
+            foreach (Market market in markets)
+            {
+                if (market == null || market.items == null)
+                    continue;
+
+                foreach (MarketItem item in market.items)
+                {
+                    if (item != null && NormalizeName(item.itemName) == NormalizeName(itemName))
+                    {
+                        foundItem = item;
+                        return true;
+                    }
+                }
+            }
+        }
+
+        foundItem = null;
+        return false;
+    }
+
+    private bool TryGetRecipeByName(string itemName, out Recipe foundRecipe)
+    {
+        if (recipes != null)
+        {
+            foreach (Recipe recipe in recipes)
+            {
+                if (recipe != null && NormalizeName(recipe.potionName) == NormalizeName(itemName))
+                {
+                    foundRecipe = recipe;
+                    return true;
+                }
+            }
+        }
+
+        foundRecipe = null;
+        return false;
     }
 
     [ContextMenu("Build / Refresh Cheat Menu")]
