@@ -41,6 +41,8 @@ public class Objective
 
 public class ObjectiveManager : MonoBehaviour
 {
+    private const int ResurrectionObjectiveDay = 19;
+
     [Header("Objectives List")]
     [SerializeField] public List<Objective> objectives;
 
@@ -60,6 +62,10 @@ public class ObjectiveManager : MonoBehaviour
     [Header("Investigation Cost")]
     [SerializeField] private int investigationCost = 5;
 
+    [Header("Objective Rotation")]
+    [SerializeField] private int completedObjectiveCount;
+    [SerializeField] private bool hidePreparationsAfterFirstObjective = true;
+
     [Header("SoundManager")]
     public AudioManager ad;
     [SerializeField] float vol, pitch;
@@ -73,6 +79,11 @@ public class ObjectiveManager : MonoBehaviour
 
     void Start()
     {
+        // Rebind after scene reload; the serialized scene AudioManager may be
+        // the duplicate destroyed by the persistent singleton.
+        if (AudioManager.Instance != null)
+            ad = AudioManager.Instance;
+
         investigationsLeftToday = investigationsPerDay;
 
         // Initialize discovery and missions
@@ -88,6 +99,11 @@ public class ObjectiveManager : MonoBehaviour
 
         RefreshObjectivesUI();
         RefreshTasksUI();
+    }
+
+    public bool ShouldShowPreparations()
+    {
+        return !hidePreparationsAfterFirstObjective || completedObjectiveCount == 0;
     }
 
     #region Ledger Toggle / Daily Limit
@@ -121,7 +137,7 @@ public class ObjectiveManager : MonoBehaviour
             if (i == 0)
             {
                 // First row = Potion title
-                row.objectiveText.text = $"Craft a {obj.potionDisplayName} Potion";
+                row.objectiveText.text = $"Craft a {obj.potionDisplayName}";
             }
             else
             {
@@ -143,10 +159,22 @@ public class ObjectiveManager : MonoBehaviour
         if (objectives.Count == 0 || taskRows.Count == 0) return;
 
         Objective obj = objectives[0];
+        bool showPreparations = ShouldShowPreparations();
 
-        for (int i = 0; i < taskRows.Count && i < obj.missions.Count; i++)
+        if (!showPreparations)
+        {
+            HideAllTaskRows();
+            return;
+        }
+
+        for (int i = 0; i < taskRows.Count; i++)
         {
             TaskRow row = taskRows[i];
+            bool hasMission = i < obj.missions.Count;
+            SetTaskRowVisible(row, hasMission);
+            if (!hasMission)
+                continue;
+
             Mission mission = obj.missions[i];
 
             if (row.strikeLine != null)
@@ -174,6 +202,11 @@ public class ObjectiveManager : MonoBehaviour
     public void UpdateTasksFromInventory(List<InventoryItem> playerInventory)
     {
         if (objectives.Count == 0 || taskRows.Count == 0) return;
+        if (!ShouldShowPreparations())
+        {
+            HideAllTaskRows();
+            return;
+        }
 
         Objective obj = objectives[0];
 
@@ -274,12 +307,157 @@ public class ObjectiveManager : MonoBehaviour
             if (mission.type == type && !mission.completed)
             {
                 mission.completed = true;
-                ad.PlaySfx(vol, SFX.Objective, pitch);
+                ad.PlaySfx(0.2f, SFX.Objective, pitch);
                 break; // complete only the first matching one
             }
         }
 
         RefreshTasksUI();
+    }
+
+    public void CompleteBrewedPotion(string brewedPotionName)
+    {
+        if (objectives == null || objectives.Count == 0)
+            return;
+
+        Objective currentObjective = objectives[0];
+        if (!IsCurrentObjectivePotion(currentObjective, brewedPotionName))
+            return;
+
+        CompleteMission(MissionType.MergeItems);
+        completedObjectiveCount++;
+        AssignRandomNextObjective(brewedPotionName);
+    }
+
+    private void AssignRandomNextObjective(string previousPotionName)
+    {
+        if (gameManager == null || gameManager.recipes == null || gameManager.recipes.Count == 0)
+            return;
+
+        List<Recipe> eligibleRecipes = new List<Recipe>();
+        string normalizedPrevious = NormalizeName(previousPotionName);
+
+        foreach (Recipe recipe in gameManager.recipes)
+        {
+            if (!IsEligibleNextObjective(recipe, normalizedPrevious))
+                continue;
+
+            eligibleRecipes.Add(recipe);
+        }
+
+        if (eligibleRecipes.Count == 0)
+            return;
+
+        Recipe nextRecipe = eligibleRecipes[Random.Range(0, eligibleRecipes.Count)];
+        objectives[0] = CreateObjectiveFromRecipe(nextRecipe);
+        RefreshObjectivesUI();
+        RefreshTasksUI();
+        FamilyMarketUI.RefreshIfVisible();
+        SellPanelRightUIBinder.RefreshVisible();
+    }
+
+    private bool IsEligibleNextObjective(Recipe recipe, string normalizedPrevious)
+    {
+        if (recipe == null || string.IsNullOrWhiteSpace(recipe.potionName) || recipe.ingredients == null || recipe.ingredients.Count == 0)
+            return false;
+
+        string normalizedRecipeName = NormalizeName(recipe.potionName);
+        if (normalizedRecipeName == normalizedPrevious)
+            return false;
+
+        if (IsResurrectionObjectiveName(normalizedRecipeName) && (gameManager == null || gameManager.CurrentDay < ResurrectionObjectiveDay))
+            return false;
+
+        return true;
+    }
+
+    private Objective CreateObjectiveFromRecipe(Recipe recipe)
+    {
+        Objective objective = new Objective
+        {
+            potionDisplayName = recipe.potionName,
+            ingredients = new List<string>(recipe.ingredients),
+            missions = ShouldShowPreparationsForNextObjective()
+                ? CreatePreparationMissions(recipe)
+                : new List<Mission>(),
+            discovered = new List<bool>()
+        };
+
+        for (int i = 0; i < objective.ingredients.Count; i++)
+            objective.discovered.Add(false);
+
+        return objective;
+    }
+
+    private bool ShouldShowPreparationsForNextObjective()
+    {
+        return !hidePreparationsAfterFirstObjective || completedObjectiveCount == 0;
+    }
+
+    private static List<Mission> CreatePreparationMissions(Recipe recipe)
+    {
+        List<Mission> missions = new List<Mission>();
+        foreach (string ingredient in recipe.ingredients)
+        {
+            missions.Add(new Mission
+            {
+                missionText = ingredient,
+                type = MissionType.BuyItems,
+                completed = false
+            });
+        }
+
+        missions.Add(new Mission
+        {
+            missionText = "Brew potion",
+            type = MissionType.MergeItems,
+            completed = false
+        });
+
+        return missions;
+    }
+
+    private static bool IsCurrentObjectivePotion(Objective objective, string brewedPotionName)
+    {
+        if (objective == null || string.IsNullOrWhiteSpace(brewedPotionName))
+            return false;
+
+        string normalizedBrewed = NormalizeName(brewedPotionName);
+        string normalizedDisplay = NormalizeName(objective.potionDisplayName);
+
+        return normalizedBrewed == normalizedDisplay ||
+            normalizedBrewed == NormalizeName(objective.potionDisplayName + " Potion");
+    }
+
+    private static bool IsResurrectionObjectiveName(string normalizedPotionName)
+    {
+        return normalizedPotionName == "resurrection potion" ||
+            normalizedPotionName == "ultimate potion";
+    }
+
+    private void HideAllTaskRows()
+    {
+        foreach (TaskRow row in taskRows)
+            SetTaskRowVisible(row, false);
+    }
+
+    private static void SetTaskRowVisible(TaskRow row, bool visible)
+    {
+        if (row == null)
+            return;
+
+        if (row.taskText != null)
+            row.taskText.gameObject.SetActive(visible);
+
+        if (row.strikeLine != null)
+            row.strikeLine.SetActive(false);
+    }
+
+    private static string NormalizeName(string value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim().ToLowerInvariant();
     }
     #endregion
 }

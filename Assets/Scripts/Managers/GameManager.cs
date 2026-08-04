@@ -85,6 +85,13 @@ public class GameManager : MonoBehaviour
     private const int KnownRecipeColumns = 3;
     private const float MergeDissolveStart = -2f;
     private const float MergeDissolveEnd = 1f;
+    private const float ShopOpenVolume = 0.3f;
+    private const float PurchaseVolumeMultiplier = 0.5f;
+    private const float ItemPurchaseVolume = 0.3f;
+    private const float MysteriousVolumeMultiplier = 0.4f;
+    private const float BookOpenVolume = 0.5f;
+    private const string UltimatePotionRecipeName = "ultimate potion";
+    private const int CheatMenuSortingOrder = 32100;
 
     private HashSet<string> discoveredRecipes = new HashSet<string>();
     private HashSet<string> discoveredRecipeIngredientSlots = new HashSet<string>();
@@ -186,6 +193,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Color knownRecipeHerbColor = new Color(0.12f, 0.72f, 0.32f, 1f);
     [SerializeField] private Color knownRecipeGemColor = new Color(0.35f, 0.16f, 0.82f, 1f);
     [SerializeField] private Color knownRecipeUnknownProductColor = new Color(0.62f, 0.62f, 0.62f, 1f);
+    [Header("Ultimate Potion Recipe Highlight")]
+    [SerializeField] private Color ultimatePotionGlowColor = new Color(1f, 0.05f, 0.02f, 0.95f);
+    [SerializeField, Range(0f, 8f)] private float ultimatePotionGlowIntensity = 2.5f;
+    [SerializeField, Range(0f, 24f)] private float ultimatePotionGlowSpread = 7f;
 
     public static UnityAction<Sprite> OnItemBought;
     public static UnityAction OnSuccessfulMerge;
@@ -202,6 +213,9 @@ public class GameManager : MonoBehaviour
     private Market currentMarket;
     private bool isMergeAnimationPlaying = false;
     private bool craftingExitRequired;
+    private bool sellPromptUnlockedByMergeScreen;
+    private bool preserveSellPromptOnNextOpenSell;
+    private bool cheatWinCutsceneAfterResurrectionMerge;
     private Canvas purchaseCoinVfxCanvas;
     private CoroutineRunner purchaseCoinVfxRunner;
     private Sprite generatedPurchaseCoinSprite;
@@ -248,13 +262,56 @@ public class GameManager : MonoBehaviour
     [Header("Game Over Screen")]
     [SerializeField] private string gameOverText = "GAME OVER";
     [SerializeField] private Color gameOverTextColor = Color.red;
+    [SerializeField] private string gameWonText = "YOU WON!";
+    [SerializeField] private Color gameWonTextColor = new Color(0.72f, 1f, 0.78f, 1f);
+    [SerializeField] private string gameLostText = "YOU LOST";
+    [SerializeField] private Color gameLostTextColor = new Color(0.95f, 0.16f, 0.12f, 1f);
     [SerializeField] private float gameOverTextFontSize = 142f;
     [SerializeField] private string playAgainButtonText = "Play Again";
     [SerializeField] private Color playAgainButtonColor = new Color(0.12f, 0.02f, 0.02f, 0.92f);
     [SerializeField] private Color playAgainButtonTextColor = Color.white;
 
+    [Header("Cheat Menu")]
+    [SerializeField] private GameObject cheatMenuCanvasRoot;
+    [SerializeField] private GameObject cheatMenuRoot;
+    [SerializeField] private Button cheatAddCoinsButton;
+    [SerializeField] private Button cheatLetMeWinButton;
+    [SerializeField] private Button cheatIWantToLoseButton;
+    [SerializeField] private int cheatCoinsAmount = 500;
+    [SerializeField] private string cheatAddCoinsButtonText = "ADD 500 COINS";
+    [SerializeField] private string cheatLetMeWinButtonText = "LET ME WIN";
+    [SerializeField] private string cheatIWantToLoseButtonText = "I WANT TO LOSE";
+    [SerializeField] private string cheatWinPotionName = "Ultimate Potion";
+    [SerializeField] private string cheatWinPotionDescription = "A forbidden potion said to return a soul to the living world.";
+
+    [Header("Day 20 Outcome Cutscenes")]
+    [SerializeField] private GameObject day20CutsceneCanvasRoot;
+    [SerializeField] private GameObject day20WinCutsceneRoot;
+    [SerializeField] private GameObject day20WinPotionCloseupRoot;
+    [SerializeField] private GameObject day20WinGraveSpillRoot;
+    [SerializeField] private GameObject day20WinVivianShopRoot;
+    [SerializeField] private GameObject day20LoseCutsceneRoot;
+    [SerializeField] private float day20CutsceneFadeDuration = 0.55f;
+    [SerializeField] private float day20CutsceneHoldDuration = 4.5f;
+    [SerializeField] private float day20WinPotionCloseupHoldDuration = 3f;
+    [SerializeField] private float day20WinGraveSpillHoldDuration = 5f;
+    [SerializeField] private float day20WinVivianShopHoldDuration = 7f;
+    [SerializeField] private float day20WinStepFadeDuration = 0.45f;
+    [SerializeField] private string day20WinUnknownIdentityText = "Identity of revived subject: Unknown";
+    [SerializeField] private AudioClip day20WinAmbience;
+    [SerializeField] private AudioClip day20LoseAmbience;
+    [SerializeField, Range(0f, 1f)] private float day20AmbienceVolume = 0.7f;
+    [Header("Day 20 Lose Grave Zoom")]
+    [SerializeField] private Rect day20LoseStartView = new Rect(0.075f, 0.115f, 0.42f, 0.42f);
+    [SerializeField] private Rect day20LoseEndView = new Rect(0f, 0f, 1f, 1f);
+    [SerializeField] private float day20LoseZoomOutDuration = 4.2f;
+    [SerializeField] private Color day20LoseTint = new Color(0.58f, 0.64f, 0.78f, 1f);
+    [Tooltip("Any of these inventory item names count as the resurrection potion for the day 20 ending.")]
+    [SerializeField] private string[] resurrectionPotionNames = { "Resurrection Potion", "Ressuruction Potion", "Ultimate Potion" };
+
     private bool isEndingDay;
     private Canvas dayTransitionCanvas;
+    private AudioSource day20CutsceneAudioSource;
     private RectTransform sellPanelRightUiRect;
     private Image sellPanelRightUiImage;
     private RectTransform sellPanelInventoryButtonRect;
@@ -269,13 +326,18 @@ public class GameManager : MonoBehaviour
     }
 
     public ObjectiveManager objectiveManager;
+    public int CurrentDay => currentDay;
 
     public void OpenKnownRecipes()
     {
         if (knownRecipesPanel == null)
             return;
 
+        bool wasClosed = !knownRecipesPanel.activeSelf;
         knownRecipesPanel.SetActive(true);
+        if (wasClosed && ad != null)
+            ad.PlaySfx(BookOpenVolume, SFX.BookOpen, 1f);
+
         PopulateKnownRecipesUI();
     }
 
@@ -435,6 +497,9 @@ public class GameManager : MonoBehaviour
                 recipeBackground = obj.AddComponent<Image>();
             recipeBackground.color = new Color(0.12f, 0.08f, 0.04f, 0.16f);
             recipeBackground.raycastTarget = false;
+            Outline recipeBackgroundOutline = recipeBackground.GetComponent<Outline>();
+            if (recipeBackgroundOutline != null)
+                recipeBackgroundOutline.enabled = false;
 
             bool recipeDiscovered = discoveredRecipes.Contains(NormalizeName(recipe.potionName));
             Transform resultIconTransform = obj.transform.Find("ResultIcon");
@@ -446,6 +511,7 @@ public class GameManager : MonoBehaviour
                 resultIcon.enabled = true;
                 resultIcon.preserveAspect = recipeDiscovered;
                 resultIcon.raycastTarget = false;
+                ApplyUltimatePotionGlow(resultIcon, recipeDiscovered ? recipe : null);
 
                 RectTransform iconRect = resultIconTransform.GetComponent<RectTransform>();
                 iconRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -511,6 +577,23 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
+    }
+
+    private void ApplyUltimatePotionGlow(Graphic targetGraphic, Recipe recipe)
+    {
+        if (targetGraphic == null)
+            return;
+
+        Outline glow = targetGraphic.GetComponent<Outline>();
+        if (glow != null)
+            glow.enabled = false;
+
+        UltimatePotionAuraUtility.Apply(
+            targetGraphic as Image,
+            ShouldHighlightUltimatePotionRecipe(recipe),
+            GetUltimatePotionGlowColor(),
+            GetUltimatePotionGlowIntensity(),
+            GetUltimatePotionGlowSpread());
     }
 
     private void CreateKnownRecipeText(
@@ -611,6 +694,18 @@ public class GameManager : MonoBehaviour
             }
         }
 
+        if (recipes != null)
+        {
+            foreach (Recipe recipe in recipes)
+            {
+                if (recipe == null || NormalizeName(recipe.potionName) != normalizedIngredient)
+                    continue;
+
+                if (recipe.category == ItemCategory.Potion)
+                    return new Color(0.8f, 0.12f, 0.12f, 1f);
+            }
+        }
+
         return Color.gray;
     }
 
@@ -680,6 +775,28 @@ public class GameManager : MonoBehaviour
         return recipe != null && discoveredRecipes.Contains(NormalizeName(recipe.potionName));
     }
 
+    public bool ShouldHighlightUltimatePotionRecipe(Recipe recipe)
+    {
+        return recipe != null && NormalizeName(recipe.potionName) == UltimatePotionRecipeName;
+    }
+
+    public Color GetUltimatePotionGlowColor()
+    {
+        Color glowColor = ultimatePotionGlowColor;
+        glowColor.a = Mathf.Clamp01(glowColor.a);
+        return glowColor;
+    }
+
+    public float GetUltimatePotionGlowIntensity()
+    {
+        return ultimatePotionGlowIntensity;
+    }
+
+    public float GetUltimatePotionGlowSpread()
+    {
+        return ultimatePotionGlowSpread;
+    }
+
     public bool IsRecipeIngredientSlotDiscovered(Recipe recipe, int ingredientIndex)
     {
         if (recipe == null || ingredientIndex < 0 || ingredientIndex >= recipe.ingredients.Count)
@@ -733,6 +850,11 @@ public class GameManager : MonoBehaviour
     // ------------------- START -------------------
     void Start()
     {
+        // The scene's serialized AudioManager is destroyed when a persistent
+        // singleton already exists after Play Again. Always use the survivor.
+        if (AudioManager.Instance != null)
+            ad = AudioManager.Instance;
+
         ApplyDayNightCycleUISettings();
         DayNightCycleUI.SetPhase(dayNightStartingPhase, true);
         FamilyMarketUI.Attach(this);
@@ -790,7 +912,7 @@ public class GameManager : MonoBehaviour
         //marketPanel.SetActive(false);
         itemsPanel.SetActive(true);
         EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
-        ad.PlaySfx(vol, SFX.EnteredShop, pitch);
+        ad.PlaySfx(ShopOpenVolume, SFX.EnteredShop, 1f);
 
         ClearChildren(itemsButtonsParent);
 
@@ -866,7 +988,8 @@ public class GameManager : MonoBehaviour
         UpdateCoinsUI();
         ShowFloatingCoins(-item.price);
         PlayPurchaseCoinBurst();
-        ad.PlaySfx(vol, SFX.Buying, pitch);
+        ad.PlaySfx(vol * PurchaseVolumeMultiplier, SFX.Buying, pitch);
+        ad.PlaySfx(ItemPurchaseVolume, GetItemPurchaseSfx(item.category), 1f);
 
         OnItemBought?.Invoke(item.icon);
         objectiveManager.UpdateTasksFromInventory(GetInventoryItems());
@@ -884,6 +1007,25 @@ public class GameManager : MonoBehaviour
         }
 
         return null;
+    }
+
+    private SFX GetItemPurchaseSfx(ItemCategory category)
+    {
+        switch (category)
+        {
+            case ItemCategory.Oils:
+                return SFX.ShopOils;
+            case ItemCategory.Gems:
+                return SFX.ShopGems;
+            case ItemCategory.Herbs:
+                return SFX.ShopHerbs;
+            case ItemCategory.Potion:
+                return SFX.MergePotion;
+            case ItemCategory.Junk:
+                return SFX.JunkMerge;
+            default:
+                return SFX.Buying;
+        }
     }
 
     public int GetMarketStock(MarketItem item)
@@ -940,8 +1082,9 @@ public class GameManager : MonoBehaviour
 
             if (sellPanelRightUiImage != null)
             {
-                sellPanelRightUiImage.sprite = LoadSellerRightUiSprite();
-                sellPanelRightUiImage.color = Color.white;
+                if (sellPanelRightUiImage.sprite == null)
+                    sellPanelRightUiImage.sprite = LoadSellerRightUiSprite();
+
                 sellPanelRightUiImage.preserveAspect = true;
                 sellPanelRightUiImage.raycastTarget = false;
             }
@@ -987,6 +1130,45 @@ public class GameManager : MonoBehaviour
             binder.SetGameManager(this);
             binder.Refresh();
         }
+
+        EnsureSellPanelCraftButtonClickable();
+    }
+
+    private void EnsureSellPanelCraftButtonClickable()
+    {
+        if (sellPanel == null)
+            return;
+
+        Transform craftButtonTransform = FindDeepChild(sellPanel.transform, "CraftItemsButton");
+        if (craftButtonTransform == null)
+            return;
+
+        Button craftButton = craftButtonTransform.GetComponent<Button>();
+        if (craftButton == null)
+            return;
+
+        Canvas craftCanvas = craftButtonTransform.GetComponent<Canvas>();
+        if (craftCanvas == null)
+            craftCanvas = craftButtonTransform.gameObject.AddComponent<Canvas>();
+
+        craftCanvas.overrideSorting = true;
+
+        int minimumSortingOrder = 151;
+        Canvas rightPanelCanvas = sellPanelRightUiRect != null ? sellPanelRightUiRect.GetComponent<Canvas>() : null;
+        if (rightPanelCanvas != null && rightPanelCanvas.overrideSorting)
+            minimumSortingOrder = Mathf.Max(minimumSortingOrder, rightPanelCanvas.sortingOrder + 10);
+
+        if (craftCanvas.sortingOrder < minimumSortingOrder)
+            craftCanvas.sortingOrder = minimumSortingOrder;
+
+        if (craftButtonTransform.GetComponent<GraphicRaycaster>() == null)
+            craftButtonTransform.gameObject.AddComponent<GraphicRaycaster>();
+
+        Graphic targetGraphic = craftButton.targetGraphic;
+        if (targetGraphic != null)
+            targetGraphic.raycastTarget = true;
+
+        craftButton.interactable = true;
     }
 
 #if UNITY_EDITOR
@@ -1137,6 +1319,7 @@ public class GameManager : MonoBehaviour
     public void OpenCrafting()
     {
         craftingExitRequired = true;
+        sellPromptUnlockedByMergeScreen = false;
 
         if (endDayButton != null)
             endDayButton.interactable = false;
@@ -1159,8 +1342,7 @@ public class GameManager : MonoBehaviour
 
         foreach (InventoryItem item in inventory)
         {
-            if (item.count <= 0) continue;
-            if (IsRecipeItem(item.itemName)) continue;
+            if (!CanUseAsCraftingIngredient(item)) continue;
 
             GameObject btn = Instantiate(buttonPrefab, craftingItemsParent);
 
@@ -1180,6 +1362,38 @@ public class GameManager : MonoBehaviour
 
             btn.GetComponent<Button>().onClick.AddListener(() => SelectCraftingItem(item));
         }
+    }
+
+    private bool CanUseAsCraftingIngredient(InventoryItem item)
+    {
+        if (item == null || item.count <= 0)
+            return false;
+
+        if (!IsRecipeItem(item.itemName))
+            return true;
+
+        return IsIngredientInAnyRecipe(item.itemName);
+    }
+
+    private bool IsIngredientInAnyRecipe(string itemName)
+    {
+        string cleanedItemName = NormalizeName(itemName);
+        if (recipes == null)
+            return false;
+
+        foreach (Recipe recipe in recipes)
+        {
+            if (recipe == null || recipe.ingredients == null)
+                continue;
+
+            for (int i = 0; i < recipe.ingredients.Count; i++)
+            {
+                if (NormalizeName(recipe.ingredients[i]) == cleanedItemName)
+                    return true;
+            }
+        }
+
+        return false;
     }
 
     bool IsRecipeItem(string itemName)
@@ -1442,6 +1656,7 @@ public class GameManager : MonoBehaviour
     private void CraftSelectedItems()
     {
         bool craftedSomething = false;
+        string craftedPotionName = null;
 
         foreach (Recipe recipe in recipes)
         {
@@ -1475,10 +1690,11 @@ public class GameManager : MonoBehaviour
 
             if (match)
             {
-                ad.PlaySfx(vol, SFX.MergePotion, pitch);
+                ad.PlaySfx(vol * MysteriousVolumeMultiplier, SFX.MergePotion, pitch);
                 AddToInventory(recipe.potionName, recipe.category, "", recipe.icon);
                 DiscoverRecipe(recipe);
                 craftedSomething = true;
+                craftedPotionName = recipe.potionName;
                 OnSuccessfulMerge?.Invoke();
                 break;
             }
@@ -1496,7 +1712,17 @@ public class GameManager : MonoBehaviour
         RefreshSelectedItemsUI();
         RefreshCraftingUI();
         PopulateInventoryPanel();
-        FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.MergeItems);
+        UnlockSellPromptAfterMergeScreen();
+
+        ObjectiveManager manager = FindFirstObjectByType<ObjectiveManager>();
+        if (manager != null && !string.IsNullOrWhiteSpace(craftedPotionName))
+            manager.CompleteBrewedPotion(craftedPotionName);
+
+        if (cheatWinCutsceneAfterResurrectionMerge && !string.IsNullOrWhiteSpace(craftedPotionName) && IsResurrectionPotionName(craftedPotionName))
+        {
+            cheatWinCutsceneAfterResurrectionMerge = false;
+            StartCoroutine(ShowCheatWinCutsceneAfterMergeRoutine());
+        }
     }
 
     public void CancelCrafting()
@@ -1515,6 +1741,7 @@ public class GameManager : MonoBehaviour
         RefreshSelectedItemsUI();
         RefreshCraftingUI();
         PopulateInventoryPanel();
+        UnlockSellPromptAfterMergeScreen();
     }
 
     void ReturnCraftingItemsToInventory()
@@ -1555,6 +1782,16 @@ public class GameManager : MonoBehaviour
         if (endDayButton != null)
             endDayButton.interactable = false;
 
+        if (preserveSellPromptOnNextOpenSell)
+        {
+            sellPromptUnlockedByMergeScreen = true;
+            preserveSellPromptOnNextOpenSell = false;
+        }
+        else
+        {
+            sellPromptUnlockedByMergeScreen = false;
+        }
+
         DayNightCycleUI.SetPhase(DayNightPhase.Evening);
 
         marketPanel.SetActive(false);
@@ -1594,9 +1831,13 @@ public class GameManager : MonoBehaviour
     public void RefreshSellUI()
     {
         ClearChildren(sellItemsParent);
+        SetSellPromptVisible(sellPromptUnlockedByMergeScreen && HasInventoryItemsForSale());
 
         foreach (InventoryItem item in inventory)
         {
+            if (item == null || item.count <= 0)
+                continue;
+
             GameObject btn = Instantiate(buttonPrefab, sellItemsParent);
 
             var tooltip = btn.GetComponent<ItemHoverTooltip>();
@@ -1644,6 +1885,59 @@ public class GameManager : MonoBehaviour
             }
         }
     }
+
+    private bool HasInventoryItemsForSale()
+    {
+        foreach (InventoryItem item in inventory)
+        {
+            if (item != null && item.count > 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void UnlockSellPromptAfterMergeScreen()
+    {
+        sellPromptUnlockedByMergeScreen = true;
+        preserveSellPromptOnNextOpenSell = true;
+        if (sellPanel != null && sellPanel.activeInHierarchy)
+            RefreshSellUI();
+    }
+
+    private bool IsSellableMergedProduct(InventoryItem item)
+    {
+        return item != null &&
+            item.count > 0 &&
+            (item.category == ItemCategory.Potion || item.category == ItemCategory.Junk);
+    }
+
+    private void SetSellPromptVisible(bool visible)
+    {
+        Transform sellText = FindChildRecursive(sellPanel != null ? sellPanel.transform : null, "SellText");
+        if (sellText != null && sellText.gameObject.activeSelf != visible)
+            sellText.gameObject.SetActive(visible);
+    }
+
+    private static Transform FindChildRecursive(Transform root, string childName)
+    {
+        if (root == null)
+            return null;
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child.name == childName)
+                return child;
+
+            Transform found = FindChildRecursive(child, childName);
+            if (found != null)
+                return found;
+        }
+
+        return null;
+    }
+
     void OnPriceSliderChanged(float value)
     {
         int price = Mathf.RoundToInt(value);
@@ -1710,6 +2004,7 @@ public class GameManager : MonoBehaviour
             inventoryButton.interactable = true;
 
         OnItemAdded?.Invoke(name, category);
+        RefreshInventoryDependentUI();
     }
 
     void RemoveFromInventory(string name)
@@ -1719,6 +2014,20 @@ public class GameManager : MonoBehaviour
 
         existing.count--;
         if (existing.count <= 0) inventory.Remove(existing);
+
+        RefreshInventoryDependentUI();
+    }
+
+    private void RefreshInventoryDependentUI()
+    {
+        if (sellPanel != null && sellPanel.activeInHierarchy && sellItemsParent != null)
+            RefreshSellUI();
+
+        if (inventoryPanel != null && inventoryPanel.activeInHierarchy)
+            PopulateInventoryPanel();
+
+        SellPanelRightUIBinder.RefreshVisible();
+        FamilyMarketUI.RefreshIfVisible();
     }
     public void UpdateCoinsUI()
     {
@@ -1800,13 +2109,728 @@ public class GameManager : MonoBehaviour
 
         if (reachedGameOverDay)
         {
-            ShowGameOverScreen();
+            yield return ShowDay20OutcomeCutsceneRoutine();
             isEndingDay = false;
             yield break;
         }
 
         DestroyDayTransitionCanvas();
         isEndingDay = false;
+    }
+
+    [ContextMenu("Build / Refresh Day 20 Cutscenes")]
+    public void BuildDay20CutscenesEditablePreview()
+    {
+        EnsureDay20CutsceneObjects(false);
+
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+#endif
+    }
+
+    private IEnumerator ShowDay20OutcomeCutsceneRoutine(bool? forcedPlayerWon = null)
+    {
+        bool playerWon = forcedPlayerWon ?? HasResurrectionPotionInInventory();
+        EnsureDay20CutsceneObjects(true);
+
+        GameObject selectedRoot = playerWon ? day20WinCutsceneRoot : day20LoseCutsceneRoot;
+        GameObject otherRoot = playerWon ? day20LoseCutsceneRoot : day20WinCutsceneRoot;
+
+        if (day20CutsceneCanvasRoot != null)
+            day20CutsceneCanvasRoot.SetActive(true);
+
+        SetCutsceneVisible(otherRoot, false, 0f);
+
+        CanvasGroup selectedGroup = SetCutsceneVisible(selectedRoot, true, 0f);
+        AudioManager.Instance?.FadeOutMusic(day20CutsceneFadeDuration);
+        PlayDay20Ambience(playerWon);
+
+        if (selectedGroup != null)
+        {
+            if (playerWon)
+            {
+                yield return PlayDay20WinSequenceRoutine(selectedGroup);
+            }
+            else
+            {
+                yield return PlayDay20LoseZoomRoutine(selectedRoot, selectedGroup);
+            }
+
+            yield return FadeCanvasGroup(selectedGroup, 1f, 0f, day20CutsceneFadeDuration);
+        }
+        else
+        {
+            yield return new WaitForSecondsRealtime(day20CutsceneHoldDuration);
+        }
+
+        StopDay20Ambience();
+        SetCutsceneVisible(selectedRoot, false, 0f);
+
+        if (day20CutsceneCanvasRoot != null)
+            day20CutsceneCanvasRoot.SetActive(false);
+
+        ShowGameOverScreen(playerWon);
+    }
+
+    private bool HasResurrectionPotionInInventory()
+    {
+        if (inventory == null || resurrectionPotionNames == null)
+            return false;
+
+        for (int i = 0; i < inventory.Count; i++)
+        {
+            InventoryItem item = inventory[i];
+            if (item == null || item.count <= 0)
+                continue;
+
+            string itemName = NormalizeName(item.itemName);
+            for (int j = 0; j < resurrectionPotionNames.Length; j++)
+            {
+                if (itemName == NormalizeName(resurrectionPotionNames[j]))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void EnsureDay20CutsceneObjects(bool runtime)
+    {
+        Canvas canvas = EnsureDay20CutsceneCanvas(runtime);
+        if (canvas == null)
+            return;
+
+        day20WinCutsceneRoot = EnsureDay20CutsceneRoot(
+            canvas.transform,
+            day20WinCutsceneRoot,
+            "Day 20 Win Cutscene",
+            null,
+            "",
+            "");
+
+        day20WinPotionCloseupRoot = EnsureDay20PotionCloseupStepRoot(
+            day20WinCutsceneRoot.transform,
+            day20WinPotionCloseupRoot,
+            "01 Finished Potion Closeup");
+
+        day20WinGraveSpillRoot = EnsureDay20CutsceneStepRoot(
+            day20WinCutsceneRoot.transform,
+            day20WinGraveSpillRoot,
+            "02 Potion Into Grave",
+            "Cinematics/Day20WinPotionGraveSpill");
+
+        day20WinVivianShopRoot = EnsureDay20CutsceneStepRoot(
+            day20WinCutsceneRoot.transform,
+            day20WinVivianShopRoot,
+            "03 Vivian In Shop Unknown",
+            "Cinematics/Day20WinVivianShopUnknown");
+
+        EnsureWinOutcomeNewspaper(day20WinVivianShopRoot != null ? day20WinVivianShopRoot.transform : null);
+
+        day20LoseCutsceneRoot = EnsureDay20CutsceneRoot(
+            canvas.transform,
+            day20LoseCutsceneRoot,
+            "Day 20 Lose Cutscene",
+            "Cinematics/OpeningCemetery",
+            "",
+            "");
+    }
+
+    private Canvas EnsureDay20CutsceneCanvas(bool runtime)
+    {
+        if (day20CutsceneCanvasRoot == null)
+            day20CutsceneCanvasRoot = GameObject.Find("Day 20 Outcome Cutscenes Canvas");
+
+        bool created = false;
+        if (day20CutsceneCanvasRoot == null)
+        {
+            day20CutsceneCanvasRoot = new GameObject(
+                "Day 20 Outcome Cutscenes Canvas",
+                typeof(RectTransform),
+                typeof(Canvas),
+                typeof(CanvasScaler),
+                typeof(GraphicRaycaster),
+                typeof(CanvasGroup));
+            created = true;
+        }
+
+        Canvas canvas = day20CutsceneCanvasRoot.GetComponent<Canvas>();
+        if (canvas == null)
+            canvas = day20CutsceneCanvasRoot.AddComponent<Canvas>();
+
+        CanvasScaler scaler = day20CutsceneCanvasRoot.GetComponent<CanvasScaler>();
+        if (scaler == null)
+            scaler = day20CutsceneCanvasRoot.AddComponent<CanvasScaler>();
+
+        if (day20CutsceneCanvasRoot.GetComponent<GraphicRaycaster>() == null)
+            day20CutsceneCanvasRoot.AddComponent<GraphicRaycaster>();
+
+        if (day20CutsceneCanvasRoot.GetComponent<CanvasGroup>() == null)
+            day20CutsceneCanvasRoot.AddComponent<CanvasGroup>();
+
+        if (created)
+        {
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 31950;
+
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+            day20CutsceneCanvasRoot.SetActive(!runtime);
+        }
+
+        return canvas;
+    }
+
+    private GameObject EnsureDay20CutsceneRoot(
+        Transform canvasRoot,
+        GameObject assignedRoot,
+        string rootName,
+        string resourceTexturePath,
+        string defaultTitle,
+        string defaultBody)
+    {
+        GameObject root = assignedRoot;
+        if (root == null)
+        {
+            Transform found = FindDeepChild(canvasRoot, rootName);
+            if (found != null)
+                root = found.gameObject;
+        }
+
+        bool created = false;
+        if (root == null)
+        {
+            root = new GameObject(rootName, typeof(RectTransform), typeof(CanvasGroup));
+            root.transform.SetParent(canvasRoot, false);
+            created = true;
+        }
+
+        RectTransform rect = root.GetComponent<RectTransform>();
+        if (rect == null)
+            rect = root.AddComponent<RectTransform>();
+
+        if (created)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            if (!string.IsNullOrWhiteSpace(resourceTexturePath))
+                CreateCutsceneBackground(root.transform, resourceTexturePath);
+            if (!string.IsNullOrWhiteSpace(defaultTitle))
+                CreateCutsceneText(root.transform, "Cutscene Title", defaultTitle, new Vector2(0f, 345f), new Vector2(1180f, 150f), 86f);
+            if (!string.IsNullOrWhiteSpace(defaultBody))
+                CreateCutsceneText(root.transform, "Cutscene Caption", defaultBody, new Vector2(0f, -385f), new Vector2(1250f, 120f), 34f);
+            root.SetActive(false);
+        }
+
+        CanvasGroup group = root.GetComponent<CanvasGroup>();
+        if (group == null)
+            group = root.AddComponent<CanvasGroup>();
+
+        return root;
+    }
+
+    private GameObject EnsureDay20CutsceneStepRoot(
+        Transform parent,
+        GameObject assignedRoot,
+        string rootName,
+        string resourceTexturePath)
+    {
+        if (parent == null)
+            return assignedRoot;
+
+        GameObject root = assignedRoot;
+        if (root == null)
+        {
+            Transform found = FindDeepChild(parent, rootName);
+            if (found != null)
+                root = found.gameObject;
+        }
+
+        bool created = false;
+        if (root == null)
+        {
+            root = new GameObject(rootName, typeof(RectTransform), typeof(CanvasGroup));
+            root.transform.SetParent(parent, false);
+            created = true;
+        }
+
+        RectTransform rect = root.GetComponent<RectTransform>();
+        if (rect == null)
+            rect = root.AddComponent<RectTransform>();
+
+        CanvasGroup group = root.GetComponent<CanvasGroup>();
+        if (group == null)
+            group = root.AddComponent<CanvasGroup>();
+
+        if (created)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            CreateCutsceneBackground(root.transform, resourceTexturePath);
+            root.SetActive(false);
+        }
+
+        return root;
+    }
+
+    private GameObject EnsureDay20PotionCloseupStepRoot(Transform parent, GameObject assignedRoot, string rootName)
+    {
+        GameObject root = EnsureDay20CutsceneStepRoot(parent, assignedRoot, rootName, null);
+        if (root == null)
+            return null;
+
+        HideGeneratedPotionCloseupBackground(root);
+
+        Transform existingBackdrop = FindDeepChild(root.transform, "Editable Potion Backdrop");
+        Image backdrop = existingBackdrop != null ? existingBackdrop.GetComponent<Image>() : null;
+        if (backdrop == null)
+        {
+            backdrop = CreateOverlayImage("Editable Potion Backdrop", root.transform, new Color(0.46f, 0.46f, 0.46f, 1f));
+            backdrop.raycastTarget = false;
+        }
+        else
+        {
+            backdrop.color = new Color(0.46f, 0.46f, 0.46f, 1f);
+        }
+
+        Transform existingPotion = FindDeepChild(root.transform, "Editable Resurrection Potion PNG");
+        if (existingPotion != null)
+        {
+            RawImage existingImage = existingPotion.GetComponent<RawImage>();
+            if (existingImage != null)
+                existingImage.texture = Resources.Load<Texture2D>("Cinematics/Day20WinPoisonPotion");
+
+            RectTransform existingRect = existingPotion as RectTransform;
+            if (existingRect != null && existingRect.sizeDelta == new Vector2(560f, 840f))
+                existingRect.sizeDelta = new Vector2(920f, 920f);
+
+            return root;
+        }
+
+        GameObject potionObject = new GameObject("Editable Resurrection Potion PNG", typeof(RectTransform));
+        potionObject.transform.SetParent(root.transform, false);
+
+        RectTransform rect = potionObject.GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = new Vector2(0f, -8f);
+        rect.sizeDelta = new Vector2(920f, 920f);
+
+        RawImage potionImage = potionObject.AddComponent<RawImage>();
+        potionImage.texture = Resources.Load<Texture2D>("Cinematics/Day20WinPoisonPotion");
+        potionImage.color = Color.white;
+        potionImage.raycastTarget = false;
+
+        return root;
+    }
+
+    private void HideGeneratedPotionCloseupBackground(GameObject root)
+    {
+        if (root == null)
+            return;
+
+        RawImage[] images = root.GetComponentsInChildren<RawImage>(true);
+        for (int i = 0; i < images.Length; i++)
+        {
+            RawImage image = images[i];
+            if (image != null && image.texture != null && image.texture.name == "Day20WinPotionCloseup")
+                image.gameObject.SetActive(false);
+        }
+    }
+
+    private void EnsureWinOutcomeNewspaper(Transform parent)
+    {
+        if (parent == null)
+            return;
+
+        Transform oldFloatingText = parent.Find("Unknown Identity Text");
+        if (oldFloatingText != null)
+            oldFloatingText.gameObject.SetActive(false);
+
+        Transform existingPaper = FindDeepChild(parent, "Editable Revival Newspaper");
+        if (existingPaper != null)
+            return;
+
+        GameObject newspaperObject = new GameObject("Editable Revival Newspaper", typeof(RectTransform), typeof(CanvasGroup));
+        newspaperObject.transform.SetParent(parent, false);
+
+        RectTransform paperRect = newspaperObject.GetComponent<RectTransform>();
+        paperRect.anchorMin = new Vector2(0.5f, 0.5f);
+        paperRect.anchorMax = new Vector2(0.5f, 0.5f);
+        paperRect.pivot = new Vector2(0.5f, 0.5f);
+        paperRect.anchoredPosition = new Vector2(520f, -10f);
+        paperRect.sizeDelta = new Vector2(560f, 690f);
+        paperRect.localRotation = Quaternion.Euler(0f, 0f, -1.5f);
+
+        CanvasGroup group = newspaperObject.GetComponent<CanvasGroup>();
+        group.alpha = 1f;
+        group.blocksRaycasts = false;
+
+        Image paper = newspaperObject.AddComponent<Image>();
+        paper.sprite = CreateCleanNewspaperPaperSprite(560, 690);
+        paper.type = Image.Type.Simple;
+        paper.raycastTarget = false;
+
+        Shadow shadow = newspaperObject.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0f, 0f, 0f, 0.48f);
+        shadow.effectDistance = new Vector2(12f, -12f);
+
+        TMP_Text masthead = CreateCutsceneText(
+            newspaperObject.transform,
+            "Newspaper Masthead",
+            "THE VOODOO GAZETTE",
+            new Vector2(0f, 286f),
+            new Vector2(480f, 54f),
+            38f);
+        masthead.color = new Color(0.13f, 0.08f, 0.035f, 1f);
+        masthead.fontStyle = FontStyles.SmallCaps | FontStyles.Bold;
+
+        Image topRule = CreateNewspaperRule(newspaperObject.transform, "Top Rule", new Vector2(0f, 250f), new Vector2(472f, 4f));
+        topRule.color = new Color(0.17f, 0.1f, 0.045f, 1f);
+
+        TMP_Text issue = CreateCutsceneText(
+            newspaperObject.transform,
+            "Newspaper Issue Line",
+            "No. 20        New Bordeaux        Price: 5 Cents",
+            new Vector2(0f, 228f),
+            new Vector2(460f, 28f),
+            16f);
+        issue.color = new Color(0.17f, 0.1f, 0.045f, 1f);
+        issue.fontStyle = FontStyles.Normal;
+
+        TMP_Text label = CreateCutsceneText(
+            newspaperObject.transform,
+            "Main Headline",
+            day20WinUnknownIdentityText,
+            new Vector2(0f, 128f),
+            new Vector2(478f, 128f),
+            42f);
+        label.color = new Color(0.08f, 0.055f, 0.028f, 1f);
+        label.fontStyle = FontStyles.Bold;
+        label.alignment = TextAlignmentOptions.Center;
+
+        Image headlineRule = CreateNewspaperRule(newspaperObject.transform, "Headline Rule", new Vector2(0f, 45f), new Vector2(448f, 4f));
+        headlineRule.color = new Color(0.17f, 0.1f, 0.045f, 1f);
+
+        TMP_Text flavor = CreateCutsceneText(
+            newspaperObject.transform,
+            "Flavor Text",
+            "POTION WORKS!\nWE CAN REVIVE!\n\nWitnesses report impossible movement after the forbidden brew touched the grave soil.",
+            new Vector2(0f, -104f),
+            new Vector2(440f, 210f),
+            25f);
+        flavor.color = new Color(0.14f, 0.08f, 0.035f, 1f);
+        flavor.fontStyle = FontStyles.Bold;
+        flavor.alignment = TextAlignmentOptions.Center;
+    }
+
+    private void CreateCutsceneBackground(Transform parent, string resourceTexturePath)
+    {
+        GameObject imageObject = new GameObject("Editable Background Image", typeof(RectTransform));
+        imageObject.transform.SetParent(parent, false);
+
+        RectTransform rect = imageObject.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        RawImage image = imageObject.AddComponent<RawImage>();
+        image.texture = Resources.Load<Texture2D>(resourceTexturePath);
+        image.color = Color.white;
+        image.raycastTarget = false;
+    }
+
+    private Image CreateNewspaperRule(Transform parent, string objectName, Vector2 position, Vector2 size)
+    {
+        Image rule = CreateOverlayImage(objectName, parent, new Color(0.17f, 0.1f, 0.045f, 1f));
+        RectTransform rect = rule.rectTransform;
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+        return rule;
+    }
+
+    private static Sprite CreateCleanNewspaperPaperSprite(int width, int height)
+    {
+        Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        texture.name = "Generated Clean Revival Newspaper";
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
+
+        Color baseColor = new Color32(198, 174, 132, 255);
+        Color stainColor = new Color32(121, 88, 50, 255);
+        Color edgeColor = new Color32(82, 60, 38, 255);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float nx = x / (float)(width - 1);
+                float ny = y / (float)(height - 1);
+                float edgeDistance = Mathf.Min(Mathf.Min(x, width - 1 - x), Mathf.Min(y, height - 1 - y));
+                float grain = Mathf.PerlinNoise(x * 0.036f, y * 0.036f);
+                float fibers = Mathf.PerlinNoise(x * 0.12f, y * 0.018f);
+                float stain = Mathf.PerlinNoise(x * 0.011f + 17f, y * 0.012f + 31f);
+                float vignette = Mathf.Clamp01(1f - edgeDistance / 82f);
+
+                Color color = baseColor;
+                color *= Mathf.Lerp(0.91f, 1.07f, grain);
+                color = Color.Lerp(color, new Color32(230, 208, 164, 255), fibers * 0.14f);
+                color = Color.Lerp(color, stainColor, Mathf.Clamp01((stain - 0.58f) * 1.55f) * 0.22f);
+                color = Color.Lerp(color, edgeColor, vignette * 0.36f);
+
+                float crease = Mathf.Clamp01(1f - Mathf.Abs(nx - 0.5f) / 0.014f) * 0.055f;
+                color = Color.Lerp(color, edgeColor, crease);
+                color.a = 1f;
+                texture.SetPixel(x, y, color);
+            }
+        }
+
+        texture.Apply();
+        return Sprite.Create(texture, new Rect(0f, 0f, width, height), new Vector2(0.5f, 0.5f), 100f);
+    }
+
+    private TMP_Text CreateCutsceneText(Transform parent, string objectName, string text, Vector2 position, Vector2 size, float fontSize)
+    {
+        GameObject textObject = new GameObject(objectName, typeof(RectTransform));
+        textObject.transform.SetParent(parent, false);
+
+        TextMeshProUGUI label = textObject.AddComponent<TextMeshProUGUI>();
+        label.text = text;
+        label.color = Color.white;
+        label.fontSize = fontSize;
+        label.fontStyle = FontStyles.Bold;
+        label.alignment = TextAlignmentOptions.Center;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 18f;
+        label.fontSizeMax = fontSize;
+        label.raycastTarget = false;
+
+        RectTransform rect = label.rectTransform;
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+
+        return label;
+    }
+
+    private CanvasGroup SetCutsceneVisible(GameObject root, bool visible, float alpha)
+    {
+        if (root == null)
+            return null;
+
+        root.SetActive(visible);
+        CanvasGroup group = root.GetComponent<CanvasGroup>();
+        if (group == null)
+            group = root.AddComponent<CanvasGroup>();
+
+        group.alpha = alpha;
+        group.interactable = visible;
+        group.blocksRaycasts = visible;
+        return group;
+    }
+
+    private void PlayDay20Ambience(bool playerWon)
+    {
+        AudioClip clip = playerWon ? day20WinAmbience : day20LoseAmbience;
+        if (clip == null)
+            return;
+
+        if (day20CutsceneAudioSource == null)
+            day20CutsceneAudioSource = gameObject.AddComponent<AudioSource>();
+
+        day20CutsceneAudioSource.clip = clip;
+        day20CutsceneAudioSource.loop = true;
+        day20CutsceneAudioSource.volume = day20AmbienceVolume;
+        day20CutsceneAudioSource.Play();
+    }
+
+    private void StopDay20Ambience()
+    {
+        if (day20CutsceneAudioSource == null)
+            return;
+
+        day20CutsceneAudioSource.Stop();
+        day20CutsceneAudioSource.clip = null;
+    }
+
+    private IEnumerator PlayDay20WinSequenceRoutine(CanvasGroup rootGroup)
+    {
+        if (rootGroup != null)
+            rootGroup.alpha = 1f;
+
+        HideLegacyDirectWinRootVisuals();
+
+        GameObject[] steps =
+        {
+            day20WinPotionCloseupRoot,
+            day20WinGraveSpillRoot,
+            day20WinVivianShopRoot
+        };
+        float[] holds =
+        {
+            day20WinPotionCloseupHoldDuration,
+            day20WinGraveSpillHoldDuration,
+            day20WinVivianShopHoldDuration
+        };
+
+        CanvasGroup previousGroup = null;
+        GameObject previousStep = null;
+
+        for (int i = 0; i < steps.Length; i++)
+        {
+            GameObject step = steps[i];
+            CanvasGroup stepGroup = SetCutsceneVisible(step, true, 0f);
+            if (stepGroup == null)
+                continue;
+
+            if (previousGroup == null)
+            {
+                yield return FadeCanvasGroup(stepGroup, 0f, 1f, day20WinStepFadeDuration);
+            }
+            else
+            {
+                yield return CrossfadeCanvasGroups(
+                    previousGroup,
+                    stepGroup,
+                    day20WinStepFadeDuration);
+                SetCutsceneVisible(previousStep, false, 0f);
+            }
+
+            yield return new WaitForSecondsRealtime(Mathf.Max(0f, holds[i]));
+            previousGroup = stepGroup;
+            previousStep = step;
+        }
+    }
+
+    private IEnumerator CrossfadeCanvasGroups(CanvasGroup outgoing, CanvasGroup incoming, float duration)
+    {
+        if (outgoing == null || incoming == null || duration <= 0f)
+        {
+            if (outgoing != null)
+                outgoing.alpha = 0f;
+            if (incoming != null)
+                incoming.alpha = 1f;
+            yield break;
+        }
+
+        incoming.alpha = 0f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            float smoothProgress = progress * progress * (3f - 2f * progress);
+            outgoing.alpha = 1f - smoothProgress;
+            incoming.alpha = smoothProgress;
+            yield return null;
+        }
+
+        outgoing.alpha = 0f;
+        incoming.alpha = 1f;
+    }
+
+    private void HideLegacyDirectWinRootVisuals()
+    {
+        if (day20WinCutsceneRoot == null)
+            return;
+
+        for (int i = 0; i < day20WinCutsceneRoot.transform.childCount; i++)
+        {
+            Transform child = day20WinCutsceneRoot.transform.GetChild(i);
+            if (child == null ||
+                child == day20WinPotionCloseupRoot?.transform ||
+                child == day20WinGraveSpillRoot?.transform ||
+                child == day20WinVivianShopRoot?.transform)
+            {
+                continue;
+            }
+
+            if (child.GetComponent<RawImage>() != null || child.GetComponent<TMP_Text>() != null)
+                child.gameObject.SetActive(false);
+        }
+    }
+
+    private IEnumerator PlayDay20LoseZoomRoutine(GameObject root, CanvasGroup group)
+    {
+        RawImage background = FindCutsceneBackground(root);
+        if (background == null)
+        {
+            yield return FadeCanvasGroup(group, 0f, 1f, day20CutsceneFadeDuration);
+            yield return new WaitForSecondsRealtime(day20CutsceneHoldDuration);
+            yield break;
+        }
+
+        Texture2D cemeteryTexture = Resources.Load<Texture2D>("Cinematics/OpeningCemetery");
+        if (cemeteryTexture != null)
+            background.texture = cemeteryTexture;
+
+        background.color = day20LoseTint;
+        background.uvRect = day20LoseStartView;
+
+        yield return FadeCanvasGroup(group, 0f, 1f, day20CutsceneFadeDuration);
+
+        float elapsed = 0f;
+        float duration = Mathf.Max(0.01f, day20LoseZoomOutDuration);
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress = SmoothStep01(elapsed / duration);
+            background.uvRect = LerpRect(day20LoseStartView, day20LoseEndView, progress);
+            yield return null;
+        }
+
+        background.uvRect = day20LoseEndView;
+
+        float remainingHold = Mathf.Max(0f, day20CutsceneHoldDuration - duration);
+        if (remainingHold > 0f)
+            yield return new WaitForSecondsRealtime(remainingHold);
+    }
+
+    private RawImage FindCutsceneBackground(GameObject root)
+    {
+        if (root == null)
+            return null;
+
+        RawImage[] images = root.GetComponentsInChildren<RawImage>(true);
+        for (int i = 0; i < images.Length; i++)
+        {
+            if (images[i].name == "Editable Background Image")
+                return images[i];
+        }
+
+        return images.Length > 0 ? images[0] : null;
+    }
+
+    private static Rect LerpRect(Rect from, Rect to, float progress)
+    {
+        return new Rect(
+            Mathf.Lerp(from.x, to.x, progress),
+            Mathf.Lerp(from.y, to.y, progress),
+            Mathf.Lerp(from.width, to.width, progress),
+            Mathf.Lerp(from.height, to.height, progress));
+    }
+
+    private static float SmoothStep01(float value)
+    {
+        value = Mathf.Clamp01(value);
+        return value * value * (3f - 2f * value);
     }
 
     private IEnumerator ShowDayTransitionIntroRoutine(int day)
@@ -1849,7 +2873,7 @@ public class GameManager : MonoBehaviour
         yield return FadeCanvasGroup(group, 1f, 0f, dayScreenFadeDuration);
     }
 
-    private void ShowGameOverScreen()
+    private void ShowGameOverScreen(bool playerWon = false)
     {
         Canvas canvas = EnsureDayTransitionCanvas();
         Transform root = canvas.transform;
@@ -1858,8 +2882,9 @@ public class GameManager : MonoBehaviour
         Image background = CreateOverlayImage("Game Over Background", root, Color.black);
         background.raycastTarget = true;
 
-        TMP_Text title = CreateOverlayText("Game Over Text", root, gameOverText);
-        title.color = gameOverTextColor;
+        string resultText = playerWon ? gameWonText : (!string.IsNullOrWhiteSpace(gameLostText) ? gameLostText : gameOverText);
+        TMP_Text title = CreateOverlayText("Game Over Text", root, resultText);
+        title.color = playerWon ? gameWonTextColor : gameLostTextColor;
         title.fontSize = gameOverTextFontSize;
         title.fontStyle = FontStyles.Bold;
 
@@ -2006,6 +3031,8 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         currentDay = 1;
+        isEndingDay = false;
+        cheatWinCutsceneAfterResurrectionMerge = false;
         DestroyDayTransitionCanvas();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
@@ -2335,7 +3362,34 @@ public class GameManager : MonoBehaviour
     private void Update()
     {
         CheckKonamiCode();
+
+        if (Input.GetKeyDown(KeyCode.W))
+            ActivateWinCheat();
+
+        if (Input.GetKeyDown(KeyCode.L))
+            ActivateLoseCheat();
+
+        if (Input.GetKeyDown(KeyCode.F1))
+            SkipDay20CutsceneCheat();
     }
+
+    private void SkipDay20CutsceneCheat()
+    {
+        if (day20CutsceneCanvasRoot == null || !day20CutsceneCanvasRoot.activeInHierarchy)
+            return;
+
+        bool playerWon = HasResurrectionPotionInInventory();
+
+        StopAllCoroutines();
+        StopDay20Ambience();
+        SetCutsceneVisible(day20WinCutsceneRoot, false, 0f);
+        SetCutsceneVisible(day20LoseCutsceneRoot, false, 0f);
+        day20CutsceneCanvasRoot.SetActive(false);
+
+        isEndingDay = false;
+        ShowGameOverScreen(playerWon);
+    }
+
     void CheckKonamiCode()
     {
         if (Input.GetKeyDown(konamiCode[konamiIndex]))
@@ -2355,8 +3409,559 @@ public class GameManager : MonoBehaviour
     }
     void ActivateKonamiReward()
     {
-        coins += 100;
+        coins += cheatCoinsAmount;
         UpdateCoinsUI();
-        ShowFloatingCoins(100);
+        ShowFloatingCoins(cheatCoinsAmount);
+    }
+
+    private void ActivateWinCheat()
+    {
+        Recipe resurrectionRecipe = FindResurrectionRecipe();
+        if (resurrectionRecipe == null)
+        {
+            Debug.LogWarning("Win cheat could not find a resurrection recipe.");
+            return;
+        }
+
+        PrepareDay19MergeCheatState();
+        inventory.Clear();
+        selectedCraftingItems.Clear();
+
+        foreach (string ingredientName in resurrectionRecipe.ingredients)
+            AddExactInventoryItemForCheat(ingredientName);
+
+        cheatWinCutsceneAfterResurrectionMerge = true;
+        OpenCrafting();
+        RefreshInventoryDependentUI();
+    }
+
+    private void ActivateLoseCheat()
+    {
+        PrepareDay19MergeCheatState();
+        inventory.Clear();
+        selectedCraftingItems.Clear();
+        cheatWinCutsceneAfterResurrectionMerge = false;
+
+        string junkIngredient = FindLoseCheatIngredient();
+        if (!string.IsNullOrWhiteSpace(junkIngredient))
+        {
+            for (int i = 0; i < 3; i++)
+                AddExactInventoryItemForCheat(junkIngredient);
+        }
+        else
+        {
+            Debug.LogWarning("Lose cheat could not find an ingredient that is safe to merge into Junk.");
+        }
+
+        OpenCrafting();
+        RefreshInventoryDependentUI();
+    }
+
+    private string FindLoseCheatIngredient()
+    {
+        if (markets == null)
+            return null;
+
+        foreach (Market market in markets)
+        {
+            if (market == null || market.items == null)
+                continue;
+
+            foreach (MarketItem item in market.items)
+            {
+                if (item == null || string.IsNullOrWhiteSpace(item.itemName) ||
+                    item.category == ItemCategory.Potion || item.category == ItemCategory.Junk)
+                {
+                    continue;
+                }
+
+                bool createsRecipe = false;
+                if (recipes != null)
+                {
+                    foreach (Recipe recipe in recipes)
+                    {
+                        if (recipe == null || recipe.ingredients == null || recipe.ingredients.Count != 3)
+                            continue;
+
+                        createsRecipe = true;
+                        foreach (string ingredient in recipe.ingredients)
+                        {
+                            if (NormalizeName(ingredient) != NormalizeName(item.itemName))
+                            {
+                                createsRecipe = false;
+                                break;
+                            }
+                        }
+
+                        if (createsRecipe)
+                            break;
+                    }
+                }
+
+                if (!createsRecipe)
+                    return item.itemName;
+            }
+        }
+
+        return null;
+    }
+
+    private void PrepareDay19MergeCheatState()
+    {
+        currentDay = Mathf.Max(1, gameOverDay - 1);
+        isEndingDay = false;
+        lockedItemsToday.Clear();
+        ReturnCraftingItemsToInventory();
+
+        if (sellConfirmPanel != null)
+            sellConfirmPanel.SetActive(false);
+        pendingSellItem = null;
+        DestroyDayTransitionCanvas();
+    }
+
+    private IEnumerator ShowCheatWinCutsceneAfterMergeRoutine()
+    {
+        isEndingDay = true;
+        currentDay = gameOverDay;
+
+        if (marketPanel != null) marketPanel.SetActive(false);
+        if (itemsPanel != null) itemsPanel.SetActive(false);
+        if (craftingPanel != null) craftingPanel.SetActive(false);
+        if (sellPanel != null) sellPanel.SetActive(false);
+        if (inventoryPanel != null) inventoryPanel.SetActive(false);
+
+        yield return null;
+        yield return ShowDay20OutcomeCutsceneRoutine(true);
+        isEndingDay = false;
+    }
+
+    private Recipe FindResurrectionRecipe()
+    {
+        if (recipes == null)
+            return null;
+
+        Recipe fallback = null;
+        for (int i = 0; i < recipes.Count; i++)
+        {
+            Recipe recipe = recipes[i];
+            if (recipe == null)
+                continue;
+
+            if (IsResurrectionPotionName(recipe.potionName))
+                return recipe;
+
+            if (fallback == null && NormalizeName(recipe.potionName) == NormalizeName(cheatWinPotionName))
+                fallback = recipe;
+        }
+
+        return fallback;
+    }
+
+    private bool IsResurrectionPotionName(string itemName)
+    {
+        string normalized = NormalizeName(itemName);
+        if (normalized == NormalizeName(cheatWinPotionName))
+            return true;
+
+        if (resurrectionPotionNames == null)
+            return false;
+
+        for (int i = 0; i < resurrectionPotionNames.Length; i++)
+        {
+            if (normalized == NormalizeName(resurrectionPotionNames[i]))
+                return true;
+        }
+
+        return false;
+    }
+
+    private void AddExactInventoryItemForCheat(string itemName)
+    {
+        if (string.IsNullOrWhiteSpace(itemName))
+            return;
+
+        ItemCategory category = ItemCategory.Herbs;
+        string description = "";
+        Sprite icon = GetIconByNameInsensitive(itemName);
+
+        if (TryGetMarketItemByName(itemName, out MarketItem marketItem))
+        {
+            category = marketItem.category;
+            description = marketItem.description;
+            if (icon == null)
+                icon = marketItem.icon;
+        }
+        else if (TryGetRecipeByName(itemName, out Recipe recipe))
+        {
+            category = recipe.category;
+            if (icon == null)
+                icon = recipe.icon;
+        }
+
+        inventory.Add(new InventoryItem
+        {
+            itemName = itemName,
+            count = 1,
+            category = category,
+            description = description,
+            icon = icon
+        });
+    }
+
+    private bool TryGetMarketItemByName(string itemName, out MarketItem foundItem)
+    {
+        if (markets != null)
+        {
+            foreach (Market market in markets)
+            {
+                if (market == null || market.items == null)
+                    continue;
+
+                foreach (MarketItem item in market.items)
+                {
+                    if (item != null && NormalizeName(item.itemName) == NormalizeName(itemName))
+                    {
+                        foundItem = item;
+                        return true;
+                    }
+                }
+            }
+        }
+
+        foundItem = null;
+        return false;
+    }
+
+    private bool TryGetRecipeByName(string itemName, out Recipe foundRecipe)
+    {
+        if (recipes != null)
+        {
+            foreach (Recipe recipe in recipes)
+            {
+                if (recipe != null && NormalizeName(recipe.potionName) == NormalizeName(itemName))
+                {
+                    foundRecipe = recipe;
+                    return true;
+                }
+            }
+        }
+
+        foundRecipe = null;
+        return false;
+    }
+
+    [ContextMenu("Build / Refresh Cheat Menu")]
+    public void BuildCheatMenuEditablePreview()
+    {
+        EnsureCheatMenuObjects(false);
+
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+#endif
+    }
+
+    private void OpenCheatMenu()
+    {
+        EnsureCheatMenuObjects(true);
+        if (cheatMenuCanvasRoot != null)
+            cheatMenuCanvasRoot.SetActive(true);
+        if (cheatMenuRoot != null)
+            cheatMenuRoot.SetActive(true);
+    }
+
+    private void CloseCheatMenu()
+    {
+        if (cheatMenuRoot != null)
+            cheatMenuRoot.SetActive(false);
+        if (cheatMenuCanvasRoot != null)
+            cheatMenuCanvasRoot.SetActive(false);
+    }
+
+    private void CheatAddCoins()
+    {
+        coins += cheatCoinsAmount;
+        UpdateCoinsUI();
+        ShowFloatingCoins(cheatCoinsAmount);
+        CloseCheatMenu();
+    }
+
+    private void CheatLetMeWin()
+    {
+        SetDay19SellPanelState();
+        AddOrRefreshCheatWinPotion();
+        CloseCheatMenu();
+    }
+
+    private void CheatIWantToLose()
+    {
+        SetDay19SellPanelState();
+        RemoveResurrectionPotionsFromInventory();
+        CloseCheatMenu();
+    }
+
+    private void SetDay19SellPanelState()
+    {
+        currentDay = Mathf.Max(1, gameOverDay - 1);
+        isEndingDay = false;
+        lockedItemsToday.Clear();
+        ReturnCraftingItemsToInventory();
+        PopulateInventoryPanel();
+        OpenSell();
+    }
+
+    private void AddOrRefreshCheatWinPotion()
+    {
+        string potionName = string.IsNullOrWhiteSpace(cheatWinPotionName) ? "Ultimate Potion" : cheatWinPotionName;
+        Sprite icon = GetIconByNameInsensitive(potionName);
+        InventoryItem existing = inventory.Find(i => NormalizeName(i.itemName) == NormalizeName(potionName));
+        if (existing != null)
+        {
+            existing.count = Mathf.Max(1, existing.count);
+            existing.category = ItemCategory.Potion;
+            if (existing.icon == null)
+                existing.icon = icon;
+            if (string.IsNullOrWhiteSpace(existing.description))
+                existing.description = cheatWinPotionDescription;
+        }
+        else
+        {
+            inventory.Add(new InventoryItem
+            {
+                itemName = potionName,
+                count = 1,
+                category = ItemCategory.Potion,
+                description = cheatWinPotionDescription,
+                icon = icon
+            });
+        }
+
+        PopulateInventoryPanel();
+        RefreshSellUI();
+        SellPanelRightUIBinder.RefreshVisible();
+    }
+
+    private void RemoveResurrectionPotionsFromInventory()
+    {
+        inventory.RemoveAll(IsResurrectionPotionInventoryItem);
+        PopulateInventoryPanel();
+        RefreshSellUI();
+        SellPanelRightUIBinder.RefreshVisible();
+    }
+
+    private bool IsResurrectionPotionInventoryItem(InventoryItem item)
+    {
+        if (item == null || resurrectionPotionNames == null)
+            return false;
+
+        string itemName = NormalizeName(item.itemName);
+        for (int i = 0; i < resurrectionPotionNames.Length; i++)
+        {
+            if (itemName == NormalizeName(resurrectionPotionNames[i]))
+                return true;
+        }
+
+        return itemName == NormalizeName(cheatWinPotionName);
+    }
+
+    private void EnsureCheatMenuObjects(bool runtime)
+    {
+        Canvas canvas = EnsureCheatMenuCanvas(runtime);
+        if (canvas == null)
+            return;
+
+        if (cheatMenuRoot == null)
+        {
+            Transform foundRoot = FindDeepChild(canvas.transform, "Cheat Menu");
+            if (foundRoot != null)
+                cheatMenuRoot = foundRoot.gameObject;
+        }
+
+        bool createdRoot = false;
+        if (cheatMenuRoot == null)
+        {
+            cheatMenuRoot = new GameObject("Cheat Menu", typeof(RectTransform), typeof(CanvasGroup));
+            cheatMenuRoot.transform.SetParent(canvas.transform, false);
+            createdRoot = true;
+        }
+
+        RectTransform rootRect = cheatMenuRoot.GetComponent<RectTransform>();
+        if (rootRect == null)
+            rootRect = cheatMenuRoot.AddComponent<RectTransform>();
+
+        CanvasGroup group = cheatMenuRoot.GetComponent<CanvasGroup>();
+        if (group == null)
+            group = cheatMenuRoot.AddComponent<CanvasGroup>();
+        group.alpha = 1f;
+        group.interactable = true;
+        group.blocksRaycasts = true;
+
+        if (createdRoot)
+        {
+            rootRect.anchorMin = Vector2.zero;
+            rootRect.anchorMax = Vector2.one;
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+
+            Image backdrop = CreateOverlayImage("Cheat Menu Backdrop", cheatMenuRoot.transform, new Color(0.02f, 0.01f, 0.025f, 0.78f));
+            StretchRect(backdrop.rectTransform);
+
+            CreateEditableText(cheatMenuRoot.transform, "Cheat Menu Title", "CHEAT MENU", new Vector2(0f, 180f), new Vector2(620f, 110f), 64f);
+        }
+
+        cheatAddCoinsButton = EnsureCheatButton(
+            cheatMenuRoot.transform,
+            cheatAddCoinsButton,
+            "Cheat Add Coins Button",
+            cheatAddCoinsButtonText,
+            new Vector2(0f, 48f));
+
+        cheatLetMeWinButton = EnsureCheatButton(
+            cheatMenuRoot.transform,
+            cheatLetMeWinButton,
+            "Cheat Let Me Win Button",
+            cheatLetMeWinButtonText,
+            new Vector2(0f, -72f));
+
+        cheatIWantToLoseButton = EnsureCheatButton(
+            cheatMenuRoot.transform,
+            cheatIWantToLoseButton,
+            "Cheat I Want To Lose Button",
+            cheatIWantToLoseButtonText,
+            new Vector2(0f, -192f));
+
+        WireCheatButton(cheatAddCoinsButton, CheatAddCoins);
+        WireCheatButton(cheatLetMeWinButton, CheatLetMeWin);
+        WireCheatButton(cheatIWantToLoseButton, CheatIWantToLose);
+
+        if (createdRoot)
+            cheatMenuRoot.SetActive(false);
+    }
+
+    private Canvas EnsureCheatMenuCanvas(bool runtime)
+    {
+        if (cheatMenuCanvasRoot == null)
+            cheatMenuCanvasRoot = GameObject.Find("Cheat Menu Canvas");
+
+        bool created = false;
+        if (cheatMenuCanvasRoot == null)
+        {
+            cheatMenuCanvasRoot = new GameObject(
+                "Cheat Menu Canvas",
+                typeof(RectTransform),
+                typeof(Canvas),
+                typeof(CanvasScaler),
+                typeof(GraphicRaycaster));
+            created = true;
+        }
+
+        Canvas canvas = cheatMenuCanvasRoot.GetComponent<Canvas>();
+        if (canvas == null)
+            canvas = cheatMenuCanvasRoot.AddComponent<Canvas>();
+
+        CanvasScaler scaler = cheatMenuCanvasRoot.GetComponent<CanvasScaler>();
+        if (scaler == null)
+            scaler = cheatMenuCanvasRoot.AddComponent<CanvasScaler>();
+
+        if (cheatMenuCanvasRoot.GetComponent<GraphicRaycaster>() == null)
+            cheatMenuCanvasRoot.AddComponent<GraphicRaycaster>();
+
+        if (created)
+        {
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = CheatMenuSortingOrder;
+
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+            cheatMenuCanvasRoot.SetActive(!runtime);
+        }
+
+        return canvas;
+    }
+
+    private Button EnsureCheatButton(Transform parent, Button assignedButton, string objectName, string defaultText, Vector2 position)
+    {
+        Button button = assignedButton;
+        if (button == null)
+        {
+            Transform found = FindDeepChild(parent, objectName);
+            if (found != null)
+                button = found.GetComponent<Button>();
+        }
+
+        bool created = false;
+        if (button == null)
+        {
+            GameObject buttonObject = new GameObject(objectName, typeof(RectTransform));
+            buttonObject.transform.SetParent(parent, false);
+            Image image = buttonObject.AddComponent<Image>();
+            image.color = new Color(0.18f, 0.05f, 0.12f, 0.94f);
+            button = buttonObject.AddComponent<Button>();
+            button.targetGraphic = image;
+            created = true;
+        }
+
+        RectTransform rect = button.GetComponent<RectTransform>();
+        if (rect == null)
+            rect = button.gameObject.AddComponent<RectTransform>();
+
+        if (created)
+        {
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = new Vector2(520f, 82f);
+
+            TMP_Text label = CreateEditableText(button.transform, "Label", defaultText, Vector2.zero, rect.sizeDelta, 34f);
+            label.color = new Color(1f, 0.86f, 0.62f, 1f);
+        }
+
+        return button;
+    }
+
+    private void WireCheatButton(Button button, UnityAction action)
+    {
+        if (button == null)
+            return;
+
+        button.onClick.RemoveListener(action);
+        button.onClick.AddListener(action);
+    }
+
+    private TMP_Text CreateEditableText(Transform parent, string objectName, string text, Vector2 position, Vector2 size, float fontSize)
+    {
+        GameObject textObject = new GameObject(objectName, typeof(RectTransform));
+        textObject.transform.SetParent(parent, false);
+
+        TextMeshProUGUI label = textObject.AddComponent<TextMeshProUGUI>();
+        label.text = text;
+        label.alignment = TextAlignmentOptions.Center;
+        label.fontSize = fontSize;
+        label.fontStyle = FontStyles.Bold;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 18f;
+        label.fontSizeMax = fontSize;
+        label.raycastTarget = false;
+
+        RectTransform rect = label.rectTransform;
+        rect.anchorMin = new Vector2(0.5f, 0.5f);
+        rect.anchorMax = new Vector2(0.5f, 0.5f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
+
+        return label;
+    }
+
+    private void StretchRect(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
     }
 }

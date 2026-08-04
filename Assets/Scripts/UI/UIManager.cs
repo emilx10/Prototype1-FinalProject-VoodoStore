@@ -73,6 +73,9 @@ public class UIManager : MonoBehaviour
         mergePanel.SetActive(restoreMergeAfterInventory);
         marketPanel.SetActive(restoreMarketAfterInventory);
         itemsPanel.SetActive(restoreItemsAfterInventory);
+
+        if (restoreSellAfterInventory && gameManager != null)
+            gameManager.OpenSell();
     }
 
     public void OpenMerge()
