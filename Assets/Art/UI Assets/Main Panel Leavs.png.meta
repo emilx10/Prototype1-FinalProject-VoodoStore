@@ -1,13 +1,25 @@
 fileFormatVersion: 2
-guid: 01db5f9ead012c248b7bfe11097dd62d
+guid: 2ec46a548857a430c9ae2c84532dba55
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -270125197025380968
-    second: Dandelion_0
+      213: -986328745654064086
+    second: Main Panel Leavs_0
   - first:
-      213: -5874645142227588450
-    second: Dandelion_1
+      213: 1456385561773814726
+    second: Main Panel Leavs_1
+  - first:
+      213: -8521246684562299645
+    second: Main Panel Leavs_2
+  - first:
+      213: -3723133517569159224
+    second: Main Panel Leavs_3
+  - first:
+      213: -2784192013984219538
+    second: Main Panel Leavs_4
+  - first:
+      213: -8649845535784162718
+    second: Main Panel Leavs_5
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -49,7 +61,7 @@ TextureImporter:
   nPOTScale: 0
   lightmap: 0
   compressionQuality: 50
-  spriteMode: 1
+  spriteMode: 2
   spriteExtrude: 1
   spriteMeshType: 1
   alignment: 0
@@ -99,95 +111,17 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: WebGL
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: iOS
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: Android
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: VisionOS
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: tvOS
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: WindowsStoreApps
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Dandelion_0
+      name: Main Panel Leavs_0
       rect:
         serializedVersion: 2
-        x: 207
-        y: 151
-        width: 647
-        height: 834
+        x: 50
+        y: 818
+        width: 120
+        height: 190
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -196,20 +130,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8957b628092504cf0800000000000000
-      internalID: -270125197025380968
+      spriteID: a2c688b4b3bdf42f0800000000000000
+      internalID: -986328745654064086
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Dandelion_1
+      name: Main Panel Leavs_1
       rect:
         serializedVersion: 2
-        x: 406
-        y: 0
-        width: 6
-        height: 13
+        x: 876
+        y: 737
+        width: 34
+        height: 255
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -218,8 +152,96 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e9aec0c4e51197ea0800000000000000
-      internalID: -5874645142227588450
+      spriteID: 6c33981c3fe163410800000000000000
+      internalID: 1456385561773814726
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Main Panel Leavs_2
+      rect:
+        serializedVersion: 2
+        x: 37
+        y: 357
+        width: 46
+        height: 242
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3056033b9437eb980800000000000000
+      internalID: -8521246684562299645
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Main Panel Leavs_3
+      rect:
+        serializedVersion: 2
+        x: 875
+        y: 208
+        width: 38
+        height: 204
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8cf80f1bac5c45cc0800000000000000
+      internalID: -3723133517569159224
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Main Panel Leavs_4
+      rect:
+        serializedVersion: 2
+        x: 44
+        y: 72
+        width: 78
+        height: 256
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e6ebdf35d109c59d0800000000000000
+      internalID: -2784192013984219538
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Main Panel Leavs_5
+      rect:
+        serializedVersion: 2
+        x: 509
+        y: 0
+        width: 429
+        height: 182
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26a2695605395f780800000000000000
+      internalID: -8649845535784162718
       vertices: []
       indices: 
       edges: []
@@ -228,7 +250,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 5e97eb03825dee720800000000000000
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 
@@ -238,8 +260,12 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Dandelion_0: -270125197025380968
-      Dandelion_1: -5874645142227588450
+      Main Panel Leavs_0: -986328745654064086
+      Main Panel Leavs_1: 1456385561773814726
+      Main Panel Leavs_2: -8521246684562299645
+      Main Panel Leavs_3: -3723133517569159224
+      Main Panel Leavs_4: -2784192013984219538
+      Main Panel Leavs_5: -8649845535784162718
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
