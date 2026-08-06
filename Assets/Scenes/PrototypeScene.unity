@@ -40496,6 +40496,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SellPanelRightUIBinder
   gameManager: {fileID: 731473973}
   activeTab: 1
+  objectivesTabButton: {fileID: 1215512118}
+  inventoryTabButton: {fileID: 1016987216}
+  knownRecipesPotionButton: {fileID: 523446063}
 --- !u!114 &956114257
 MonoBehaviour:
   m_ObjectHideFlags: 0

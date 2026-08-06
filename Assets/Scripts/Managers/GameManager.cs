@@ -199,6 +199,7 @@ public class GameManager : MonoBehaviour
     [SerializeField, Range(0f, 24f)] private float ultimatePotionGlowSpread = 7f;
 
     public static UnityAction<Sprite> OnItemBought;
+    public static UnityAction OnIngredientPurchased;
     public static UnityAction OnSuccessfulMerge;
     public static UnityAction OnFailedMerge;
     public static UnityAction <bool> OnItemSold;
@@ -992,6 +993,8 @@ public class GameManager : MonoBehaviour
         ad.PlaySfx(ItemPurchaseVolume, GetItemPurchaseSfx(item.category), 1f);
 
         OnItemBought?.Invoke(item.icon);
+        if (item.category != ItemCategory.Potion && item.category != ItemCategory.Junk)
+            OnIngredientPurchased?.Invoke();
         objectiveManager.UpdateTasksFromInventory(GetInventoryItems());
 
         RefreshMarketItemsUI(); // <-- just refresh buttons and counts
