@@ -603,11 +603,14 @@ public sealed class FamilyMarketUI : MonoBehaviour
         {
             FTUEManager.NotifyObjectivesOpened(
                 objectivesTabContent != null ? objectivesTabContent.transform as RectTransform : null,
-                knownRecipesTabButton != null ? knownRecipesTabButton.transform as RectTransform : null);
+                knownRecipesTabButton != null ? knownRecipesTabButton.transform as RectTransform : null,
+                objectivesTabButton != null ? objectivesTabButton.GetComponent<ButtonBreather>() : null,
+                gameManager != null ? gameManager.MarketAttentionBreather : null);
         }
         else if (tab == RightPanelTab.KnownRecipes)
         {
-            FTUEManager.NotifyKnownRecipesOpened();
+            FTUEManager.NotifyKnownRecipesOpened(
+                knownRecipesTabContent != null ? knownRecipesTabContent.transform as RectTransform : null);
         }
     }
 
@@ -629,6 +632,15 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         if (activeRightPanelTab == RightPanelTab.KnownRecipes)
             PopulateKnownRecipesTab();
+
+        if (gameManager != null)
+            gameManager.RefreshBrewButtonVisibility();
+
+        RectTransform inventoryRect = inventoryTabContent != null ? inventoryTabContent.transform as RectTransform : null;
+        if (activeRightPanelTab == RightPanelTab.Inventory && inventoryTabContent != null && inventoryTabContent.activeInHierarchy)
+            FTUEManager.NotifyInventoryOpened(inventoryRect);
+        else
+            FTUEManager.NotifyInventoryClosed(inventoryRect);
     }
 
     private void PopulateObjectivesTab()

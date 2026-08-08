@@ -34,9 +34,18 @@ public sealed class FTUEManager : MonoBehaviour
     private bool hasPurchasedIngredient;
     private bool tutorialActive;
     private bool knownRecipesIconClicked;
+    private bool initialFTUEComplete;
     private TutorialState state;
     private RectTransform objectivesPanel;
     private RectTransform knownRecipesButton;
+    private RectTransform knownRecipesPanel;
+    private RectTransform visibleInventoryPanel;
+    private ButtonBreather bookAttentionAnimation;
+    private ButtonBreather marketAttentionAnimation;
+    private bool marketAttentionWasRunning;
+    private Button marketButton;
+    private bool marketButtonWasInteractable;
+    private bool marketRestrictionActive;
 
     private Canvas dimCanvas;
     private Canvas inputCanvas;
@@ -109,7 +118,11 @@ public sealed class FTUEManager : MonoBehaviour
             instance = null;
     }
 
-    public static void NotifyObjectivesOpened(RectTransform panel, RectTransform recipesButton)
+    public static void NotifyObjectivesOpened(
+        RectTransform panel,
+        RectTransform recipesButton,
+        ButtonBreather bookBreather,
+        ButtonBreather marketBreather)
     {
         EnsureInstance();
         if (instance == null || instance.tutorialActive || instance.HasShownObjectivesFTUE)
@@ -117,39 +130,83 @@ public sealed class FTUEManager : MonoBehaviour
 
         instance.objectivesPanel = panel;
         instance.knownRecipesButton = recipesButton;
+        instance.bookAttentionAnimation = bookBreather;
+        instance.marketAttentionAnimation = marketBreather;
         instance.StartCoroutine(instance.RunInitialSequence());
+    }
+
+    public static void RegisterMarketControl(Button button, ButtonBreather breather)
+    {
+        EnsureInstance();
+        if (instance == null || button == null || instance.initialFTUEComplete)
+            return;
+
+        instance.marketButton = button;
+        instance.marketAttentionAnimation = breather;
+
+        if (!instance.marketRestrictionActive)
+        {
+            instance.marketButtonWasInteractable = button.interactable;
+            instance.marketAttentionWasRunning = breather != null && breather.IsBreathing;
+            instance.marketRestrictionActive = true;
+        }
+
+        button.interactable = false;
+        if (breather != null)
+            breather.PauseBreathing();
     }
 
     public static void NotifyInventoryOpened(RectTransform inventoryPanel)
     {
         EnsureInstance();
-        if (instance == null || instance.tutorialActive || instance.HasShownInventoryFTUE ||
-            !instance.hasPurchasedIngredient || inventoryPanel == null)
-        {
+        if (instance == null || inventoryPanel == null)
             return;
-        }
 
-        instance.StartCoroutine(instance.RunInventoryTutorial(inventoryPanel));
+        instance.visibleInventoryPanel = inventoryPanel;
+        instance.TryStartInventoryTutorial();
     }
 
-    public static void NotifyKnownRecipesOpened()
+    public static void NotifyInventoryClosed(RectTransform inventoryPanel)
+    {
+        EnsureInstance();
+        if (instance != null && instance.visibleInventoryPanel == inventoryPanel)
+            instance.visibleInventoryPanel = null;
+    }
+
+    public static void NotifyKnownRecipesOpened(RectTransform panel)
     {
         EnsureInstance();
         if (instance == null || instance.state != TutorialState.WaitingForKnownRecipesIconClick)
             return;
 
         Debug.Log("FTUE: Known Recipes potion icon clicked");
+        instance.knownRecipesPanel = panel;
         instance.knownRecipesIconClicked = true;
     }
 
     private void HandleIngredientPurchased()
     {
         hasPurchasedIngredient = true;
+        Debug.Log("FTUE: First ingredient purchase detected; Inventory tutorial is ready.");
+        TryStartInventoryTutorial();
+    }
+
+    private void TryStartInventoryTutorial()
+    {
+        if (tutorialActive || HasShownInventoryFTUE || !hasPurchasedIngredient ||
+            visibleInventoryPanel == null || !visibleInventoryPanel.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        Debug.Log("FTUE: Starting Inventory tutorial.");
+        StartCoroutine(RunInventoryTutorial(visibleInventoryPanel));
     }
 
     private IEnumerator RunInitialSequence()
     {
         tutorialActive = true;
+        PauseMarketAttentionAnimation();
 
         HasShownObjectivesFTUE = true;
         yield return ShowStep(
@@ -162,7 +219,7 @@ public sealed class FTUEManager : MonoBehaviour
 
         HasShownKnownRecipesFTUE = true;
         yield return ShowStep(
-            knownRecipesButton,
+            knownRecipesPanel,
             "This is the Known Recipes menu.",
             "Every product in the game is listed here. Each recipe requires three ingredients. The colored glow around each ? hints at the ingredient's color.",
             true);
@@ -175,7 +232,40 @@ public sealed class FTUEManager : MonoBehaviour
             "Each day is divided into three phases, each with its own main activity. Every new day brings you one step closer to the 20-day deadline.",
             true);
 
+        initialFTUEComplete = true;
+        GameManager gameManager = FindFirstObjectByType<GameManager>();
+        if (gameManager != null)
+            gameManager.SetBrewButtonVisibleForGameplayPhase(true);
+        ResumeMarketAttentionAnimation();
         EndTutorial();
+    }
+
+    private void PauseMarketAttentionAnimation()
+    {
+        if (marketRestrictionActive)
+            return;
+
+        if (marketAttentionAnimation == null)
+            return;
+
+        marketAttentionWasRunning = marketAttentionAnimation.IsBreathing;
+        marketAttentionAnimation.PauseBreathing();
+        marketRestrictionActive = true;
+    }
+
+    private void ResumeMarketAttentionAnimation()
+    {
+        if (marketButton != null)
+            marketButton.interactable = marketButtonWasInteractable;
+
+        if (marketAttentionAnimation != null && marketAttentionWasRunning)
+            marketAttentionAnimation.ResumeBreathing();
+
+        marketButton = null;
+        marketAttentionAnimation = null;
+        marketButtonWasInteractable = false;
+        marketAttentionWasRunning = false;
+        marketRestrictionActive = false;
     }
 
     private IEnumerator WaitForKnownRecipesIconClick()
@@ -186,6 +276,7 @@ public sealed class FTUEManager : MonoBehaviour
         Highlight(knownRecipesButton);
         MoveAllowedTargetToOverlay(knownRecipesButton);
         Button potionButton = knownRecipesButton != null ? knownRecipesButton.GetComponent<Button>() : null;
+        ButtonBreather potionAttentionAnimation = StartPotionAttentionAnimation(potionButton);
         if (potionButton != null)
         {
             EnableAllowedButtonInteraction(potionButton);
@@ -222,6 +313,7 @@ public sealed class FTUEManager : MonoBehaviour
             potionButton.onClick.RemoveListener(DebugKnownRecipesPotionClick);
             RestoreAllowedButtonInteraction(potionButton);
         }
+        StopPotionAttentionAnimation(potionAttentionAnimation);
         RestoreAllowedTargetParent(knownRecipesButton);
         clickCatcher.SetAllowedTarget(null);
         inputCanvas.sortingOrder = InputSortingOrder;
@@ -232,6 +324,36 @@ public sealed class FTUEManager : MonoBehaviour
     public void DebugKnownRecipesPotionClick()
     {
         Debug.Log("FTUE DEBUG: Potion icon received click");
+    }
+
+    private ButtonBreather StartPotionAttentionAnimation(Button potionButton)
+    {
+        if (potionButton == null || bookAttentionAnimation == null)
+            return null;
+
+        ButtonBreather potionBreather = potionButton.GetComponent<ButtonBreather>();
+        bool addedForTutorial = potionBreather == null;
+        if (addedForTutorial)
+            potionBreather = potionButton.gameObject.AddComponent<ButtonBreather>();
+
+        potionBreather.speed = bookAttentionAnimation.speed;
+        potionBreather.scaleAmount = bookAttentionAnimation.scaleAmount;
+        potionBreather.playOnStart = addedForTutorial;
+        potionBreather.StartBreathing();
+        return potionBreather;
+    }
+
+    private void StopPotionAttentionAnimation(ButtonBreather potionBreather)
+    {
+        if (potionBreather == null)
+            return;
+
+        potionBreather.StopBreathing();
+
+        // The Potion button does not normally own this behavior; remove the
+        // temporary reused component after it has reset the target scale.
+        if (potionBreather != bookAttentionAnimation)
+            Destroy(potionBreather);
     }
 
     private void EnableAllowedButtonInteraction(Button button)
@@ -402,6 +524,7 @@ public sealed class FTUEManager : MonoBehaviour
         state = TutorialState.ShowingPopup;
         EnsureTutorialUI();
         Highlight(target);
+        MoveAllowedTargetToOverlay(target);
         if (useInitialPopupPosition)
         {
             if (!hasInitialPopupPosition)
@@ -438,6 +561,7 @@ public sealed class FTUEManager : MonoBehaviour
 
         clickIndicator.SetActive(false);
         popupCanvas.gameObject.SetActive(false);
+        RestoreAllowedTargetParent(target);
         RemoveHighlight();
     }
 
@@ -452,6 +576,7 @@ public sealed class FTUEManager : MonoBehaviour
         popupCanvas.gameObject.SetActive(false);
         tutorialActive = false;
         state = TutorialState.Idle;
+        TryStartInventoryTutorial();
     }
 
     private void Highlight(RectTransform target)

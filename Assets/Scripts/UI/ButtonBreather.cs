@@ -8,14 +8,19 @@ public class ButtonBreather : MonoBehaviour
 
     private Vector3 originalScale;
     private bool isBreathing = true;
+    private bool isPaused;
+    public bool IsBreathing => isBreathing;
 
     private Button button;
     public bool playOnStart = false;
-    void Start()
+    private void Awake()
     {
         originalScale = transform.localScale;
+    }
 
-        if (playOnStart)
+    void Start()
+    {
+        if (playOnStart && !isPaused)
             StartBreathing();
         else
             StopBreathing();
@@ -35,6 +40,12 @@ public class ButtonBreather : MonoBehaviour
         transform.localScale = originalScale + Vector3.one * scaleOffset;
     }
 
+    private void OnDestroy()
+    {
+        if (button != null)
+            button.onClick.RemoveListener(StopBreathing);
+    }
+
     public void StopBreathing()
     {
         isBreathing = false;
@@ -43,6 +54,21 @@ public class ButtonBreather : MonoBehaviour
 
     public void StartBreathing()
     {
+        if (isPaused)
+            return;
+
         isBreathing = true;
+    }
+
+    public void PauseBreathing()
+    {
+        isPaused = true;
+        StopBreathing();
+    }
+
+    public void ResumeBreathing()
+    {
+        isPaused = false;
+        StartBreathing();
     }
 }
