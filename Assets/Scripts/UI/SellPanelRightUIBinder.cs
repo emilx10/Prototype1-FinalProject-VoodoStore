@@ -26,6 +26,8 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
 
     [SerializeField] private GameManager gameManager;
     [SerializeField] private RightPanelTab activeTab = RightPanelTab.Inventory;
+    [Tooltip("When enabled, existing text in the sell panel right UI block keeps your font size, color, alignment, placement, and style. Runtime only updates the text value.")]
+    [SerializeField] private bool preserveRightPanelTextEdits = true;
 
     [Header("Exact Top Menu Buttons")]
     [SerializeField] private Button objectivesTabButton;
@@ -214,7 +216,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             string progress = mission.type == MissionType.BuyItems
                 ? (mission.completed ? " 1/1" : " 0/1")
                 : string.Empty;
-            string status = mission.completed ? "[done] " : "[ ] ";
+            string status = mission.completed ? "[X] " : "[ ] ";
             TMP_Text missionText = SetExistingText(generated, $"Mission Row {i + 1}", $"{status}{mission.missionText}{progress}");
             if (missionText != null)
                 missionText.alpha = mission.completed ? 0.62f : 1f;
@@ -492,7 +494,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             : value.Trim().ToLowerInvariant();
     }
 
-    private static TMP_Text SetExistingText(Transform parent, string objectName, string value)
+    private TMP_Text SetExistingText(Transform parent, string objectName, string value)
     {
         TMP_Text text = parent != null ? parent.Find(objectName)?.GetComponent<TMP_Text>() : null;
         if (text == null)
@@ -500,7 +502,8 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
 
         text.text = value;
         text.gameObject.SetActive(true);
-        AtmosphericObjectiveTextStyler.Apply(text, objectName);
+        if (!Application.isPlaying || !preserveRightPanelTextEdits)
+            AtmosphericObjectiveTextStyler.Apply(text, objectName);
         return text;
     }
 

@@ -32,9 +32,9 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
     private readonly List<FamilyPage> pages = new List<FamilyPage>
     {
-        new FamilyPage("Dad", "seller", ItemCategory.Herbs),
-        new FamilyPage("Mom", "Flower Frame", ItemCategory.Oils),
-        new FamilyPage("Dota", "Crystal Frame", ItemCategory.Gems)
+        new FamilyPage("DAD", "seller", ItemCategory.Herbs),
+        new FamilyPage("Moma", "Flower Frame", ItemCategory.Oils),
+        new FamilyPage("Jinja", "Crystal Frame", ItemCategory.Gems)
     };
 
     private readonly Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();
@@ -62,6 +62,10 @@ public sealed class FamilyMarketUI : MonoBehaviour
     [SerializeField] private Image dadCharacterImage;
     [SerializeField] private Image momCharacterImage;
     [SerializeField] private Image dotaCharacterImage;
+    [Header("Editable Scene Family Members")]
+    [SerializeField] private GameObject dadFamilyMemberObject;
+    [SerializeField] private GameObject momFamilyMemberObject;
+    [SerializeField] private GameObject jinjaFamilyMemberObject;
     [SerializeField] private Image rightUiBlockImage;
     [SerializeField] private RectTransform leftArrowRect;
     [SerializeField] private RectTransform rightArrowRect;
@@ -78,6 +82,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
     [SerializeField] private GameObject knownRecipesTabContent;
     [SerializeField] private RightPanelTab activeRightPanelTab = RightPanelTab.Objectives;
     [SerializeField] private bool preserveManualLayout = true;
+    [Tooltip("When enabled, existing text objects inside the family right UI block keep your scene edits at runtime. Code will not rewrite their text, font size, color, alignment, or style.")]
+    [SerializeField] private bool preserveRightPanelTextEdits = true;
     [SerializeField] private int editableInventoryRowCount = DefaultEditableInventoryRowCount;
     [SerializeField] private int editableKnownRecipeCardCount = DefaultEditableKnownRecipeCardCount;
     private int pageIndex;
@@ -734,7 +740,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             string progress = mission.type == MissionType.BuyItems
                 ? (mission.completed ? " 1/1" : " 0/1")
                 : string.Empty;
-            string status = mission.completed ? "[done] " : "[ ] ";
+            string status = mission.completed ? "[X] " : "[ ] ";
 
             TMP_Text missionText = SetPanelText(
                 generated,
@@ -812,11 +818,11 @@ public sealed class FamilyMarketUI : MonoBehaviour
             }
 
             TMP_Text nameText = row.Find("Name Text")?.GetComponent<TMP_Text>();
-            if (nameText != null)
+            if (ShouldRewriteRightPanelText(nameText))
                 nameText.text = item.itemName;
 
             TMP_Text countText = row.Find("Count Text")?.GetComponent<TMP_Text>();
-            if (countText != null)
+            if (ShouldRewriteRightPanelText(countText))
                 countText.text = "x" + item.count;
 
             Button investigateButton = row.Find("Investigate Button")?.GetComponent<Button>();
@@ -1297,7 +1303,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         SetNamedChildActive(card.Find("ResultIcon"), "UnknownProduct", false);
 
         TMP_Text recipeName = card.Find("RecipeName")?.GetComponent<TMP_Text>();
-        if (recipeName != null)
+        if (ShouldRewriteRightPanelText(recipeName))
         {
             recipeName.text = recipe.potionName;
         }
@@ -1512,8 +1518,23 @@ public sealed class FamilyMarketUI : MonoBehaviour
             text.fontStyle = FontStyles.Bold;
         }
 
-        AtmosphericObjectiveTextStyler.Apply(text, objectName);
+        if (createdText || !preserveRightPanelTextEdits || !IsInsideRightUiBlock(text.transform))
+            AtmosphericObjectiveTextStyler.Apply(text, objectName);
+
         return text;
+    }
+
+    private bool IsInsideRightUiBlock(Transform target)
+    {
+        if (target == null || rightUiBlockImage == null)
+            return false;
+
+        return target == rightUiBlockImage.transform || target.IsChildOf(rightUiBlockImage.transform);
+    }
+
+    private bool ShouldRewriteRightPanelText(TMP_Text text)
+    {
+        return text != null;
     }
 
     private static void SetChildrenActive(Transform parent, bool active)
@@ -1624,6 +1645,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         EnsureRightPanelTabs();
 
         FamilyPage page = pages[pageIndex];
+        ApplyCharacterVisibility(page.characterTexture);
 
         Market market = gameManager.GetMarketForCategory(page.category);
         Sprite frameSprite = LoadSprite(page.frameTexture);
@@ -1680,12 +1702,69 @@ public sealed class FamilyMarketUI : MonoBehaviour
     private void ApplyCharacterVisibility(string characterTexture)
     {
         DisableGeneratedFamilyMembers();
+
+        ResolveSceneFamilyMembers();
+
+        SetGameObjectActive(dadFamilyMemberObject, IsFamilyMemberName(characterTexture, "DAD", "Dad"));
+        SetGameObjectActive(momFamilyMemberObject, IsFamilyMemberName(characterTexture, "Moma", "Mom", "MOMA"));
+        SetGameObjectActive(jinjaFamilyMemberObject, IsFamilyMemberName(characterTexture, "Jinja", "JINJA"));
     }
 
     private static void SetImageActive(Image image, bool active)
     {
         if (image != null && image.gameObject.activeSelf != active)
             image.gameObject.SetActive(active);
+    }
+
+    private void ResolveSceneFamilyMembers()
+    {
+        if (dadFamilyMemberObject == null)
+            dadFamilyMemberObject = FindSceneObjectByName("DAD", "Dad");
+
+        if (momFamilyMemberObject == null)
+            momFamilyMemberObject = FindSceneObjectByName("Moma", "Mom", "MOMA");
+
+        if (jinjaFamilyMemberObject == null)
+            jinjaFamilyMemberObject = FindSceneObjectByName("Jinja", "JINJA");
+    }
+
+    private GameObject FindSceneObjectByName(params string[] names)
+    {
+        Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform candidate = transforms[i];
+            if (candidate == null || candidate.gameObject == null)
+                continue;
+
+            if (!candidate.gameObject.scene.IsValid() || candidate.gameObject.scene != gameObject.scene)
+                continue;
+
+            for (int j = 0; j < names.Length; j++)
+            {
+                if (string.Equals(candidate.name, names[j], System.StringComparison.OrdinalIgnoreCase))
+                    return candidate.gameObject;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsFamilyMemberName(string selectedName, params string[] names)
+    {
+        for (int i = 0; i < names.Length; i++)
+        {
+            if (string.Equals(selectedName, names[i], System.StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static void SetGameObjectActive(GameObject target, bool active)
+    {
+        if (target != null && target.activeSelf != active)
+            target.SetActive(active);
     }
 
     private void CacheBuiltChildren()
@@ -1716,6 +1795,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         if (characterImage == null)
             characterImage = dadCharacterImage;
+
+        ResolveSceneFamilyMembers();
 
         if (rightUiBlockImage == null)
             rightUiBlockImage = contentTransform.Find("Seller Right UI Block")?.GetComponent<Image>();
