@@ -64,10 +64,12 @@ public class UIManager : MonoBehaviour
 
         CloseAll();
         gameManager.OpenInventoryPanel();
+        FTUEManager.NotifyInventoryOpened(inventoryPanel != null ? inventoryPanel.transform as RectTransform : null);
     }
 
     public void CloseInventory()
     {
+        FTUEManager.NotifyInventoryClosed(inventoryPanel != null ? inventoryPanel.transform as RectTransform : null);
         inventoryPanel.SetActive(false);
         sellPanel.SetActive(restoreSellAfterInventory);
         mergePanel.SetActive(restoreMergeAfterInventory);

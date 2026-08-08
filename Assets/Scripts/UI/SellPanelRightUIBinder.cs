@@ -27,6 +27,11 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
     [SerializeField] private GameManager gameManager;
     [SerializeField] private RightPanelTab activeTab = RightPanelTab.Inventory;
 
+    [Header("Exact Top Menu Buttons")]
+    [SerializeField] private Button objectivesTabButton;
+    [SerializeField] private Button inventoryTabButton;
+    [SerializeField] private Button knownRecipesPotionButton;
+
     private Button objectivesButton;
     private Button inventoryButton;
     private Button knownRecipesButton;
@@ -74,9 +79,9 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         if (gameManager == null)
             gameManager = FindFirstObjectByType<GameManager>(FindObjectsInactive.Include);
 
-        objectivesButton = FindButtonByNamePart("objective");
-        inventoryButton = FindButtonByNamePart("inventory");
-        knownRecipesButton = FindButtonByNamePart("recipe");
+        objectivesButton = objectivesTabButton != null ? objectivesTabButton : FindButtonByNamePart("objective");
+        inventoryButton = inventoryTabButton != null ? inventoryTabButton : FindButtonByNamePart("inventory");
+        knownRecipesButton = knownRecipesPotionButton != null ? knownRecipesPotionButton : FindButtonByNamePart("recipe");
 
         ConfigureButton(objectivesButton, RightPanelTab.Objectives);
         ConfigureButton(inventoryButton, RightPanelTab.Inventory);
@@ -119,6 +124,20 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         {
             activeTab = tab;
             Refresh();
+
+            if (tab == RightPanelTab.Objectives)
+            {
+                FTUEManager.NotifyObjectivesOpened(
+                    objectivesContent != null ? objectivesContent.transform as RectTransform : null,
+                    knownRecipesButton != null ? knownRecipesButton.transform as RectTransform : null,
+                    objectivesButton != null ? objectivesButton.GetComponent<ButtonBreather>() : null,
+                    gameManager != null ? gameManager.MarketAttentionBreather : null);
+            }
+            else if (tab == RightPanelTab.KnownRecipes)
+            {
+                FTUEManager.NotifyKnownRecipesOpened(
+                    knownRecipesContent != null ? knownRecipesContent.transform as RectTransform : null);
+            }
         });
         button.interactable = true;
     }
@@ -139,6 +158,15 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             PopulateInventory();
         else if (activeTab == RightPanelTab.KnownRecipes)
             PopulateKnownRecipes();
+
+        if (gameManager != null)
+            gameManager.RefreshBrewButtonVisibility();
+
+        RectTransform inventoryRect = inventoryContent != null ? inventoryContent.transform as RectTransform : null;
+        if (activeTab == RightPanelTab.Inventory && inventoryContent != null && inventoryContent.activeInHierarchy)
+            FTUEManager.NotifyInventoryOpened(inventoryRect);
+        else
+            FTUEManager.NotifyInventoryClosed(inventoryRect);
     }
 
     private void PopulateObjectives()

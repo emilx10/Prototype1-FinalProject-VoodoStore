@@ -199,6 +199,7 @@ public class GameManager : MonoBehaviour
     [SerializeField, Range(0f, 24f)] private float ultimatePotionGlowSpread = 7f;
 
     public static UnityAction<Sprite> OnItemBought;
+    public static UnityAction OnIngredientPurchased;
     public static UnityAction OnSuccessfulMerge;
     public static UnityAction OnFailedMerge;
     public static UnityAction <bool> OnItemSold;
@@ -317,6 +318,8 @@ public class GameManager : MonoBehaviour
     private RectTransform sellPanelInventoryButtonRect;
     private Image sellPanelInventoryButtonImage;
     private Sprite sellerRightUiSprite;
+    private GameObject brewButton;
+    private bool brewAvailableForCurrentPhase;
 
     public Sprite familyMarketInventoryIcon;
 
@@ -327,6 +330,8 @@ public class GameManager : MonoBehaviour
 
     public ObjectiveManager objectiveManager;
     public int CurrentDay => currentDay;
+    public ButtonBreather MarketAttentionBreather =>
+        endDayButton != null ? endDayButton.GetComponent<ButtonBreather>() : null;
 
     public void OpenKnownRecipes()
     {
@@ -855,6 +860,8 @@ public class GameManager : MonoBehaviour
         if (AudioManager.Instance != null)
             ad = AudioManager.Instance;
 
+        FTUEManager.RegisterMarketControl(endDayButton, MarketAttentionBreather);
+
         ApplyDayNightCycleUISettings();
         DayNightCycleUI.SetPhase(dayNightStartingPhase, true);
         FamilyMarketUI.Attach(this);
@@ -869,6 +876,10 @@ public class GameManager : MonoBehaviour
         
         priceSlider.onValueChanged.RemoveAllListeners();
         priceSlider.onValueChanged.AddListener(OnPriceSliderChanged);
+
+        // Startup panel/tab binding can temporarily restore this child. Apply
+        // the initial gameplay state last, before Unity renders the first frame.
+        SetBrewButtonVisible(false);
 
     }
 
@@ -992,6 +1003,8 @@ public class GameManager : MonoBehaviour
         ad.PlaySfx(ItemPurchaseVolume, GetItemPurchaseSfx(item.category), 1f);
 
         OnItemBought?.Invoke(item.icon);
+        if (item.category != ItemCategory.Potion && item.category != ItemCategory.Junk)
+            OnIngredientPurchased?.Invoke();
         objectiveManager.UpdateTasksFromInventory(GetInventoryItems());
 
         RefreshMarketItemsUI(); // <-- just refresh buttons and counts
@@ -1171,6 +1184,35 @@ public class GameManager : MonoBehaviour
         craftButton.interactable = true;
     }
 
+    private void SetBrewButtonVisible(bool visible)
+    {
+        brewAvailableForCurrentPhase = visible;
+        ApplyBrewButtonVisibility();
+    }
+
+    private void ApplyBrewButtonVisibility()
+    {
+        if (brewButton == null && sellPanel != null)
+        {
+            Transform brewButtonTransform = FindDeepChild(sellPanel.transform, "CraftItemsButton");
+            if (brewButtonTransform != null)
+                brewButton = brewButtonTransform.gameObject;
+        }
+
+        if (brewButton != null)
+            brewButton.SetActive(brewAvailableForCurrentPhase);
+    }
+
+    public void SetBrewButtonVisibleForGameplayPhase(bool visible)
+    {
+        SetBrewButtonVisible(visible);
+    }
+
+    public void RefreshBrewButtonVisibility()
+    {
+        ApplyBrewButtonVisibility();
+    }
+
 #if UNITY_EDITOR
     [ContextMenu("Build / Refresh Sell Panel Right UI Copy")]
     private void BuildRefreshSellPanelRightUICopy()
@@ -1329,6 +1371,7 @@ public class GameManager : MonoBehaviour
         sellPanel.SetActive(true);
 
         craftingPanel.SetActive(true);
+        SetBrewButtonVisible(false);
 
         selectedCraftingItems.Clear();
 
@@ -1798,6 +1841,7 @@ public class GameManager : MonoBehaviour
         itemsPanel.SetActive(false);
         craftingPanel.SetActive(false);
         sellPanel.SetActive(true);
+        SetBrewButtonVisible(true);
         EnsureSellPanelRightUI();
         ReturnCraftingItemsToInventory();
         RefreshSellUI();
