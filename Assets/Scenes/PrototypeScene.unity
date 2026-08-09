@@ -6953,18 +6953,6 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 583819586}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
       - m_Target: {fileID: 542564990}
         m_TargetAssemblyTypeName: UIManager, Assembly-CSharp
         m_MethodName: OpenMerge
@@ -28648,7 +28636,8 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: bac0de029fd8dc94d999650f4f1c6147, type: 3}
     minSellPrice: 0
     maxSellPrice: 0
-  coins: 50
+  coins: 30
+  newDayCurrencyReward: 20
   sellConfirmPanel: {fileID: 2004838369}
   priceSlider: {fileID: 1459339995}
   priceValueText: {fileID: 1564996937}
@@ -40913,6 +40902,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SellPanelRightUIBinder
   gameManager: {fileID: 731473973}
   activeTab: 1
+  preserveRightPanelTextEdits: 1
   objectivesTabButton: {fileID: 1215512118}
   inventoryTabButton: {fileID: 1016987216}
   knownRecipesPotionButton: {fileID: 523446063}
@@ -80125,18 +80115,6 @@ MonoBehaviour:
           m_FloatArgument: 0
           m_StringArgument: 
           m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 583819586}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
         m_CallState: 2
 --- !u!114 &1972052386
 MonoBehaviour:

@@ -23,6 +23,7 @@ public sealed class FTUEManager : MonoBehaviour
     private const int InputSortingOrder = 32002;
     private const int PopupSortingOrder = 32003;
     private const float DismissDelay = 3f;
+    private static readonly Vector2 TutorialPopupSize = new Vector2(720f, 350f);
 
     private static FTUEManager instance;
 
@@ -56,6 +57,7 @@ public sealed class FTUEManager : MonoBehaviour
     private TMP_Text titleText;
     private TMP_Text bodyText;
     private RectTransform popupRect;
+    private CanvasGroup popupContentGroup;
 
     private RectTransform highlightedTarget;
     private Canvas highlightCanvas;
@@ -235,7 +237,7 @@ public sealed class FTUEManager : MonoBehaviour
         initialFTUEComplete = true;
         GameManager gameManager = FindFirstObjectByType<GameManager>();
         if (gameManager != null)
-            gameManager.SetBrewButtonVisibleForGameplayPhase(true);
+            gameManager.RefreshBrewButtonVisibility();
         ResumeMarketAttentionAnimation();
         EndTutorial();
     }
@@ -545,6 +547,7 @@ public sealed class FTUEManager : MonoBehaviour
 
         titleText.text = title;
         bodyText.text = body;
+        popupContentGroup.alpha = 1f;
         clickIndicator.SetActive(false);
         clickCatcher.SetDismissEnabled(false);
         clickCatcher.SetAllowedTarget(null);
@@ -560,6 +563,7 @@ public sealed class FTUEManager : MonoBehaviour
         yield return new WaitUntil(() => clickCatcher.ConsumeDismissRequest());
 
         clickIndicator.SetActive(false);
+        popupContentGroup.alpha = 0f;
         popupCanvas.gameObject.SetActive(false);
         RestoreAllowedTargetParent(target);
         RemoveHighlight();
@@ -662,38 +666,60 @@ public sealed class FTUEManager : MonoBehaviour
         clickCatcher = blocker.gameObject.AddComponent<FTUEClickCatcher>();
 
         popupCanvas = CreateCanvas("FTUE Popup Canvas", PopupSortingOrder, false);
-        popupRoot = new GameObject("Tutorial Popup", typeof(RectTransform), typeof(Image));
+        popupRoot = new GameObject("Tutorial Popup", typeof(RectTransform));
         popupRoot.transform.SetParent(popupCanvas.transform, false);
         popupRect = popupRoot.GetComponent<RectTransform>();
         popupRect.anchorMin = popupRect.anchorMax = new Vector2(0.5f, 0.5f);
         popupRect.pivot = new Vector2(0.5f, 0.5f);
-        popupRect.sizeDelta = new Vector2(720f, 390f);
-        Image popupBackground = popupRoot.GetComponent<Image>();
-        popupBackground.color = new Color(0.12f, 0.045f, 0.075f, 0.98f);
+        popupRect.sizeDelta = TutorialPopupSize;
+
+        GameObject visualRoot = new GameObject("Scroll Visual", typeof(RectTransform), typeof(Image));
+        visualRoot.transform.SetParent(popupRoot.transform, false);
+        RectTransform visualRect = visualRoot.GetComponent<RectTransform>();
+        visualRect.anchorMin = visualRect.anchorMax = new Vector2(0.5f, 0.5f);
+        visualRect.pivot = new Vector2(0.5f, 0.5f);
+        visualRect.sizeDelta = TutorialPopupSize;
+        Image popupBackground = visualRoot.GetComponent<Image>();
+        popupBackground.sprite = Resources.Load<Sprite>("FTUE/FTUEScrollPanel");
+        popupBackground.color = popupBackground.sprite != null
+            ? Color.white
+            : new Color(0.78f, 0.58f, 0.32f, 1f);
+        popupBackground.preserveAspect = false;
         popupBackground.raycastTarget = false;
 
-        titleText = CreateText("Title", popupRoot.transform, 42f, FontStyles.Bold, TextAlignmentOptions.Center);
+        GameObject contentRoot = new GameObject("Tutorial Text", typeof(RectTransform), typeof(CanvasGroup));
+        contentRoot.transform.SetParent(visualRoot.transform, false);
+        RectTransform contentRect = contentRoot.GetComponent<RectTransform>();
+        Stretch(contentRect);
+        popupContentGroup = contentRoot.GetComponent<CanvasGroup>();
+        popupContentGroup.alpha = 1f;
+        popupContentGroup.interactable = false;
+        popupContentGroup.blocksRaycasts = false;
+
+        titleText = CreateText("Title", contentRoot.transform, 42f, FontStyles.Bold, TextAlignmentOptions.Center);
+        titleText.color = new Color(0.27f, 0.12f, 0.055f, 1f);
         RectTransform titleRect = titleText.rectTransform;
-        titleRect.anchorMin = new Vector2(0.06f, 0.68f);
-        titleRect.anchorMax = new Vector2(0.94f, 0.94f);
+        titleRect.anchorMin = new Vector2(0.06f, 0.67f);
+        titleRect.anchorMax = new Vector2(0.94f, 0.92f);
         titleRect.offsetMin = titleRect.offsetMax = Vector2.zero;
 
-        bodyText = CreateText("Body", popupRoot.transform, 29f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        bodyText = CreateText("Body", contentRoot.transform, 29f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        bodyText.color = new Color(0.25f, 0.12f, 0.06f, 1f);
         RectTransform bodyRect = bodyText.rectTransform;
-        bodyRect.anchorMin = new Vector2(0.08f, 0.23f);
-        bodyRect.anchorMax = new Vector2(0.92f, 0.68f);
+        bodyRect.anchorMin = new Vector2(0.08f, 0.22f);
+        bodyRect.anchorMax = new Vector2(0.92f, 0.67f);
         bodyRect.offsetMin = bodyRect.offsetMax = Vector2.zero;
 
         clickIndicator = new GameObject("Left Click Indicator", typeof(RectTransform));
-        clickIndicator.transform.SetParent(popupRoot.transform, false);
+        clickIndicator.transform.SetParent(contentRoot.transform, false);
         RectTransform indicatorRect = clickIndicator.GetComponent<RectTransform>();
-        indicatorRect.anchorMin = indicatorRect.anchorMax = new Vector2(0.5f, 0f);
-        indicatorRect.pivot = new Vector2(0.5f, 0f);
-        indicatorRect.anchoredPosition = new Vector2(0f, 28f);
-        indicatorRect.sizeDelta = new Vector2(320f, 58f);
-        TMP_Text indicator = CreateText("Label", clickIndicator.transform, 25f, FontStyles.Bold, TextAlignmentOptions.Center);
-        indicator.text = "LEFT CLICK TO CONTINUE";
-        indicator.color = new Color(1f, 0.82f, 0.35f, 1f);
+        indicatorRect.anchorMin = indicatorRect.anchorMax = new Vector2(1f, 0f);
+        indicatorRect.pivot = new Vector2(1f, 0f);
+        indicatorRect.anchoredPosition = new Vector2(-42f, 22f);
+        indicatorRect.sizeDelta = new Vector2(250f, 38f);
+        TMP_Text indicator = CreateText("Label", clickIndicator.transform, 20f, FontStyles.Normal, TextAlignmentOptions.Right);
+        indicator.text = "CLICK TO CONTINUE ›";
+        indicator.color = new Color(0.38f, 0.14f, 0.055f, 1f);
         Stretch(indicator.rectTransform);
 
         dimCanvas.gameObject.SetActive(false);

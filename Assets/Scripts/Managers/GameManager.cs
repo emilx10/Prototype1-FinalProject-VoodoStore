@@ -140,6 +140,7 @@ public class GameManager : MonoBehaviour
     public List<Market> markets;
     public List<Recipe> recipes;
     public int coins = 100;
+    [SerializeField] private int newDayCurrencyReward = 20;
 
     [Header("Sell Confirmation UI")]
     [SerializeField] private GameObject sellConfirmPanel;
@@ -320,6 +321,7 @@ public class GameManager : MonoBehaviour
     private Sprite sellerRightUiSprite;
     private GameObject brewButton;
     private bool brewAvailableForCurrentPhase;
+    private TMP_Text phaseTitleText;
 
     public Sprite familyMarketInventoryIcon;
 
@@ -853,6 +855,17 @@ public class GameManager : MonoBehaviour
         return null;
     }
     // ------------------- START -------------------
+    private void OnEnable()
+    {
+        DayNightCycleUI.PhaseChanged += UpdatePhaseTitle;
+        UpdatePhaseTitle(DayNightCycleUI.CurrentPhase);
+    }
+
+    private void OnDisable()
+    {
+        DayNightCycleUI.PhaseChanged -= UpdatePhaseTitle;
+    }
+
     void Start()
     {
         // The scene's serialized AudioManager is destroyed when a persistent
@@ -1846,6 +1859,37 @@ public class GameManager : MonoBehaviour
         ReturnCraftingItemsToInventory();
         RefreshSellUI();
     }
+
+    private void UpdatePhaseTitle(DayNightPhase phase)
+    {
+        if (phaseTitleText == null && sellPanel != null)
+        {
+            Transform titleTransform = FindDeepChild(sellPanel.transform, "SellText");
+            if (titleTransform != null)
+                phaseTitleText = titleTransform.GetComponent<TMP_Text>();
+        }
+
+        if (phaseTitleText == null)
+            return;
+
+        bool visible;
+        switch (phase)
+        {
+            case DayNightPhase.Evening:
+                phaseTitleText.text = "Brew Potions";
+                visible = true;
+                break;
+            case DayNightPhase.Night when sellPromptUnlockedByMergeScreen:
+                phaseTitleText.text = "Sell Potions";
+                visible = true;
+                break;
+            default:
+                visible = false;
+                break;
+        }
+
+        phaseTitleText.gameObject.SetActive(visible);
+    }
     void SellItem(InventoryItem item, int price)
     {
         coins += price;
@@ -1875,7 +1919,6 @@ public class GameManager : MonoBehaviour
     public void RefreshSellUI()
     {
         ClearChildren(sellItemsParent);
-        SetSellPromptVisible(sellPromptUnlockedByMergeScreen && HasInventoryItemsForSale());
 
         foreach (InventoryItem item in inventory)
         {
@@ -1930,21 +1973,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private bool HasInventoryItemsForSale()
-    {
-        foreach (InventoryItem item in inventory)
-        {
-            if (item != null && item.count > 0)
-                return true;
-        }
-
-        return false;
-    }
-
     private void UnlockSellPromptAfterMergeScreen()
     {
         sellPromptUnlockedByMergeScreen = true;
         preserveSellPromptOnNextOpenSell = true;
+        UpdatePhaseTitle(DayNightCycleUI.CurrentPhase);
         if (sellPanel != null && sellPanel.activeInHierarchy)
             RefreshSellUI();
     }
@@ -1954,13 +1987,6 @@ public class GameManager : MonoBehaviour
         return item != null &&
             item.count > 0 &&
             (item.category == ItemCategory.Potion || item.category == ItemCategory.Junk);
-    }
-
-    private void SetSellPromptVisible(bool visible)
-    {
-        Transform sellText = FindChildRecursive(sellPanel != null ? sellPanel.transform : null, "SellText");
-        if (sellText != null && sellText.gameObject.activeSelf != visible)
-            sellText.gameObject.SetActive(visible);
     }
 
     private static Transform FindChildRecursive(Transform root, string childName)
@@ -2147,7 +2173,11 @@ public class GameManager : MonoBehaviour
 
         bool reachedGameOverDay = currentDay >= gameOverDay;
         if (!reachedGameOverDay)
+        {
+            coins += newDayCurrencyReward;
+            UpdateCoinsUI();
             StartMarketPhase();
+        }
 
         yield return FadeDayTransitionOutRoutine();
 

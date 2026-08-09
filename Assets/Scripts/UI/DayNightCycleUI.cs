@@ -16,6 +16,9 @@ public sealed class DayNightCycleUI : MonoBehaviour
     private static DayNightCycleUI instance;
     private static DayNightPhase currentPhase = DayNightPhase.Night;
 
+    public static DayNightPhase CurrentPhase => currentPhase;
+    public static event System.Action<DayNightPhase> PhaseChanged;
+
     [Header("Your Scene UI")]
     [SerializeField] private RectTransform sceneClockRoot;
     [SerializeField] private Image sceneArrow;
@@ -65,6 +68,7 @@ public sealed class DayNightCycleUI : MonoBehaviour
     public static void SetPhase(DayNightPhase phase, bool instant)
     {
         currentPhase = phase;
+        PhaseChanged?.Invoke(phase);
 
         if (!EnsureSceneInstance())
             return;
