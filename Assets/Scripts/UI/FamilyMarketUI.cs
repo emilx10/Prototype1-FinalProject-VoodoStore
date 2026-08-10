@@ -598,6 +598,17 @@ public sealed class FamilyMarketUI : MonoBehaviour
     {
         activeRightPanelTab = tab;
         RefreshRightPanelTabs();
+
+        if (tab == RightPanelTab.Objectives)
+        {
+            FTUEManager.NotifyObjectivesOpened(
+                objectivesTabContent != null ? objectivesTabContent.transform as RectTransform : null,
+                knownRecipesTabButton != null ? knownRecipesTabButton.transform as RectTransform : null);
+        }
+        else if (tab == RightPanelTab.KnownRecipes)
+        {
+            FTUEManager.NotifyKnownRecipesOpened();
+        }
     }
 
     private void RefreshRightPanelTabs()

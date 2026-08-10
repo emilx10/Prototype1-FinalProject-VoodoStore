@@ -777,7 +777,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Craft
+  m_text: Brew
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -18526,7 +18526,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Sell your products:'
+  m_text: Brew Potions
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -40908,6 +40908,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SellPanelRightUIBinder
   gameManager: {fileID: 731473973}
   activeTab: 1
+  objectivesTabButton: {fileID: 1215512118}
+  inventoryTabButton: {fileID: 1016987216}
+  knownRecipesPotionButton: {fileID: 523446063}
 --- !u!114 &956114257
 MonoBehaviour:
   m_ObjectHideFlags: 0

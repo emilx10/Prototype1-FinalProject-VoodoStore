@@ -64,6 +64,7 @@ public class UIManager : MonoBehaviour
 
         CloseAll();
         gameManager.OpenInventoryPanel();
+        FTUEManager.NotifyInventoryOpened(inventoryPanel != null ? inventoryPanel.transform as RectTransform : null);
     }
 
     public void CloseInventory()
