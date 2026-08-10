@@ -23,6 +23,7 @@ public sealed class FTUEManager : MonoBehaviour
     private const int InputSortingOrder = 32002;
     private const int PopupSortingOrder = 32003;
     private const float DismissDelay = 3f;
+    private static readonly Vector2 TutorialPopupSize = new Vector2(720f, 350f);
 
     private static FTUEManager instance;
 
@@ -34,9 +35,18 @@ public sealed class FTUEManager : MonoBehaviour
     private bool hasPurchasedIngredient;
     private bool tutorialActive;
     private bool knownRecipesIconClicked;
+    private bool initialFTUEComplete;
     private TutorialState state;
     private RectTransform objectivesPanel;
     private RectTransform knownRecipesButton;
+    private RectTransform knownRecipesPanel;
+    private RectTransform visibleInventoryPanel;
+    private ButtonBreather bookAttentionAnimation;
+    private ButtonBreather marketAttentionAnimation;
+    private bool marketAttentionWasRunning;
+    private Button marketButton;
+    private bool marketButtonWasInteractable;
+    private bool marketRestrictionActive;
 
     private Canvas dimCanvas;
     private Canvas inputCanvas;
@@ -47,6 +57,7 @@ public sealed class FTUEManager : MonoBehaviour
     private TMP_Text titleText;
     private TMP_Text bodyText;
     private RectTransform popupRect;
+    private CanvasGroup popupContentGroup;
 
     private RectTransform highlightedTarget;
     private Canvas highlightCanvas;
@@ -109,7 +120,11 @@ public sealed class FTUEManager : MonoBehaviour
             instance = null;
     }
 
-    public static void NotifyObjectivesOpened(RectTransform panel, RectTransform recipesButton)
+    public static void NotifyObjectivesOpened(
+        RectTransform panel,
+        RectTransform recipesButton,
+        ButtonBreather bookBreather,
+        ButtonBreather marketBreather)
     {
         EnsureInstance();
         if (instance == null || instance.tutorialActive || instance.HasShownObjectivesFTUE)
@@ -117,39 +132,83 @@ public sealed class FTUEManager : MonoBehaviour
 
         instance.objectivesPanel = panel;
         instance.knownRecipesButton = recipesButton;
+        instance.bookAttentionAnimation = bookBreather;
+        instance.marketAttentionAnimation = marketBreather;
         instance.StartCoroutine(instance.RunInitialSequence());
+    }
+
+    public static void RegisterMarketControl(Button button, ButtonBreather breather)
+    {
+        EnsureInstance();
+        if (instance == null || button == null || instance.initialFTUEComplete)
+            return;
+
+        instance.marketButton = button;
+        instance.marketAttentionAnimation = breather;
+
+        if (!instance.marketRestrictionActive)
+        {
+            instance.marketButtonWasInteractable = button.interactable;
+            instance.marketAttentionWasRunning = breather != null && breather.IsBreathing;
+            instance.marketRestrictionActive = true;
+        }
+
+        button.interactable = false;
+        if (breather != null)
+            breather.PauseBreathing();
     }
 
     public static void NotifyInventoryOpened(RectTransform inventoryPanel)
     {
         EnsureInstance();
-        if (instance == null || instance.tutorialActive || instance.HasShownInventoryFTUE ||
-            !instance.hasPurchasedIngredient || inventoryPanel == null)
-        {
+        if (instance == null || inventoryPanel == null)
             return;
-        }
 
-        instance.StartCoroutine(instance.RunInventoryTutorial(inventoryPanel));
+        instance.visibleInventoryPanel = inventoryPanel;
+        instance.TryStartInventoryTutorial();
     }
 
-    public static void NotifyKnownRecipesOpened()
+    public static void NotifyInventoryClosed(RectTransform inventoryPanel)
+    {
+        EnsureInstance();
+        if (instance != null && instance.visibleInventoryPanel == inventoryPanel)
+            instance.visibleInventoryPanel = null;
+    }
+
+    public static void NotifyKnownRecipesOpened(RectTransform panel)
     {
         EnsureInstance();
         if (instance == null || instance.state != TutorialState.WaitingForKnownRecipesIconClick)
             return;
 
         Debug.Log("FTUE: Known Recipes potion icon clicked");
+        instance.knownRecipesPanel = panel;
         instance.knownRecipesIconClicked = true;
     }
 
     private void HandleIngredientPurchased()
     {
         hasPurchasedIngredient = true;
+        Debug.Log("FTUE: First ingredient purchase detected; Inventory tutorial is ready.");
+        TryStartInventoryTutorial();
+    }
+
+    private void TryStartInventoryTutorial()
+    {
+        if (tutorialActive || HasShownInventoryFTUE || !hasPurchasedIngredient ||
+            visibleInventoryPanel == null || !visibleInventoryPanel.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        Debug.Log("FTUE: Starting Inventory tutorial.");
+        StartCoroutine(RunInventoryTutorial(visibleInventoryPanel));
     }
 
     private IEnumerator RunInitialSequence()
     {
         tutorialActive = true;
+        PauseMarketAttentionAnimation();
 
         HasShownObjectivesFTUE = true;
         yield return ShowStep(
@@ -162,7 +221,7 @@ public sealed class FTUEManager : MonoBehaviour
 
         HasShownKnownRecipesFTUE = true;
         yield return ShowStep(
-            knownRecipesButton,
+            knownRecipesPanel,
             "This is the Known Recipes menu.",
             "Every product in the game is listed here. Each recipe requires three ingredients. The colored glow around each ? hints at the ingredient's color.",
             true);
@@ -175,7 +234,40 @@ public sealed class FTUEManager : MonoBehaviour
             "Each day is divided into three phases, each with its own main activity. Every new day brings you one step closer to the 20-day deadline.",
             true);
 
+        initialFTUEComplete = true;
+        GameManager gameManager = FindFirstObjectByType<GameManager>();
+        if (gameManager != null)
+            gameManager.RefreshBrewButtonVisibility();
+        ResumeMarketAttentionAnimation();
         EndTutorial();
+    }
+
+    private void PauseMarketAttentionAnimation()
+    {
+        if (marketRestrictionActive)
+            return;
+
+        if (marketAttentionAnimation == null)
+            return;
+
+        marketAttentionWasRunning = marketAttentionAnimation.IsBreathing;
+        marketAttentionAnimation.PauseBreathing();
+        marketRestrictionActive = true;
+    }
+
+    private void ResumeMarketAttentionAnimation()
+    {
+        if (marketButton != null)
+            marketButton.interactable = marketButtonWasInteractable;
+
+        if (marketAttentionAnimation != null && marketAttentionWasRunning)
+            marketAttentionAnimation.ResumeBreathing();
+
+        marketButton = null;
+        marketAttentionAnimation = null;
+        marketButtonWasInteractable = false;
+        marketAttentionWasRunning = false;
+        marketRestrictionActive = false;
     }
 
     private IEnumerator WaitForKnownRecipesIconClick()
@@ -186,6 +278,7 @@ public sealed class FTUEManager : MonoBehaviour
         Highlight(knownRecipesButton);
         MoveAllowedTargetToOverlay(knownRecipesButton);
         Button potionButton = knownRecipesButton != null ? knownRecipesButton.GetComponent<Button>() : null;
+        ButtonBreather potionAttentionAnimation = StartPotionAttentionAnimation(potionButton);
         if (potionButton != null)
         {
             EnableAllowedButtonInteraction(potionButton);
@@ -222,6 +315,7 @@ public sealed class FTUEManager : MonoBehaviour
             potionButton.onClick.RemoveListener(DebugKnownRecipesPotionClick);
             RestoreAllowedButtonInteraction(potionButton);
         }
+        StopPotionAttentionAnimation(potionAttentionAnimation);
         RestoreAllowedTargetParent(knownRecipesButton);
         clickCatcher.SetAllowedTarget(null);
         inputCanvas.sortingOrder = InputSortingOrder;
@@ -232,6 +326,36 @@ public sealed class FTUEManager : MonoBehaviour
     public void DebugKnownRecipesPotionClick()
     {
         Debug.Log("FTUE DEBUG: Potion icon received click");
+    }
+
+    private ButtonBreather StartPotionAttentionAnimation(Button potionButton)
+    {
+        if (potionButton == null || bookAttentionAnimation == null)
+            return null;
+
+        ButtonBreather potionBreather = potionButton.GetComponent<ButtonBreather>();
+        bool addedForTutorial = potionBreather == null;
+        if (addedForTutorial)
+            potionBreather = potionButton.gameObject.AddComponent<ButtonBreather>();
+
+        potionBreather.speed = bookAttentionAnimation.speed;
+        potionBreather.scaleAmount = bookAttentionAnimation.scaleAmount;
+        potionBreather.playOnStart = addedForTutorial;
+        potionBreather.StartBreathing();
+        return potionBreather;
+    }
+
+    private void StopPotionAttentionAnimation(ButtonBreather potionBreather)
+    {
+        if (potionBreather == null)
+            return;
+
+        potionBreather.StopBreathing();
+
+        // The Potion button does not normally own this behavior; remove the
+        // temporary reused component after it has reset the target scale.
+        if (potionBreather != bookAttentionAnimation)
+            Destroy(potionBreather);
     }
 
     private void EnableAllowedButtonInteraction(Button button)
@@ -402,6 +526,7 @@ public sealed class FTUEManager : MonoBehaviour
         state = TutorialState.ShowingPopup;
         EnsureTutorialUI();
         Highlight(target);
+        MoveAllowedTargetToOverlay(target);
         if (useInitialPopupPosition)
         {
             if (!hasInitialPopupPosition)
@@ -422,6 +547,7 @@ public sealed class FTUEManager : MonoBehaviour
 
         titleText.text = title;
         bodyText.text = body;
+        popupContentGroup.alpha = 1f;
         clickIndicator.SetActive(false);
         clickCatcher.SetDismissEnabled(false);
         clickCatcher.SetAllowedTarget(null);
@@ -437,7 +563,9 @@ public sealed class FTUEManager : MonoBehaviour
         yield return new WaitUntil(() => clickCatcher.ConsumeDismissRequest());
 
         clickIndicator.SetActive(false);
+        popupContentGroup.alpha = 0f;
         popupCanvas.gameObject.SetActive(false);
+        RestoreAllowedTargetParent(target);
         RemoveHighlight();
     }
 
@@ -452,6 +580,7 @@ public sealed class FTUEManager : MonoBehaviour
         popupCanvas.gameObject.SetActive(false);
         tutorialActive = false;
         state = TutorialState.Idle;
+        TryStartInventoryTutorial();
     }
 
     private void Highlight(RectTransform target)
@@ -537,38 +666,60 @@ public sealed class FTUEManager : MonoBehaviour
         clickCatcher = blocker.gameObject.AddComponent<FTUEClickCatcher>();
 
         popupCanvas = CreateCanvas("FTUE Popup Canvas", PopupSortingOrder, false);
-        popupRoot = new GameObject("Tutorial Popup", typeof(RectTransform), typeof(Image));
+        popupRoot = new GameObject("Tutorial Popup", typeof(RectTransform));
         popupRoot.transform.SetParent(popupCanvas.transform, false);
         popupRect = popupRoot.GetComponent<RectTransform>();
         popupRect.anchorMin = popupRect.anchorMax = new Vector2(0.5f, 0.5f);
         popupRect.pivot = new Vector2(0.5f, 0.5f);
-        popupRect.sizeDelta = new Vector2(720f, 390f);
-        Image popupBackground = popupRoot.GetComponent<Image>();
-        popupBackground.color = new Color(0.12f, 0.045f, 0.075f, 0.98f);
+        popupRect.sizeDelta = TutorialPopupSize;
+
+        GameObject visualRoot = new GameObject("Scroll Visual", typeof(RectTransform), typeof(Image));
+        visualRoot.transform.SetParent(popupRoot.transform, false);
+        RectTransform visualRect = visualRoot.GetComponent<RectTransform>();
+        visualRect.anchorMin = visualRect.anchorMax = new Vector2(0.5f, 0.5f);
+        visualRect.pivot = new Vector2(0.5f, 0.5f);
+        visualRect.sizeDelta = TutorialPopupSize;
+        Image popupBackground = visualRoot.GetComponent<Image>();
+        popupBackground.sprite = Resources.Load<Sprite>("FTUE/FTUEScrollPanel");
+        popupBackground.color = popupBackground.sprite != null
+            ? Color.white
+            : new Color(0.78f, 0.58f, 0.32f, 1f);
+        popupBackground.preserveAspect = false;
         popupBackground.raycastTarget = false;
 
-        titleText = CreateText("Title", popupRoot.transform, 42f, FontStyles.Bold, TextAlignmentOptions.Center);
+        GameObject contentRoot = new GameObject("Tutorial Text", typeof(RectTransform), typeof(CanvasGroup));
+        contentRoot.transform.SetParent(visualRoot.transform, false);
+        RectTransform contentRect = contentRoot.GetComponent<RectTransform>();
+        Stretch(contentRect);
+        popupContentGroup = contentRoot.GetComponent<CanvasGroup>();
+        popupContentGroup.alpha = 1f;
+        popupContentGroup.interactable = false;
+        popupContentGroup.blocksRaycasts = false;
+
+        titleText = CreateText("Title", contentRoot.transform, 42f, FontStyles.Bold, TextAlignmentOptions.Center);
+        titleText.color = new Color(0.27f, 0.12f, 0.055f, 1f);
         RectTransform titleRect = titleText.rectTransform;
-        titleRect.anchorMin = new Vector2(0.06f, 0.68f);
-        titleRect.anchorMax = new Vector2(0.94f, 0.94f);
+        titleRect.anchorMin = new Vector2(0.06f, 0.67f);
+        titleRect.anchorMax = new Vector2(0.94f, 0.92f);
         titleRect.offsetMin = titleRect.offsetMax = Vector2.zero;
 
-        bodyText = CreateText("Body", popupRoot.transform, 29f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        bodyText = CreateText("Body", contentRoot.transform, 29f, FontStyles.Normal, TextAlignmentOptions.TopLeft);
+        bodyText.color = new Color(0.25f, 0.12f, 0.06f, 1f);
         RectTransform bodyRect = bodyText.rectTransform;
-        bodyRect.anchorMin = new Vector2(0.08f, 0.23f);
-        bodyRect.anchorMax = new Vector2(0.92f, 0.68f);
+        bodyRect.anchorMin = new Vector2(0.08f, 0.22f);
+        bodyRect.anchorMax = new Vector2(0.92f, 0.67f);
         bodyRect.offsetMin = bodyRect.offsetMax = Vector2.zero;
 
         clickIndicator = new GameObject("Left Click Indicator", typeof(RectTransform));
-        clickIndicator.transform.SetParent(popupRoot.transform, false);
+        clickIndicator.transform.SetParent(contentRoot.transform, false);
         RectTransform indicatorRect = clickIndicator.GetComponent<RectTransform>();
-        indicatorRect.anchorMin = indicatorRect.anchorMax = new Vector2(0.5f, 0f);
-        indicatorRect.pivot = new Vector2(0.5f, 0f);
-        indicatorRect.anchoredPosition = new Vector2(0f, 28f);
-        indicatorRect.sizeDelta = new Vector2(320f, 58f);
-        TMP_Text indicator = CreateText("Label", clickIndicator.transform, 25f, FontStyles.Bold, TextAlignmentOptions.Center);
-        indicator.text = "LEFT CLICK TO CONTINUE";
-        indicator.color = new Color(1f, 0.82f, 0.35f, 1f);
+        indicatorRect.anchorMin = indicatorRect.anchorMax = new Vector2(1f, 0f);
+        indicatorRect.pivot = new Vector2(1f, 0f);
+        indicatorRect.anchoredPosition = new Vector2(-42f, 22f);
+        indicatorRect.sizeDelta = new Vector2(250f, 38f);
+        TMP_Text indicator = CreateText("Label", clickIndicator.transform, 20f, FontStyles.Normal, TextAlignmentOptions.Right);
+        indicator.text = "CLICK TO CONTINUE ›";
+        indicator.color = new Color(0.38f, 0.14f, 0.055f, 1f);
         Stretch(indicator.rectTransform);
 
         dimCanvas.gameObject.SetActive(false);

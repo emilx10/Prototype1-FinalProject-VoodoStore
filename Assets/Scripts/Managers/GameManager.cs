@@ -89,6 +89,19 @@ public class GameManager : MonoBehaviour
     private const float PurchaseVolumeMultiplier = 0.5f;
     private const float ItemPurchaseVolume = 0.3f;
     private const float MysteriousVolumeMultiplier = 0.4f;
+    private const int ProductShopPrice = 80;
+    private static readonly string[] ProductShopRecipeNames =
+    {
+        "Voodoo doll",
+        "Lie-detecting head",
+        "Crystal ball",
+        "Good hair day charm",
+        "Rings of pain relief",
+        "Happyness tiara",
+        "Love Potion",
+        "Sleep Potion",
+        "Bad Luck Potion"
+    };
     private const float BookOpenVolume = 0.5f;
     private const string UltimatePotionRecipeName = "ultimate potion";
     private const int CheatMenuSortingOrder = 32100;
@@ -140,6 +153,7 @@ public class GameManager : MonoBehaviour
     public List<Market> markets;
     public List<Recipe> recipes;
     public int coins = 100;
+    [SerializeField] private int newDayCurrencyReward = 20;
 
     [Header("Sell Confirmation UI")]
     [SerializeField] private GameObject sellConfirmPanel;
@@ -211,6 +225,7 @@ public class GameManager : MonoBehaviour
     private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
     private int konamiIndex = 0;
     private Dictionary<MarketItem, int> marketStock = new Dictionary<MarketItem, int>();
+    private readonly List<MarketItem> productShopItems = new List<MarketItem>();
     private Market currentMarket;
     private bool isMergeAnimationPlaying = false;
     private bool craftingExitRequired;
@@ -318,6 +333,9 @@ public class GameManager : MonoBehaviour
     private RectTransform sellPanelInventoryButtonRect;
     private Image sellPanelInventoryButtonImage;
     private Sprite sellerRightUiSprite;
+    private GameObject brewButton;
+    private bool brewAvailableForCurrentPhase;
+    private TMP_Text phaseTitleText;
 
     public Sprite familyMarketInventoryIcon;
 
@@ -328,6 +346,8 @@ public class GameManager : MonoBehaviour
 
     public ObjectiveManager objectiveManager;
     public int CurrentDay => currentDay;
+    public ButtonBreather MarketAttentionBreather =>
+        endDayButton != null ? endDayButton.GetComponent<ButtonBreather>() : null;
 
     public void OpenKnownRecipes()
     {
@@ -760,6 +780,47 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
+    public bool TryDiscoverProductRecipe(string productName, out bool revealedSomething)
+    {
+        revealedSomething = false;
+        string normalizedProductName = NormalizeName(productName);
+        Recipe productRecipe = null;
+
+        foreach (Recipe recipe in recipes)
+        {
+            if (recipe != null &&
+                recipe.category == ItemCategory.Potion &&
+                NormalizeName(recipe.potionName) == normalizedProductName)
+            {
+                productRecipe = recipe;
+                break;
+            }
+        }
+
+        if (productRecipe == null)
+            return false;
+
+        if (!IsRecipeDiscovered(productRecipe))
+        {
+            for (int ingredientIndex = 0; ingredientIndex < productRecipe.ingredients.Count; ingredientIndex++)
+            {
+                revealedSomething |= discoveredRecipeIngredientSlots.Add(
+                    GetRecipeIngredientSlotKey(productRecipe, ingredientIndex));
+            }
+        }
+
+        if (revealedSomething)
+        {
+            if (knownRecipesPanel != null && knownRecipesPanel.activeInHierarchy)
+                PopulateKnownRecipesUI();
+
+            FamilyMarketUI.RefreshIfVisible();
+            SellPanelRightUIBinder.RefreshVisible();
+        }
+
+        return true;
+    }
+
     private void DiscoverRecipe(Recipe recipe)
     {
         discoveredRecipes.Add(NormalizeName(recipe.potionName));
@@ -849,12 +910,25 @@ public class GameManager : MonoBehaviour
         return null;
     }
     // ------------------- START -------------------
+    private void OnEnable()
+    {
+        DayNightCycleUI.PhaseChanged += UpdatePhaseTitle;
+        UpdatePhaseTitle(DayNightCycleUI.CurrentPhase);
+    }
+
+    private void OnDisable()
+    {
+        DayNightCycleUI.PhaseChanged -= UpdatePhaseTitle;
+    }
+
     void Start()
     {
         // The scene's serialized AudioManager is destroyed when a persistent
         // singleton already exists after Play Again. Always use the survivor.
         if (AudioManager.Instance != null)
             ad = AudioManager.Instance;
+
+        FTUEManager.RegisterMarketControl(endDayButton, MarketAttentionBreather);
 
         ApplyDayNightCycleUISettings();
         DayNightCycleUI.SetPhase(dayNightStartingPhase, true);
@@ -870,6 +944,10 @@ public class GameManager : MonoBehaviour
         
         priceSlider.onValueChanged.RemoveAllListeners();
         priceSlider.onValueChanged.AddListener(OnPriceSliderChanged);
+
+        // Startup panel/tab binding can temporarily restore this child. Apply
+        // the initial gameplay state last, before Unity renders the first frame.
+        SetBrewButtonVisible(false);
 
     }
 
@@ -973,6 +1051,56 @@ public class GameManager : MonoBehaviour
                 marketStock[item] = amount;
             }
         }
+
+        EnsureProductShopItems();
+        foreach (MarketItem product in productShopItems)
+            marketStock[product] = 1;
+    }
+
+    private void EnsureProductShopItems()
+    {
+        if (productShopItems.Count > 0 || recipes == null)
+            return;
+
+        foreach (string requestedName in ProductShopRecipeNames)
+        {
+            Recipe matchingRecipe = null;
+            string normalizedRequestedName = NormalizeName(requestedName);
+
+            foreach (Recipe recipe in recipes)
+            {
+                if (recipe != null && NormalizeName(recipe.potionName) == normalizedRequestedName)
+                {
+                    matchingRecipe = recipe;
+                    break;
+                }
+            }
+
+            if (matchingRecipe == null)
+            {
+                Debug.LogError($"Product Shop could not find recipe definition: {requestedName}");
+                continue;
+            }
+
+            productShopItems.Add(new MarketItem
+            {
+                itemName = matchingRecipe.potionName,
+                price = ProductShopPrice,
+                category = ItemCategory.Potion,
+                description = string.Empty,
+                icon = matchingRecipe.icon,
+                minSellPrice = matchingRecipe.minSellPrice,
+                maxSellPrice = matchingRecipe.maxSellPrice,
+                minAmount = 1,
+                maxAmount = 1
+            });
+        }
+    }
+
+    public List<MarketItem> GetProductShopItems()
+    {
+        EnsureProductShopItems();
+        return productShopItems;
     }
     void BuyItem(MarketItem item)
     {
@@ -1174,6 +1302,35 @@ public class GameManager : MonoBehaviour
         craftButton.interactable = true;
     }
 
+    private void SetBrewButtonVisible(bool visible)
+    {
+        brewAvailableForCurrentPhase = visible;
+        ApplyBrewButtonVisibility();
+    }
+
+    private void ApplyBrewButtonVisibility()
+    {
+        if (brewButton == null && sellPanel != null)
+        {
+            Transform brewButtonTransform = FindDeepChild(sellPanel.transform, "CraftItemsButton");
+            if (brewButtonTransform != null)
+                brewButton = brewButtonTransform.gameObject;
+        }
+
+        if (brewButton != null)
+            brewButton.SetActive(brewAvailableForCurrentPhase);
+    }
+
+    public void SetBrewButtonVisibleForGameplayPhase(bool visible)
+    {
+        SetBrewButtonVisible(visible);
+    }
+
+    public void RefreshBrewButtonVisibility()
+    {
+        ApplyBrewButtonVisibility();
+    }
+
 #if UNITY_EDITOR
     [ContextMenu("Build / Refresh Sell Panel Right UI Copy")]
     private void BuildRefreshSellPanelRightUICopy()
@@ -1332,6 +1489,7 @@ public class GameManager : MonoBehaviour
         sellPanel.SetActive(true);
 
         craftingPanel.SetActive(true);
+        SetBrewButtonVisible(false);
 
         selectedCraftingItems.Clear();
 
@@ -1355,7 +1513,11 @@ public class GameManager : MonoBehaviour
 
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
             if (txt != null)
-                txt.gameObject.SetActive(false);
+            {
+                bool showProductQuantity = item.category == ItemCategory.Potion;
+                txt.text = "x" + item.count;
+                txt.gameObject.SetActive(showProductQuantity);
+            }
 
             ApplyCategoryStyle(btn, item.category);
 
@@ -1371,6 +1533,12 @@ public class GameManager : MonoBehaviour
     {
         if (item == null || item.count <= 0)
             return false;
+
+        // Finished Products use the same selection, consumption, and recipe
+        // matching path as Ingredients. Products that are not part of a valid
+        // three-item recipe naturally fall through to the existing Junk result.
+        if (item.category == ItemCategory.Potion)
+            return true;
 
         if (!IsRecipeItem(item.itemName))
             return true;
@@ -1801,9 +1969,41 @@ public class GameManager : MonoBehaviour
         itemsPanel.SetActive(false);
         craftingPanel.SetActive(false);
         sellPanel.SetActive(true);
+        SetBrewButtonVisible(true);
         EnsureSellPanelRightUI();
         ReturnCraftingItemsToInventory();
         RefreshSellUI();
+    }
+
+    private void UpdatePhaseTitle(DayNightPhase phase)
+    {
+        if (phaseTitleText == null && sellPanel != null)
+        {
+            Transform titleTransform = FindDeepChild(sellPanel.transform, "SellText");
+            if (titleTransform != null)
+                phaseTitleText = titleTransform.GetComponent<TMP_Text>();
+        }
+
+        if (phaseTitleText == null)
+            return;
+
+        bool visible;
+        switch (phase)
+        {
+            case DayNightPhase.Evening:
+                phaseTitleText.text = "Brew Potions";
+                visible = true;
+                break;
+            case DayNightPhase.Night when sellPromptUnlockedByMergeScreen:
+                phaseTitleText.text = "Sell Potions";
+                visible = true;
+                break;
+            default:
+                visible = false;
+                break;
+        }
+
+        phaseTitleText.gameObject.SetActive(visible);
     }
     void SellItem(InventoryItem item, int price)
     {
@@ -1834,7 +2034,6 @@ public class GameManager : MonoBehaviour
     public void RefreshSellUI()
     {
         ClearChildren(sellItemsParent);
-        SetSellPromptVisible(sellPromptUnlockedByMergeScreen && HasInventoryItemsForSale());
 
         foreach (InventoryItem item in inventory)
         {
@@ -1889,21 +2088,11 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private bool HasInventoryItemsForSale()
-    {
-        foreach (InventoryItem item in inventory)
-        {
-            if (item != null && item.count > 0)
-                return true;
-        }
-
-        return false;
-    }
-
     private void UnlockSellPromptAfterMergeScreen()
     {
         sellPromptUnlockedByMergeScreen = true;
         preserveSellPromptOnNextOpenSell = true;
+        UpdatePhaseTitle(DayNightCycleUI.CurrentPhase);
         if (sellPanel != null && sellPanel.activeInHierarchy)
             RefreshSellUI();
     }
@@ -1913,13 +2102,6 @@ public class GameManager : MonoBehaviour
         return item != null &&
             item.count > 0 &&
             (item.category == ItemCategory.Potion || item.category == ItemCategory.Junk);
-    }
-
-    private void SetSellPromptVisible(bool visible)
-    {
-        Transform sellText = FindChildRecursive(sellPanel != null ? sellPanel.transform : null, "SellText");
-        if (sellText != null && sellText.gameObject.activeSelf != visible)
-            sellText.gameObject.SetActive(visible);
     }
 
     private static Transform FindChildRecursive(Transform root, string childName)
@@ -2106,7 +2288,11 @@ public class GameManager : MonoBehaviour
 
         bool reachedGameOverDay = currentDay >= gameOverDay;
         if (!reachedGameOverDay)
+        {
+            coins += newDayCurrencyReward;
+            UpdateCoinsUI();
             StartMarketPhase();
+        }
 
         yield return FadeDayTransitionOutRoutine();
 
