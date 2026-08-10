@@ -28608,7 +28608,7 @@ MonoBehaviour:
     - Floral oil
     icon: {fileID: 21300000, guid: b0886d7341fba3845a0cf6eb5ab05e34, type: 3}
     minSellPrice: 10
-    maxSellPrice: 50
+    maxSellPrice: 80
   - potionName: Sleep Potion
     category: 3
     ingredients:

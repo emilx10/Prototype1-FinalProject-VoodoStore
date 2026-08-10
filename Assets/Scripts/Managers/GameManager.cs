@@ -89,6 +89,19 @@ public class GameManager : MonoBehaviour
     private const float PurchaseVolumeMultiplier = 0.5f;
     private const float ItemPurchaseVolume = 0.3f;
     private const float MysteriousVolumeMultiplier = 0.4f;
+    private const int ProductShopPrice = 80;
+    private static readonly string[] ProductShopRecipeNames =
+    {
+        "Voodoo doll",
+        "Lie-detecting head",
+        "Crystal ball",
+        "Good hair day charm",
+        "Rings of pain relief",
+        "Happyness tiara",
+        "Love Potion",
+        "Sleep Potion",
+        "Bad Luck Potion"
+    };
     private const float BookOpenVolume = 0.5f;
     private const string UltimatePotionRecipeName = "ultimate potion";
     private const int CheatMenuSortingOrder = 32100;
@@ -212,6 +225,7 @@ public class GameManager : MonoBehaviour
     private List<InventoryItem> selectedCraftingItems = new List<InventoryItem>();
     private int konamiIndex = 0;
     private Dictionary<MarketItem, int> marketStock = new Dictionary<MarketItem, int>();
+    private readonly List<MarketItem> productShopItems = new List<MarketItem>();
     private Market currentMarket;
     private bool isMergeAnimationPlaying = false;
     private bool craftingExitRequired;
@@ -766,6 +780,47 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
+    public bool TryDiscoverProductRecipe(string productName, out bool revealedSomething)
+    {
+        revealedSomething = false;
+        string normalizedProductName = NormalizeName(productName);
+        Recipe productRecipe = null;
+
+        foreach (Recipe recipe in recipes)
+        {
+            if (recipe != null &&
+                recipe.category == ItemCategory.Potion &&
+                NormalizeName(recipe.potionName) == normalizedProductName)
+            {
+                productRecipe = recipe;
+                break;
+            }
+        }
+
+        if (productRecipe == null)
+            return false;
+
+        if (!IsRecipeDiscovered(productRecipe))
+        {
+            for (int ingredientIndex = 0; ingredientIndex < productRecipe.ingredients.Count; ingredientIndex++)
+            {
+                revealedSomething |= discoveredRecipeIngredientSlots.Add(
+                    GetRecipeIngredientSlotKey(productRecipe, ingredientIndex));
+            }
+        }
+
+        if (revealedSomething)
+        {
+            if (knownRecipesPanel != null && knownRecipesPanel.activeInHierarchy)
+                PopulateKnownRecipesUI();
+
+            FamilyMarketUI.RefreshIfVisible();
+            SellPanelRightUIBinder.RefreshVisible();
+        }
+
+        return true;
+    }
+
     private void DiscoverRecipe(Recipe recipe)
     {
         discoveredRecipes.Add(NormalizeName(recipe.potionName));
@@ -996,6 +1051,56 @@ public class GameManager : MonoBehaviour
                 marketStock[item] = amount;
             }
         }
+
+        EnsureProductShopItems();
+        foreach (MarketItem product in productShopItems)
+            marketStock[product] = 1;
+    }
+
+    private void EnsureProductShopItems()
+    {
+        if (productShopItems.Count > 0 || recipes == null)
+            return;
+
+        foreach (string requestedName in ProductShopRecipeNames)
+        {
+            Recipe matchingRecipe = null;
+            string normalizedRequestedName = NormalizeName(requestedName);
+
+            foreach (Recipe recipe in recipes)
+            {
+                if (recipe != null && NormalizeName(recipe.potionName) == normalizedRequestedName)
+                {
+                    matchingRecipe = recipe;
+                    break;
+                }
+            }
+
+            if (matchingRecipe == null)
+            {
+                Debug.LogError($"Product Shop could not find recipe definition: {requestedName}");
+                continue;
+            }
+
+            productShopItems.Add(new MarketItem
+            {
+                itemName = matchingRecipe.potionName,
+                price = ProductShopPrice,
+                category = ItemCategory.Potion,
+                description = string.Empty,
+                icon = matchingRecipe.icon,
+                minSellPrice = matchingRecipe.minSellPrice,
+                maxSellPrice = matchingRecipe.maxSellPrice,
+                minAmount = 1,
+                maxAmount = 1
+            });
+        }
+    }
+
+    public List<MarketItem> GetProductShopItems()
+    {
+        EnsureProductShopItems();
+        return productShopItems;
     }
     void BuyItem(MarketItem item)
     {
@@ -1408,7 +1513,11 @@ public class GameManager : MonoBehaviour
 
             TMP_Text txt = btn.GetComponentInChildren<TMP_Text>();
             if (txt != null)
-                txt.gameObject.SetActive(false);
+            {
+                bool showProductQuantity = item.category == ItemCategory.Potion;
+                txt.text = "x" + item.count;
+                txt.gameObject.SetActive(showProductQuantity);
+            }
 
             ApplyCategoryStyle(btn, item.category);
 
@@ -1424,6 +1533,12 @@ public class GameManager : MonoBehaviour
     {
         if (item == null || item.count <= 0)
             return false;
+
+        // Finished Products use the same selection, consumption, and recipe
+        // matching path as Ingredients. Products that are not part of a valid
+        // three-item recipe naturally fall through to the existing Junk result.
+        if (item.category == ItemCategory.Potion)
+            return true;
 
         if (!IsRecipeItem(item.itemName))
             return true;

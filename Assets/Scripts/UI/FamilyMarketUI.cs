@@ -69,6 +69,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
     [SerializeField] private Image rightUiBlockImage;
     [SerializeField] private RectTransform leftArrowRect;
     [SerializeField] private RectTransform rightArrowRect;
+    [SerializeField] private RectTransform categoryToggleArrowRect;
     [SerializeField] private RectTransform inventoryButtonRect;
     [SerializeField] private Image inventoryButtonImage;
     [SerializeField] private RectTransform rightPanelTabsRoot;
@@ -87,6 +88,10 @@ public sealed class FamilyMarketUI : MonoBehaviour
     [SerializeField] private int editableInventoryRowCount = DefaultEditableInventoryRowCount;
     [SerializeField] private int editableKnownRecipeCardCount = DefaultEditableKnownRecipeCardCount;
     private int pageIndex;
+    private int productPageIndex;
+    private bool showingProducts;
+    private const int ItemsPerPage = 3;
+    private const string CategoryToggleArrowName = "Market Category Down Arrow";
 
     public static void Attach(GameManager manager)
     {
@@ -180,7 +185,11 @@ public sealed class FamilyMarketUI : MonoBehaviour
         {
             contentRoot.SetActive(shouldShow);
             if (shouldShow)
+            {
+                showingProducts = false;
+                productPageIndex = 0;
                 RefreshPage();
+            }
         }
 
         if (shouldShow)
@@ -230,6 +239,8 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         for (int i = 0; i < 3; i++)
             itemSlots.Add(CreateItemSlot(i));
+
+        categoryToggleArrowRect = CreateCategoryToggleArrow();
 
         CreateCommandButton(
             "Enter Shop",
@@ -349,6 +360,9 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (rightArrowRect != null)
             ConfigureArrowButton(rightArrowRect, 1);
 
+        EnsureCategoryToggleArrow();
+        ConfigureCategoryToggleButton();
+
         ConfigureInventoryButton();
         ConfigureEnterShopButton();
         EnsureRightPanelTabs();
@@ -373,6 +387,102 @@ public sealed class FamilyMarketUI : MonoBehaviour
         button.interactable = true;
         arrowRect.gameObject.SetActive(true);
         ConfigureArrowFrontLayer(arrowRect);
+    }
+
+    private void EnsureCategoryToggleArrow()
+    {
+        if (contentRoot == null)
+            return;
+
+        if (categoryToggleArrowRect == null)
+            categoryToggleArrowRect = contentRoot.transform.Find(CategoryToggleArrowName)?.GetComponent<RectTransform>();
+
+        if (categoryToggleArrowRect == null)
+            categoryToggleArrowRect = CreateCategoryToggleArrow();
+    }
+
+    private RectTransform CreateCategoryToggleArrow()
+    {
+        GameObject arrowObject = CreateRect(
+            CategoryToggleArrowName,
+            contentRoot.transform,
+            GetCategoryTogglePosition(),
+            new Vector2(70f, 70f));
+
+        Image image = arrowObject.AddComponent<Image>();
+        Image existingArrowImage = rightArrowRect != null ? rightArrowRect.GetComponent<Image>() : null;
+        image.sprite = existingArrowImage != null && existingArrowImage.sprite != null
+            ? existingArrowImage.sprite
+            : LoadSprite("Arrow");
+        image.preserveAspect = true;
+        image.raycastTarget = true;
+
+        RectTransform rect = arrowObject.GetComponent<RectTransform>();
+        rect.localRotation = Quaternion.Euler(0f, 0f, -90f);
+
+        Button button = arrowObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        ConfigureFrontUiLayer(arrowObject, 140);
+        return rect;
+    }
+
+    private Vector2 GetCategoryTogglePosition()
+    {
+        if (itemSlots.Count == 0)
+            return new Vector2(-473f, -490f);
+
+        float centerX = 0f;
+        float bottomY = float.MaxValue;
+        int rectCount = 0;
+        foreach (GameObject slot in itemSlots)
+        {
+            RectTransform slotRect = slot != null ? slot.GetComponent<RectTransform>() : null;
+            if (slotRect == null)
+                continue;
+
+            centerX += slotRect.anchoredPosition.x;
+            float scaledHeight = slotRect.rect.height * Mathf.Abs(slotRect.localScale.y);
+            bottomY = Mathf.Min(bottomY, slotRect.anchoredPosition.y - scaledHeight * 0.5f);
+            rectCount++;
+        }
+
+        return rectCount > 0
+            ? new Vector2(centerX / rectCount, bottomY - 43f)
+            : new Vector2(-473f, -490f);
+    }
+
+    private void ConfigureCategoryToggleButton()
+    {
+        if (categoryToggleArrowRect == null)
+            return;
+
+        Image image = categoryToggleArrowRect.GetComponent<Image>();
+        Button button = categoryToggleArrowRect.GetComponent<Button>();
+        if (button == null)
+            button = categoryToggleArrowRect.gameObject.AddComponent<Button>();
+
+        if (image != null)
+        {
+            image.raycastTarget = true;
+            image.preserveAspect = true;
+            button.targetGraphic = image;
+        }
+
+        button.onClick.RemoveAllListeners();
+        button.onClick.AddListener(ToggleShopCategory);
+        button.interactable = true;
+        categoryToggleArrowRect.gameObject.SetActive(true);
+        ConfigureArrowFrontLayer(categoryToggleArrowRect);
+    }
+
+    private void ToggleShopCategory()
+    {
+        showingProducts = !showingProducts;
+        if (showingProducts)
+            productPageIndex = 0;
+
+        TooltipManager.Instance?.Hide();
+        RefreshPage();
     }
 
     private void ConfigureInventoryButton()
@@ -1648,18 +1758,24 @@ public sealed class FamilyMarketUI : MonoBehaviour
         ApplyCharacterVisibility(page.characterTexture);
 
         Market market = gameManager.GetMarketForCategory(page.category);
+        List<MarketItem> productItems = showingProducts ? gameManager.GetProductShopItems() : null;
+        int firstItemIndex = showingProducts ? productPageIndex * ItemsPerPage : 0;
         Sprite frameSprite = LoadSprite(page.frameTexture);
 
         for (int i = 0; i < itemSlots.Count; i++)
         {
             GameObject slot = itemSlots[i];
-            bool hasItem = market != null && i < market.items.Count;
+            bool hasItem = showingProducts
+                ? productItems != null && firstItemIndex + i < productItems.Count
+                : market != null && i < market.items.Count;
             slot.SetActive(hasItem);
 
             if (!hasItem)
                 continue;
 
-            MarketItem item = market.items[i];
+            MarketItem item = showingProducts
+                ? productItems[firstItemIndex + i]
+                : market.items[i];
             int stock = gameManager.GetMarketStock(item);
 
             slot.transform.Find("Category Frame").GetComponent<Image>().sprite = frameSprite;
@@ -1830,6 +1946,9 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
         ResolveFamilyArrows(contentTransform);
 
+        if (categoryToggleArrowRect == null)
+            categoryToggleArrowRect = contentTransform.Find(CategoryToggleArrowName)?.GetComponent<RectTransform>();
+
         ConfigureArrowFrontLayer(leftArrowRect);
         ConfigureArrowFrontLayer(rightArrowRect);
 
@@ -1907,7 +2026,16 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
     private void ChangePage(int direction)
     {
-        pageIndex = (pageIndex + direction + pages.Count) % pages.Count;
+        if (showingProducts)
+        {
+            int productPageCount = Mathf.Max(1, Mathf.CeilToInt(gameManager.GetProductShopItems().Count / (float)ItemsPerPage));
+            productPageIndex = (productPageIndex + direction + productPageCount) % productPageCount;
+        }
+        else
+        {
+            pageIndex = (pageIndex + direction + pages.Count) % pages.Count;
+        }
+
         RefreshPage();
     }
 

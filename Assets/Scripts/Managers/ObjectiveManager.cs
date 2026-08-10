@@ -276,16 +276,22 @@ public class ObjectiveManager : MonoBehaviour
 
         string key = itemName.ToLower().Trim();
         bool revealedSomething = false;
-        bool revealedRecipeIngredient = gameManager.DiscoverRecipeIngredient(itemName);
+        bool isProduct = gameManager.TryDiscoverProductRecipe(itemName, out bool revealedProductRecipe);
+        bool revealedRecipeIngredient = revealedProductRecipe;
 
-        foreach (var obj in objectives)
+        if (!isProduct)
         {
-            for (int i = 0; i < obj.ingredients.Count; i++)
+            revealedRecipeIngredient = gameManager.DiscoverRecipeIngredient(itemName);
+
+            foreach (var obj in objectives)
             {
-                if (!obj.discovered[i] && obj.ingredients[i].ToLower().Trim() == key)
+                for (int i = 0; i < obj.ingredients.Count; i++)
                 {
-                    obj.discovered[i] = true;
-                    revealedSomething = true;
+                    if (!obj.discovered[i] && obj.ingredients[i].ToLower().Trim() == key)
+                    {
+                        obj.discovered[i] = true;
+                        revealedSomething = true;
+                    }
                 }
             }
         }
