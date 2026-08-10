@@ -35,7 +35,7 @@ ScriptedImporter:
     ignoreMipmapLimit: 0
     nPOTScale: 1
     sRGBTexture: 1
-    spriteMode: 1
+    spriteMode: 2
     spriteExtrude: 1
     spriteMeshType: 1
     alignment: 0
@@ -88,7 +88,7 @@ ScriptedImporter:
       y: 0
       width: 0
       height: 0
-    spriteID: 81a2eba2c78faeb4980c5544a4b5f6ef
+    spriteID: 2a4f6163eb8f3bd468ed5139c80b2251
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -112,7 +112,7 @@ ScriptedImporter:
       y: 78
       width: 65
       height: 26
-    spriteID: e0e85def50a05344784fa6c0db19f159
+    spriteID: 2d265c8686387934ab9f585fbf27e48c
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -134,7 +134,7 @@ ScriptedImporter:
       y: 78
       width: 95
       height: 25
-    spriteID: 8033bc42c4fae1f42b8cb55fd8653519
+    spriteID: 865b4850b47198c4abf839e317fe3ee2
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -156,7 +156,7 @@ ScriptedImporter:
       y: 4
       width: 146
       height: 66
-    spriteID: e0a08885217942344af6980c8c80507b
+    spriteID: d06ddf5d101e5974d82fb5c79ebeec8d
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -178,7 +178,7 @@ ScriptedImporter:
       y: 1091
       width: 397
       height: 207
-    spriteID: 89369089eacca4f40a18a9cda2378780
+    spriteID: 61302bf0700f1d6489152eb75e6c3379
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -200,7 +200,7 @@ ScriptedImporter:
       y: 122
       width: 370
       height: 85
-    spriteID: 0a84d9cd2aac7dc46955e52e71897c9f
+    spriteID: 316d5dfc0606f5c478ad95f926e7c9fd
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -222,7 +222,7 @@ ScriptedImporter:
       y: 4
       width: 482
       height: 622
-    spriteID: a7e46022d7086ec48ad0a67ee2bacd39
+    spriteID: 250f925284cb1804b8c4372336f76f23
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -244,7 +244,7 @@ ScriptedImporter:
       y: 4
       width: 313
       height: 110
-    spriteID: ac712303457e2c543a6f9d1a1498f7a1
+    spriteID: cfb90eeed4d931749a43023d56393f39
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -266,7 +266,7 @@ ScriptedImporter:
       y: 1306
       width: 271
       height: 153
-    spriteID: c3c3afd90f4c2d14fb858af89ce3c938
+    spriteID: 7b83b1615e2de7d4da21b33b1aab37ed
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -288,7 +288,7 @@ ScriptedImporter:
       y: 634
       width: 333
       height: 449
-    spriteID: ac0d3d22c1a2e324e9b0ee0697d94d04
+    spriteID: 4ac7829ff68c7cc4f84b8026dadc4690
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -310,7 +310,7 @@ ScriptedImporter:
       y: 1306
       width: 192
       height: 250
-    spriteID: 63fe40013797cde4f8ec4251ad1d1994
+    spriteID: f43618979c9e4b34590f8b82c683834e
     spriteBone: []
     spriteOutline: []
     vertices: []
@@ -369,7 +369,7 @@ ScriptedImporter:
   documentAlignment: 7
   importHiddenLayers: 0
   layerMappingOption: 2
-  generatePhysicsShape: 1
+  generatePhysicsShape: 0
   paperDollMode: 0
   keepDupilcateSpriteName: 1
   generateTileAssets: 0
@@ -395,7 +395,7 @@ ScriptedImporter:
     spriteName: 
     isGroup: 1
     parentIndex: -1
-    spriteID: 0a1c276f3e5873a45875c5546be657c3
+    spriteID: 37749faeabebac94f9d347273cc13d4f
     layerID: 15
     mosaicPosition: {x: 0, y: 0}
     flatten: 0
@@ -405,7 +405,7 @@ ScriptedImporter:
     spriteName: Brows
     isGroup: 0
     parentIndex: 0
-    spriteID: e0e85def50a05344784fa6c0db19f159
+    spriteID: 2d265c8686387934ab9f585fbf27e48c
     layerID: 48
     mosaicPosition: {x: 918, y: 78}
     flatten: 0
@@ -415,7 +415,7 @@ ScriptedImporter:
     spriteName: Stars on face
     isGroup: 0
     parentIndex: 0
-    spriteID: 8033bc42c4fae1f42b8cb55fd8653519
+    spriteID: 865b4850b47198c4abf839e317fe3ee2
     layerID: 12
     mosaicPosition: {x: 815, y: 78}
     flatten: 0
@@ -425,7 +425,7 @@ ScriptedImporter:
     spriteName: Eyes
     isGroup: 0
     parentIndex: 0
-    spriteID: e0a08885217942344af6980c8c80507b
+    spriteID: d06ddf5d101e5974d82fb5c79ebeec8d
     layerID: 11
     mosaicPosition: {x: 815, y: 4}
     flatten: 0
@@ -435,7 +435,7 @@ ScriptedImporter:
     spriteName: Hair
     isGroup: 0
     parentIndex: 0
-    spriteID: 89369089eacca4f40a18a9cda2378780
+    spriteID: 61302bf0700f1d6489152eb75e6c3379
     layerID: 10
     mosaicPosition: {x: 4, y: 1091}
     flatten: 0
@@ -445,7 +445,7 @@ ScriptedImporter:
     spriteName: Necklse
     isGroup: 0
     parentIndex: 0
-    spriteID: 0a84d9cd2aac7dc46955e52e71897c9f
+    spriteID: 316d5dfc0606f5c478ad95f926e7c9fd
     layerID: 9
     mosaicPosition: {x: 494, y: 122}
     flatten: 0
@@ -455,7 +455,7 @@ ScriptedImporter:
     spriteName: Top Shirt
     isGroup: 0
     parentIndex: 0
-    spriteID: a7e46022d7086ec48ad0a67ee2bacd39
+    spriteID: 250f925284cb1804b8c4372336f76f23
     layerID: 8
     mosaicPosition: {x: 4, y: 4}
     flatten: 0
@@ -465,7 +465,7 @@ ScriptedImporter:
     spriteName: Hands
     isGroup: 0
     parentIndex: 0
-    spriteID: ac712303457e2c543a6f9d1a1498f7a1
+    spriteID: cfb90eeed4d931749a43023d56393f39
     layerID: 7
     mosaicPosition: {x: 494, y: 4}
     flatten: 0
@@ -475,7 +475,7 @@ ScriptedImporter:
     spriteName: Strap
     isGroup: 0
     parentIndex: 0
-    spriteID: c3c3afd90f4c2d14fb858af89ce3c938
+    spriteID: 7b83b1615e2de7d4da21b33b1aab37ed
     layerID: 6
     mosaicPosition: {x: 204, y: 1306}
     flatten: 0
@@ -485,7 +485,7 @@ ScriptedImporter:
     spriteName: Dress
     isGroup: 0
     parentIndex: 0
-    spriteID: ac0d3d22c1a2e324e9b0ee0697d94d04
+    spriteID: 4ac7829ff68c7cc4f84b8026dadc4690
     layerID: 5
     mosaicPosition: {x: 4, y: 634}
     flatten: 0
@@ -495,7 +495,7 @@ ScriptedImporter:
     spriteName: Face
     isGroup: 0
     parentIndex: 0
-    spriteID: 63fe40013797cde4f8ec4251ad1d1994
+    spriteID: f43618979c9e4b34590f8b82c683834e
     layerID: 4
     mosaicPosition: {x: 4, y: 1306}
     flatten: 0
@@ -505,7 +505,7 @@ ScriptedImporter:
   rigPSDLayers: []
   sharedRigPSDLayers: []
   importFileNodeState: 1
-  platformSettingsDirtyTick: 639219939646752922
+  platformSettingsDirtyTick: 0
   spriteSizeExpandChanged: 0
   generateGOHierarchy: 0
   textureAssetName: 
