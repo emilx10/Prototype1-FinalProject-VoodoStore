@@ -28450,7 +28450,6 @@ MonoBehaviour:
   triangleRightTop: {x: 100, y: 40}
   triangleCenterBottom: {x: 5, y: -10}
   junkItemName: Junk
-  junkSellPrice: 1
   junkIcon: {fileID: 21300000, guid: 8820adc97120ed245b4e474d99c787e5, type: 3}
   selectedItemsParent: {fileID: 861392865}
   selectedItemTextPrefab: {fileID: 1933840957925310353, guid: 8a12491297d090c46802897957f053d6, type: 3}
@@ -28467,6 +28466,13 @@ MonoBehaviour:
       icon: {fileID: 21300000, guid: bdbdb0f6b4442c54bb79807aaa7f77b4, type: 3}
       minSellPrice: 1
       maxSellPrice: 8
+      safeSellMin: 0
+      safeSellMax: 0
+      fairSellMin: 0
+      fairSellMax: 0
+      riskySellMin: 0
+      riskySellMax: 0
+      temptFateReward: 0
       minAmount: 1
       maxAmount: 3
     - itemName: Agate
@@ -28476,6 +28482,13 @@ MonoBehaviour:
       icon: {fileID: 21300000, guid: 5ff25c09f0b24cd4b864baa77b4e33fb, type: 3}
       minSellPrice: 1
       maxSellPrice: 4
+      safeSellMin: 0
+      safeSellMax: 0
+      fairSellMin: 0
+      fairSellMax: 0
+      riskySellMin: 0
+      riskySellMax: 0
+      temptFateReward: 0
       minAmount: 1
       maxAmount: 3
     - itemName: Obsidian
@@ -28485,6 +28498,13 @@ MonoBehaviour:
       icon: {fileID: 21300000, guid: d982b9844857e99408e39ff906d81f25, type: 3}
       minSellPrice: 1
       maxSellPrice: 7
+      safeSellMin: 0
+      safeSellMax: 0
+      fairSellMin: 0
+      fairSellMax: 0
+      riskySellMin: 0
+      riskySellMax: 0
+      temptFateReward: 0
       minAmount: 1
       maxAmount: 3
   - marketName: Oils
@@ -28496,6 +28516,13 @@ MonoBehaviour:
       icon: {fileID: 21300000, guid: ad5f505d018245b45a9228d68a94b1cd, type: 3}
       minSellPrice: 1
       maxSellPrice: 6
+      safeSellMin: 0
+      safeSellMax: 0
+      fairSellMin: 0
+      fairSellMax: 0
+      riskySellMin: 0
+      riskySellMax: 0
+      temptFateReward: 0
       minAmount: 1
       maxAmount: 3
     - itemName: Leech oil
@@ -28505,6 +28532,13 @@ MonoBehaviour:
       icon: {fileID: 21300000, guid: 6fe7bff5df3eb4a4fb50d41b81109f05, type: 3}
       minSellPrice: 1
       maxSellPrice: 4
+      safeSellMin: 0
+      safeSellMax: 0
+      fairSellMin: 0
+      fairSellMax: 0
+      riskySellMin: 0
+      riskySellMax: 0
+      temptFateReward: 0
       minAmount: 1
       maxAmount: 3
     - itemName: 'Floral Oil '
@@ -28514,6 +28548,13 @@ MonoBehaviour:
       icon: {fileID: 21300000, guid: 0532ad759cd31d0409b011c7369d39c2, type: 3}
       minSellPrice: 1
       maxSellPrice: 4
+      safeSellMin: 0
+      safeSellMax: 0
+      fairSellMin: 0
+      fairSellMax: 0
+      riskySellMin: 0
+      riskySellMax: 0
+      temptFateReward: 0
       minAmount: 1
       maxAmount: 3
   - marketName: Herbs
@@ -28525,6 +28566,13 @@ MonoBehaviour:
       icon: {fileID: 21300000, guid: 1ebb43585d0c8cf47a51a21e37f9a8ba, type: 3}
       minSellPrice: 1
       maxSellPrice: 2
+      safeSellMin: 0
+      safeSellMax: 0
+      fairSellMin: 0
+      fairSellMax: 0
+      riskySellMin: 0
+      riskySellMax: 0
+      temptFateReward: 0
       minAmount: 1
       maxAmount: 4
     - itemName: Human eye
@@ -28534,6 +28582,13 @@ MonoBehaviour:
       icon: {fileID: 21300000, guid: b7bcf4bd7e6510f45a907e081f263344, type: 3}
       minSellPrice: 1
       maxSellPrice: 4
+      safeSellMin: 0
+      safeSellMax: 0
+      fairSellMin: 0
+      fairSellMax: 0
+      riskySellMin: 0
+      riskySellMax: 0
+      temptFateReward: 0
       minAmount: 1
       maxAmount: 4
     - itemName: Dandelion
@@ -28543,6 +28598,13 @@ MonoBehaviour:
       icon: {fileID: 21300000, guid: 01db5f9ead012c248b7bfe11097dd62d, type: 3}
       minSellPrice: 1
       maxSellPrice: 5
+      safeSellMin: 0
+      safeSellMax: 0
+      fairSellMin: 0
+      fairSellMax: 0
+      riskySellMin: 0
+      riskySellMax: 0
+      temptFateReward: 0
       minAmount: 1
       maxAmount: 4
   recipes:
@@ -28699,6 +28761,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: bac0de029fd8dc94d999650f4f1c6147, type: 3}
     minSellPrice: 0
     maxSellPrice: 0
+    safeSellMin: 0
+    safeSellMax: 0
+    fairSellMin: 0
+    fairSellMax: 0
+    riskySellMin: 0
+    riskySellMax: 0
+    temptFateReward: 0
   coins: 30
   newDayCurrencyReward: 20
   sellConfirmPanel: {fileID: 2004838369}
@@ -28706,6 +28775,19 @@ MonoBehaviour:
   priceValueText: {fileID: 1564996937}
   sellItemNameText: {fileID: 1497190844}
   confirmSellButton: {fileID: 2124587108}
+  safeOfferChance: 1
+  fairOfferChance: 0.75
+  riskyOfferChance: 0.55
+  temptFateOfferChance: 0.2
+  safeOfferColor: {r: 0.43529412, g: 0.6862745, b: 0.47843137, a: 1}
+  fairOfferColor: {r: 0.43529412, g: 0.56078434, b: 0.72156864, a: 1}
+  riskyOfferColor: {r: 0.78039217, g: 0.41568628, b: 0.34117648, a: 1}
+  temptFateOfferColor: {r: 0.54901963, g: 0.3882353, b: 0.72156864, a: 1}
+  ingredientSellReward: 3
+  junkSafeReward: 2
+  junkRiskyChance: 0.6
+  junkRiskyMinReward: 0
+  junkRiskyMaxReward: 5
   inventoryPanel: {fileID: 300820473}
   inventoryListParent: {fileID: 1508240136}
   inventoryRowPrefab: {fileID: 5740746113447486006, guid: dc33e122f67b11e40ba9a3b4922c2e8d, type: 3}
@@ -41958,8 +42040,16 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: b7bcf4bd7e6510f45a907e081f263344, type: 3}
     minSellPrice: 1
     maxSellPrice: 4
+    safeSellMin: 0
+    safeSellMax: 0
+    fairSellMin: 0
+    fairSellMax: 0
+    riskySellMin: 0
+    riskySellMax: 0
+    temptFateReward: 0
     minAmount: 1
     maxAmount: 4
+  overrideText: 
 --- !u!114 &987138539
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -58580,8 +58670,16 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 01db5f9ead012c248b7bfe11097dd62d, type: 3}
     minSellPrice: 1
     maxSellPrice: 5
+    safeSellMin: 0
+    safeSellMax: 0
+    fairSellMin: 0
+    fairSellMax: 0
+    riskySellMin: 0
+    riskySellMax: 0
+    temptFateReward: 0
     minAmount: 1
     maxAmount: 4
+  overrideText: 
 --- !u!114 &1575875367
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -81262,8 +81360,16 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 1ebb43585d0c8cf47a51a21e37f9a8ba, type: 3}
     minSellPrice: 1
     maxSellPrice: 2
+    safeSellMin: 0
+    safeSellMax: 0
+    fairSellMin: 0
+    fairSellMax: 0
+    riskySellMin: 0
+    riskySellMax: 0
+    temptFateReward: 0
     minAmount: 1
     maxAmount: 4
+  overrideText: 
 --- !u!114 &1994340848
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -92230,7 +92336,7 @@ Transform:
   m_GameObject: {fileID: 2377043638314501236}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.38, y: -3.49, z: 0}
+  m_LocalPosition: {x: -22.62, y: -3.49, z: 0}
   m_LocalScale: {x: 0.91161, y: 0.91161, z: 0.91161}
   m_ConstrainProportionsScale: 0
   m_Children:
