@@ -2079,6 +2079,8 @@ public class GameManager : MonoBehaviour
             if (lockedItemsToday.Contains(item.itemName))
             {
                 button.interactable = false;
+                tooltip.overrideText = "Already rejected today";
+                AddRejectedSaleIndicator(btn.transform);
             }
             else
             {
@@ -2086,6 +2088,34 @@ public class GameManager : MonoBehaviour
                 button.onClick.AddListener(() => OnSellClicked(item));
             }
         }
+    }
+
+    private static void AddRejectedSaleIndicator(Transform sellItemTransform)
+    {
+        if (sellItemTransform == null || sellItemTransform.Find("Rejected Sale X") != null)
+            return;
+
+        GameObject indicatorObject = new GameObject("Rejected Sale X", typeof(RectTransform));
+        indicatorObject.transform.SetParent(sellItemTransform, false);
+
+        RectTransform indicatorRect = indicatorObject.GetComponent<RectTransform>();
+        indicatorRect.anchorMin = new Vector2(0.5f, 0.5f);
+        indicatorRect.anchorMax = new Vector2(0.5f, 0.5f);
+        indicatorRect.pivot = new Vector2(0.5f, 0.5f);
+        indicatorRect.anchoredPosition = Vector2.zero;
+        RectTransform slotRect = sellItemTransform as RectTransform;
+        Vector2 slotSize = slotRect != null ? slotRect.rect.size : new Vector2(141f, 105f);
+        indicatorRect.sizeDelta = slotSize * 0.68f;
+
+        TextMeshProUGUI indicator = indicatorObject.AddComponent<TextMeshProUGUI>();
+        indicator.text = "X";
+        indicator.enableAutoSizing = true;
+        indicator.fontSizeMin = 36f;
+        indicator.fontSizeMax = 96f;
+        indicator.fontStyle = FontStyles.Bold;
+        indicator.alignment = TextAlignmentOptions.Center;
+        indicator.color = new Color(0.86f, 0.05f, 0.04f, 1f);
+        indicator.raycastTarget = false;
     }
 
     private void UnlockSellPromptAfterMergeScreen()
