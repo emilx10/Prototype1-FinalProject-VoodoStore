@@ -28555,6 +28555,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 4beb192d09314414e9ebb7fea2e38577, type: 3}
     minSellPrice: 10
     maxSellPrice: 65
+    safeSellMin: 31
+    safeSellMax: 39
+    fairSellMin: 47
+    fairSellMax: 58
+    riskySellMin: 64
+    riskySellMax: 79
+    temptFateReward: 155
   - potionName: Lie-detecting head
     category: 3
     ingredients:
@@ -28564,6 +28571,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 9f348e0c1b653d2408d39ee3770b0d0e, type: 3}
     minSellPrice: 10
     maxSellPrice: 70
+    safeSellMin: 29
+    safeSellMax: 36
+    fairSellMin: 44
+    fairSellMax: 53
+    riskySellMin: 59
+    riskySellMax: 73
+    temptFateReward: 145
   - potionName: Crystal ball
     category: 3
     ingredients:
@@ -28573,6 +28587,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: da70e09bab853d94fab52c0b1d005314, type: 3}
     minSellPrice: 10
     maxSellPrice: 65
+    safeSellMin: 27
+    safeSellMax: 34
+    fairSellMin: 41
+    fairSellMax: 50
+    riskySellMin: 55
+    riskySellMax: 68
+    temptFateReward: 135
   - potionName: Good hair day charm
     category: 3
     ingredients:
@@ -28582,6 +28603,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: e405629e37801e543835cac9ebe04da3, type: 3}
     minSellPrice: 10
     maxSellPrice: 55
+    safeSellMin: 23
+    safeSellMax: 29
+    fairSellMin: 35
+    fairSellMax: 43
+    riskySellMin: 47
+    riskySellMax: 58
+    temptFateReward: 115
   - potionName: Rings of pain relief
     category: 3
     ingredients:
@@ -28591,6 +28619,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: f47e888d280dacf438c912017c1c152c, type: 3}
     minSellPrice: 10
     maxSellPrice: 62
+    safeSellMin: 26
+    safeSellMax: 32
+    fairSellMin: 39
+    fairSellMax: 48
+    riskySellMin: 53
+    riskySellMax: 65
+    temptFateReward: 130
   - potionName: Happyness tiara
     category: 3
     ingredients:
@@ -28600,6 +28635,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 48cfed2aa22ba7441945bb8d7eaf7387, type: 3}
     minSellPrice: 10
     maxSellPrice: 50
+    safeSellMin: 21
+    safeSellMax: 26
+    fairSellMin: 32
+    fairSellMax: 39
+    riskySellMin: 43
+    riskySellMax: 53
+    temptFateReward: 105
   - potionName: Love Potion
     category: 3
     ingredients:
@@ -28609,6 +28651,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: b0886d7341fba3845a0cf6eb5ab05e34, type: 3}
     minSellPrice: 10
     maxSellPrice: 80
+    safeSellMin: 27
+    safeSellMax: 34
+    fairSellMin: 41
+    fairSellMax: 50
+    riskySellMin: 55
+    riskySellMax: 68
+    temptFateReward: 135
   - potionName: Sleep Potion
     category: 3
     ingredients:
@@ -28618,6 +28667,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 4fa62c45a9d46154bb554bfc536221e5, type: 3}
     minSellPrice: 10
     maxSellPrice: 58
+    safeSellMin: 24
+    safeSellMax: 30
+    fairSellMin: 37
+    fairSellMax: 45
+    riskySellMin: 49
+    riskySellMax: 61
+    temptFateReward: 120
   - potionName: Bad Luck Potion
     category: 3
     ingredients:
@@ -28627,6 +28683,13 @@ MonoBehaviour:
     icon: {fileID: 21300000, guid: 290f01ab1bd32ea469480b6c0daad555, type: 3}
     minSellPrice: 10
     maxSellPrice: 72
+    safeSellMin: 30
+    safeSellMax: 37
+    fairSellMin: 45
+    fairSellMax: 55
+    riskySellMin: 61
+    riskySellMax: 75
+    temptFateReward: 150
   - potionName: Ultimate Potion
     category: 3
     ingredients:
