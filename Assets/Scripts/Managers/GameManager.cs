@@ -34,6 +34,15 @@ public class MarketItem
     public int minSellPrice;
     public int maxSellPrice;
 
+    [Header("Sell Offer Rewards")]
+    public int safeSellMin;
+    public int safeSellMax;
+    public int fairSellMin;
+    public int fairSellMax;
+    public int riskySellMin;
+    public int riskySellMax;
+    public int temptFateReward;
+
     [Header("Random Amount Between Min->Max")]
     public int minAmount;
     public int maxAmount;
@@ -59,6 +68,15 @@ public class Recipe
     [Header("Sell Price Limits")]
     public int minSellPrice;
     public int maxSellPrice;
+
+    [Header("Sell Offer Rewards")]
+    public int safeSellMin;
+    public int safeSellMax;
+    public int fairSellMin;
+    public int fairSellMax;
+    public int riskySellMin;
+    public int riskySellMax;
+    public int temptFateReward;
 }
 
 [System.Serializable]
@@ -138,7 +156,6 @@ public class GameManager : MonoBehaviour
 
     [Header("Junk Settings")]
     [SerializeField] private string junkItemName = "Junk";
-    [SerializeField] private int junkSellPrice = 1;
     [SerializeField] private Sprite junkIcon;
 
     [Header("Crafting Selection UI")]
@@ -161,6 +178,25 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TMP_Text priceValueText;
     [SerializeField] private TMP_Text sellItemNameText;
     [SerializeField] private Button confirmSellButton;
+
+    [Header("Sell Offer Settings")]
+    [SerializeField, Range(0f, 1f)] private float safeOfferChance = 1f;
+    [SerializeField, Range(0f, 1f)] private float fairOfferChance = 0.75f;
+    [SerializeField, Range(0f, 1f)] private float riskyOfferChance = 0.55f;
+    [SerializeField, Range(0f, 1f)] private float temptFateOfferChance = 0.2f;
+    [SerializeField] private Color safeOfferColor = new Color32(0x6F, 0xAF, 0x7A, 0xFF);
+    [SerializeField] private Color fairOfferColor = new Color32(0x6F, 0x8F, 0xB8, 0xFF);
+    [SerializeField] private Color riskyOfferColor = new Color32(0xC7, 0x6A, 0x57, 0xFF);
+    [SerializeField] private Color temptFateOfferColor = new Color32(0x8C, 0x63, 0xB8, 0xFF);
+    [SerializeField] private int ingredientSellReward = 3;
+    [SerializeField] private int junkSafeReward = 2;
+    [SerializeField, Range(0f, 1f)] private float junkRiskyChance = 0.6f;
+    [SerializeField] private int junkRiskyMinReward = 0;
+    [SerializeField] private int junkRiskyMaxReward = 5;
+
+    private enum SellOfferType { Safe, Fair, Risky, TemptFate }
+    private readonly Dictionary<SellOfferType, Button> sellOfferButtons = new Dictionary<SellOfferType, Button>();
+    private GameObject sellOfferChoicesRoot;
 
     [Header("Inventory Panel (Investigate)")]
     public GameObject inventoryPanel;
@@ -938,12 +974,8 @@ public class GameManager : MonoBehaviour
         RandomizeMarketStock();
         PopulateInventoryPanel();
         UpdateCoinsUI();
-        priceSlider.minValue = 0;
-        priceSlider.maxValue = 100;
-        priceSlider.wholeNumbers = true;
-        
-        priceSlider.onValueChanged.RemoveAllListeners();
-        priceSlider.onValueChanged.AddListener(OnPriceSliderChanged);
+        EnsureSellOfferUI();
+        SetLegacySellControlsVisible(false);
 
         // Startup panel/tab binding can temporarily restore this child. Apply
         // the initial gameplay state last, before Unity renders the first frame.
@@ -2079,6 +2111,8 @@ public class GameManager : MonoBehaviour
             if (lockedItemsToday.Contains(item.itemName))
             {
                 button.interactable = false;
+                tooltip.overrideText = "Already rejected today";
+                AddRejectedSaleIndicator(btn.transform);
             }
             else
             {
@@ -2086,6 +2120,34 @@ public class GameManager : MonoBehaviour
                 button.onClick.AddListener(() => OnSellClicked(item));
             }
         }
+    }
+
+    private static void AddRejectedSaleIndicator(Transform sellItemTransform)
+    {
+        if (sellItemTransform == null || sellItemTransform.Find("Rejected Sale X") != null)
+            return;
+
+        GameObject indicatorObject = new GameObject("Rejected Sale X", typeof(RectTransform));
+        indicatorObject.transform.SetParent(sellItemTransform, false);
+
+        RectTransform indicatorRect = indicatorObject.GetComponent<RectTransform>();
+        indicatorRect.anchorMin = new Vector2(0.5f, 0.5f);
+        indicatorRect.anchorMax = new Vector2(0.5f, 0.5f);
+        indicatorRect.pivot = new Vector2(0.5f, 0.5f);
+        indicatorRect.anchoredPosition = Vector2.zero;
+        RectTransform slotRect = sellItemTransform as RectTransform;
+        Vector2 slotSize = slotRect != null ? slotRect.rect.size : new Vector2(141f, 105f);
+        indicatorRect.sizeDelta = slotSize * 0.68f;
+
+        TextMeshProUGUI indicator = indicatorObject.AddComponent<TextMeshProUGUI>();
+        indicator.text = "X";
+        indicator.enableAutoSizing = true;
+        indicator.fontSizeMin = 36f;
+        indicator.fontSizeMax = 96f;
+        indicator.fontStyle = FontStyles.Bold;
+        indicator.alignment = TextAlignmentOptions.Center;
+        indicator.color = new Color(0.86f, 0.05f, 0.04f, 1f);
+        indicator.raycastTarget = false;
     }
 
     private void UnlockSellPromptAfterMergeScreen()
@@ -2123,29 +2185,213 @@ public class GameManager : MonoBehaviour
         return null;
     }
 
-    void OnPriceSliderChanged(float value)
-    {
-        int price = Mathf.RoundToInt(value);
-        priceValueText.text = price.ToString();
-    }
-
     void OnSellClicked(InventoryItem item)
     {
         TooltipManager.Instance.Hide();
-        if (item.itemName == junkItemName)
+
+        if (item.category != ItemCategory.Potion && item.category != ItemCategory.Junk)
         {
-            SellItem(item, junkSellPrice);
+            SellItem(item, ingredientSellReward);
             return;
         }
 
         pendingSellItem = item;
         sellItemNameText.text = item.itemName;
-
-        // Reset slider to something sensible
-        priceSlider.value = 0;
-        priceValueText.text = "0";
-
         sellConfirmPanel.SetActive(true);
+        ConfigureSellOffers(item);
+    }
+
+    private void EnsureSellOfferUI()
+    {
+        if (sellConfirmPanel == null || sellOfferChoicesRoot != null)
+            return;
+
+        sellOfferChoicesRoot = new GameObject("Sell Offer Choices", typeof(RectTransform));
+        sellOfferChoicesRoot.transform.SetParent(sellConfirmPanel.transform, false);
+
+        RectTransform rootRect = sellOfferChoicesRoot.GetComponent<RectTransform>();
+        // The Book occupies the right side of the selling screen. Keep this
+        // compact grid inside the left selling area and above its Cancel button.
+        rootRect.anchorMin = new Vector2(0.10f, 0.34f);
+        rootRect.anchorMax = new Vector2(0.38f, 0.68f);
+        rootRect.offsetMin = Vector2.zero;
+        rootRect.offsetMax = Vector2.zero;
+
+        CreateSellOfferButton(SellOfferType.Safe, "SAFE", safeOfferColor);
+        CreateSellOfferButton(SellOfferType.Fair, "FAIR", fairOfferColor);
+        CreateSellOfferButton(SellOfferType.Risky, "RISKY", riskyOfferColor);
+        CreateSellOfferButton(SellOfferType.TemptFate, "TEMPT FATE", temptFateOfferColor);
+    }
+
+    private void CreateSellOfferButton(SellOfferType offerType, string label, Color color)
+    {
+        GameObject buttonObject = new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button));
+        buttonObject.transform.SetParent(sellOfferChoicesRoot.transform, false);
+
+        Image background = buttonObject.GetComponent<Image>();
+        background.color = color;
+
+        Button button = buttonObject.GetComponent<Button>();
+        button.targetGraphic = background;
+        button.onClick.AddListener(() => ResolveSellOffer(offerType));
+
+        GameObject textObject = new GameObject("Offer Text", typeof(RectTransform));
+        textObject.transform.SetParent(buttonObject.transform, false);
+        RectTransform textRect = textObject.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = new Vector2(8f, 5f);
+        textRect.offsetMax = new Vector2(-8f, -5f);
+
+        TextMeshProUGUI text = textObject.AddComponent<TextMeshProUGUI>();
+        text.text = label;
+        text.alignment = TextAlignmentOptions.Center;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 11f;
+        text.fontSizeMax = 24f;
+        text.fontStyle = FontStyles.Normal;
+        text.lineSpacing = -8f;
+        text.color = Color.white;
+        text.raycastTarget = false;
+
+        sellOfferButtons.Add(offerType, button);
+    }
+
+    private void ConfigureSellOffers(InventoryItem item)
+    {
+        EnsureSellOfferUI();
+        bool isJunk = item.category == ItemCategory.Junk || item.itemName == junkItemName;
+
+        foreach (Button button in sellOfferButtons.Values)
+            button.gameObject.SetActive(true);
+
+        if (isJunk)
+        {
+            SetOfferButtonLayout(SellOfferType.Safe, 0.08f, 0.28f, 0.48f, 0.72f);
+            SetOfferButtonLayout(SellOfferType.Risky, 0.52f, 0.28f, 0.92f, 0.72f);
+            sellOfferButtons[SellOfferType.Fair].gameObject.SetActive(false);
+            sellOfferButtons[SellOfferType.TemptFate].gameObject.SetActive(false);
+            SetOfferButtonText(SellOfferType.Safe, FormatOfferText("SAFE", "100%", "2 coins"));
+            SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "60%", "0–5 coins"));
+            return;
+        }
+
+        SetOfferButtonLayout(SellOfferType.Safe, 0.03f, 0.53f, 0.48f, 0.97f);
+        SetOfferButtonLayout(SellOfferType.Fair, 0.52f, 0.53f, 0.97f, 0.97f);
+        SetOfferButtonLayout(SellOfferType.Risky, 0.03f, 0.03f, 0.48f, 0.47f);
+        SetOfferButtonLayout(SellOfferType.TemptFate, 0.52f, 0.03f, 0.97f, 0.47f);
+
+        if (!TryGetRecipe(item.itemName, out Recipe recipe))
+        {
+            Debug.LogError($"No recipe sell-offer data found for {item.itemName}.");
+            sellConfirmPanel.SetActive(false);
+            pendingSellItem = null;
+            return;
+        }
+
+        SetOfferButtonText(SellOfferType.Safe, FormatOfferText("SAFE", "100%", $"{recipe.safeSellMin}–{recipe.safeSellMax} coins"));
+        SetOfferButtonText(SellOfferType.Fair, FormatOfferText("FAIR", "75%", $"{recipe.fairSellMin}–{recipe.fairSellMax} coins"));
+        SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "55%", $"{recipe.riskySellMin}–{recipe.riskySellMax} coins"));
+        SetOfferButtonText(SellOfferType.TemptFate, FormatOfferText("TEMPT FATE", "20%", $"{recipe.temptFateReward} coins"));
+    }
+
+    private void SetOfferButtonLayout(SellOfferType type, float minX, float minY, float maxX, float maxY)
+    {
+        RectTransform rect = sellOfferButtons[type].GetComponent<RectTransform>();
+        rect.anchorMin = new Vector2(minX, minY);
+        rect.anchorMax = new Vector2(maxX, maxY);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+    }
+
+    private void SetOfferButtonText(SellOfferType type, string text)
+    {
+        sellOfferButtons[type].GetComponentInChildren<TMP_Text>().text = text;
+    }
+
+    private static string FormatOfferText(string offerName, string chance, string reward)
+    {
+        return $"<b><size=112%>{offerName}</size></b>\n<size=96%>{chance}</size>\n<size=88%>{reward}</size>";
+    }
+
+    private void SetLegacySellControlsVisible(bool visible)
+    {
+        if (priceSlider != null) priceSlider.gameObject.SetActive(visible);
+        if (priceValueText != null) priceValueText.gameObject.SetActive(visible);
+        if (confirmSellButton != null) confirmSellButton.gameObject.SetActive(visible);
+    }
+
+    private void ResolveSellOffer(SellOfferType offerType)
+    {
+        if (pendingSellItem == null)
+            return;
+
+        InventoryItem item = pendingSellItem;
+        bool isJunk = item.category == ItemCategory.Junk || item.itemName == junkItemName;
+        float successChance;
+        int reward;
+
+        if (isJunk)
+        {
+            if (offerType != SellOfferType.Safe && offerType != SellOfferType.Risky)
+                return;
+
+            successChance = offerType == SellOfferType.Safe ? 1f : junkRiskyChance;
+            reward = offerType == SellOfferType.Safe
+                ? junkSafeReward
+                : Random.Range(junkRiskyMinReward, junkRiskyMaxReward + 1);
+        }
+        else
+        {
+            if (!TryGetRecipe(item.itemName, out Recipe recipe))
+                return;
+
+            successChance = GetProductOfferChance(offerType);
+            switch (offerType)
+            {
+                case SellOfferType.Safe:
+                    reward = Random.Range(recipe.safeSellMin, recipe.safeSellMax + 1);
+                    break;
+                case SellOfferType.Fair:
+                    reward = Random.Range(recipe.fairSellMin, recipe.fairSellMax + 1);
+                    break;
+                case SellOfferType.Risky:
+                    reward = Random.Range(recipe.riskySellMin, recipe.riskySellMax + 1);
+                    break;
+                default:
+                    reward = recipe.temptFateReward;
+                    break;
+            }
+        }
+
+        pendingSellItem = null;
+        sellConfirmPanel.SetActive(false);
+
+        if (successChance >= 1f || Random.value < successChance)
+        {
+            SellItem(item, reward);
+            return;
+        }
+
+        lockedItemsToday.Add(item.itemName);
+        RefreshSellUI();
+    }
+
+    private float GetProductOfferChance(SellOfferType type)
+    {
+        switch (type)
+        {
+            case SellOfferType.Safe: return safeOfferChance;
+            case SellOfferType.Fair: return fairOfferChance;
+            case SellOfferType.Risky: return riskyOfferChance;
+            default: return temptFateOfferChance;
+        }
+    }
+
+    private bool TryGetRecipe(string itemName, out Recipe recipe)
+    {
+        recipe = recipes.Find(candidate => candidate != null && candidate.potionName == itemName);
+        return recipe != null;
     }
 
 

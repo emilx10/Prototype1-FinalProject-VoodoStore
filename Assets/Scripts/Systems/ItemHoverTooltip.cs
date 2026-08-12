@@ -6,12 +6,17 @@ public class ItemHoverTooltip : MonoBehaviour, IPointerEnterHandler, IPointerExi
 {
     public InventoryItem inventoryItem; // For crafting/sell
     public MarketItem marketItem;       // For shop
+    [HideInInspector] public string overrideText;
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         string text = "";
 
-        if (marketItem != null && !string.IsNullOrEmpty(marketItem.itemName))
+        if (!string.IsNullOrEmpty(overrideText))
+        {
+            text = overrideText;
+        }
+        else if (marketItem != null && !string.IsNullOrEmpty(marketItem.itemName))
         {
             text = $"{marketItem.itemName}\n{marketItem.price} coins\n{marketItem.description}";
         }
