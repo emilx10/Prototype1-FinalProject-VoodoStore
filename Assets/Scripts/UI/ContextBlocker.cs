@@ -18,6 +18,17 @@ public class ContextBlocker : MonoBehaviour
         ignoreCloseFrame = Time.frameCount;
     }
 
+    public bool TargetsContext(GameObject target)
+    {
+        return contextMenu == target;
+    }
+
+    public void AssignGameManagerIfMissing(GameManager manager)
+    {
+        if (gameManager == null)
+            gameManager = manager;
+    }
+
     public void CloseContext()
     {
         if (Time.frameCount == ignoreCloseFrame)
