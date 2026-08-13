@@ -80,3 +80,4 @@ MonoBehaviour:
   ShopHerbs: {fileID: 8300000, guid: 6914fb7049e34e7abec74b7f5eca2a20, type: 3}
   BookOpen: {fileID: 8300000, guid: 6908f2a7bc5a4764880f607b593a7d0c, type: 3}
   Coins: {fileID: 8300000, guid: 12fccea12dea45649a6c255a2133d8d0, type: 3}
+  hoverSfxVolume: 0.05

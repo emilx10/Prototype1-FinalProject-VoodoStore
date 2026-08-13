@@ -63,6 +63,10 @@ public class AudioManager : MonoBehaviour
     [SerializeField] public AudioClip BookOpen;
     [SerializeField] public AudioClip Coins;
 
+    [Header("UI SFX Volume")]
+    [SerializeField, Range(0f, 1f)] private float hoverSfxVolume = 0.05f;
+    public float HoverSfxVolume => hoverSfxVolume;
+
 
     public void Awake()
     {

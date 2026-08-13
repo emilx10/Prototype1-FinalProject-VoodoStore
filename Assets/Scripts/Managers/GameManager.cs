@@ -2324,9 +2324,9 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        SetOfferButtonText(SellOfferType.Safe, FormatOfferText("SAFE", "100%", $"{recipe.safeSellMin}–{recipe.safeSellMax} coins"));
-        SetOfferButtonText(SellOfferType.Fair, FormatOfferText("FAIR", "75%", $"{recipe.fairSellMin}–{recipe.fairSellMax} coins"));
-        SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "55%", $"{recipe.riskySellMin}–{recipe.riskySellMax} coins"));
+        SetOfferButtonText(SellOfferType.Safe, FormatOfferText("SAFE", "100%", $"{recipe.safeSellMin} - {recipe.safeSellMax} coins"));
+        SetOfferButtonText(SellOfferType.Fair, FormatOfferText("FAIR", "75%", $"{recipe.fairSellMin} - {recipe.fairSellMax} coins"));
+        SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "55%", $"{recipe.riskySellMin} - {recipe.riskySellMax} coins"));
         SetOfferButtonText(SellOfferType.TemptFate, FormatOfferText("TEMPT FATE", "20%", $"{recipe.temptFateReward} coins"));
     }
 
@@ -2346,7 +2346,7 @@ public class GameManager : MonoBehaviour
 
     private static string FormatOfferText(string offerName, string chance, string reward)
     {
-        return $"<b><size=112%>{offerName}</size></b>\n<size=96%>{chance}</size>\n<size=88%>{reward}</size>";
+        return $"<b><size=112%>{offerName}</size></b>\n<size=96%>{chance}</size>\n<nobr><size=88%>{reward}</size></nobr>";
     }
 
     private void SetLegacySellControlsVisible(bool visible)
