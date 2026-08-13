@@ -1521,12 +1521,47 @@ public class GameManager : MonoBehaviour
         sellPanel.SetActive(true);
 
         craftingPanel.SetActive(true);
+        ActivateCraftingContextBlocker();
         SetBrewButtonVisible(false);
 
         selectedCraftingItems.Clear();
 
         RefreshCraftingUI();
         RefreshSelectedItemsUI();
+    }
+
+    private void ActivateCraftingContextBlocker()
+    {
+        if (craftingPanel == null)
+            return;
+
+        ContextBlocker fallback = null;
+        ContextBlocker[] blockers = FindObjectsByType<ContextBlocker>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+
+        for (int i = 0; i < blockers.Length; i++)
+        {
+            ContextBlocker blocker = blockers[i];
+            if (blocker == null)
+                continue;
+
+            if (blocker.name == "SellBlocker")
+                fallback = blocker;
+
+            if (!blocker.TargetsContext(craftingPanel))
+                continue;
+
+            blocker.AssignGameManagerIfMissing(this);
+            blocker.gameObject.SetActive(true);
+            return;
+        }
+
+        if (fallback != null)
+        {
+            fallback.AssignGameManagerIfMissing(this);
+            fallback.gameObject.SetActive(true);
+        }
     }
 
     void RefreshCraftingUI()
@@ -2653,7 +2688,7 @@ public class GameManager : MonoBehaviour
             day20WinCutsceneRoot.transform,
             day20WinGraveSpillRoot,
             "02 Potion Into Grave",
-            "Cinematics/Day20WinPotionGraveSpill");
+            "Cinematics/Vivien flamel 2");
 
         day20WinVivianShopRoot = EnsureDay20CutsceneStepRoot(
             day20WinCutsceneRoot.transform,
@@ -2667,7 +2702,7 @@ public class GameManager : MonoBehaviour
             canvas.transform,
             day20LoseCutsceneRoot,
             "Day 20 Lose Cutscene",
-            "Cinematics/OpeningCemetery",
+            "Cinematics/Vivian F 3",
             "",
             "");
     }
@@ -3212,7 +3247,7 @@ public class GameManager : MonoBehaviour
             yield break;
         }
 
-        Texture2D cemeteryTexture = Resources.Load<Texture2D>("Cinematics/OpeningCemetery");
+        Texture2D cemeteryTexture = Resources.Load<Texture2D>("Cinematics/Vivian F 3");
         if (cemeteryTexture != null)
             background.texture = cemeteryTexture;
 
