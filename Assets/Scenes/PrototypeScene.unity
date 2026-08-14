@@ -55033,7 +55033,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -18, y: 194}
+  m_AnchoredPosition: {x: -24, y: 204}
   m_SizeDelta: {x: 640, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1457211895
@@ -55056,7 +55056,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Craft a Love Potion
+  m_text: Brew a Love Potion
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -56183,7 +56183,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Brew: Love Potion'
+  m_text: Brew a Love Potion
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 9baed013a9df90d409194d279d607203, type: 2}
   m_sharedMaterial: {fileID: -7104569332126819397, guid: 9baed013a9df90d409194d279d607203, type: 2}
@@ -78455,6 +78455,10 @@ MonoBehaviour:
   investigationCost: 5
   completedObjectiveCount: 0
   hidePreparationsAfterFirstObjective: 1
+  knowledgeObjectiveActive: 0
+  discoveredRecipeCount: 0
+  successfulProductSaleCount: 0
+  knowledgeRewardGranted: 0
   ad: {fileID: 897825967}
   vol: 100
   pitch: 1

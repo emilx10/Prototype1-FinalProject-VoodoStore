@@ -24,6 +24,7 @@ public sealed class FTUEManager : MonoBehaviour
     private const int PopupSortingOrder = 32003;
     private const float DismissDelay = 3f;
     private static readonly Vector2 TutorialPopupSize = new Vector2(720f, 350f);
+    private static readonly Vector2 NightDayPopupSize = new Vector2(600f, 280f);
 
     private static FTUEManager instance;
 
@@ -57,6 +58,7 @@ public sealed class FTUEManager : MonoBehaviour
     private TMP_Text titleText;
     private TMP_Text bodyText;
     private RectTransform popupRect;
+    private RectTransform popupVisualRect;
     private CanvasGroup popupContentGroup;
 
     private RectTransform highlightedTarget;
@@ -232,6 +234,7 @@ public sealed class FTUEManager : MonoBehaviour
             clock != null ? clock.transform as RectTransform : null,
             "This is the Night & Day icon.",
             "Each day is divided into three phases, each with its own main activity. Every new day brings you one step closer to the 20-day deadline.",
+            true,
             true);
 
         initialFTUEComplete = true;
@@ -521,7 +524,12 @@ public sealed class FTUEManager : MonoBehaviour
         EndTutorial();
     }
 
-    private IEnumerator ShowStep(RectTransform target, string title, string body, bool useInitialPopupPosition = false)
+    private IEnumerator ShowStep(
+        RectTransform target,
+        string title,
+        string body,
+        bool useInitialPopupPosition = false,
+        bool useCompactNightDayLayout = false)
     {
         state = TutorialState.ShowingPopup;
         EnsureTutorialUI();
@@ -544,6 +552,10 @@ public sealed class FTUEManager : MonoBehaviour
         {
             PositionPopupAwayFrom(target);
         }
+
+        ApplyPopupSize(useCompactNightDayLayout ? NightDayPopupSize : TutorialPopupSize);
+        if (useCompactNightDayLayout)
+            PositionPopupNearTopLeftTarget(target);
 
         titleText.text = title;
         bodyText.text = body;
@@ -675,10 +687,10 @@ public sealed class FTUEManager : MonoBehaviour
 
         GameObject visualRoot = new GameObject("Scroll Visual", typeof(RectTransform), typeof(Image));
         visualRoot.transform.SetParent(popupRoot.transform, false);
-        RectTransform visualRect = visualRoot.GetComponent<RectTransform>();
-        visualRect.anchorMin = visualRect.anchorMax = new Vector2(0.5f, 0.5f);
-        visualRect.pivot = new Vector2(0.5f, 0.5f);
-        visualRect.sizeDelta = TutorialPopupSize;
+        popupVisualRect = visualRoot.GetComponent<RectTransform>();
+        popupVisualRect.anchorMin = popupVisualRect.anchorMax = new Vector2(0.5f, 0.5f);
+        popupVisualRect.pivot = new Vector2(0.5f, 0.5f);
+        popupVisualRect.sizeDelta = TutorialPopupSize;
         Image popupBackground = visualRoot.GetComponent<Image>();
         popupBackground.sprite = Resources.Load<Sprite>("FTUE/FTUEScrollPanel");
         popupBackground.color = popupBackground.sprite != null
@@ -740,6 +752,34 @@ public sealed class FTUEManager : MonoBehaviour
             x = screenPoint.x >= Screen.width * 0.5f ? -420f : 420f;
         }
         popupRect.anchoredPosition = new Vector2(x, 0f);
+    }
+
+    private void ApplyPopupSize(Vector2 size)
+    {
+        popupRect.sizeDelta = size;
+        if (popupVisualRect != null)
+            popupVisualRect.sizeDelta = size;
+    }
+
+    private void PositionPopupNearTopLeftTarget(RectTransform target)
+    {
+        if (target == null)
+            return;
+
+        Canvas targetCanvas = target.GetComponentInParent<Canvas>();
+        Camera camera = targetCanvas != null && targetCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? targetCanvas.worldCamera
+            : null;
+        Vector2 targetScreen = RectTransformUtility.WorldToScreenPoint(camera, target.TransformPoint(target.rect.center));
+        Vector2 targetLocal = targetScreen - new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+
+        float x = targetLocal.x + target.rect.width * 0.5f + NightDayPopupSize.x * 0.5f + 24f;
+        float y = targetLocal.y - target.rect.height * 0.5f - NightDayPopupSize.y * 0.5f - 18f;
+        float halfWidth = NightDayPopupSize.x * 0.5f;
+        float halfHeight = NightDayPopupSize.y * 0.5f;
+        x = Mathf.Clamp(x, -Screen.width * 0.5f + halfWidth + 20f, Screen.width * 0.5f - halfWidth - 20f);
+        y = Mathf.Clamp(y, -Screen.height * 0.5f + halfHeight + 20f, Screen.height * 0.5f - halfHeight - 20f);
+        popupRect.anchoredPosition = new Vector2(x, y);
     }
 
     private static Canvas CreateCanvas(string objectName, int sortingOrder, bool raycaster)

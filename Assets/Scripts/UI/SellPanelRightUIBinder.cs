@@ -179,6 +179,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         if (generated == null)
             return;
 
+        YellowObjectiveTemplate.Apply(generated);
         SetChildrenActive(generated, false);
 
         ObjectiveManager objectiveManager = gameManager != null ? gameManager.objectiveManager : null;
@@ -194,9 +195,35 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         if (Application.isPlaying && gameManager != null)
             objectiveManager.UpdateTasksFromInventory(gameManager.GetInventoryItems());
 
+        if (objectiveManager.IsKnowledgeObjectiveActive)
+        {
+            SetExistingText(generated, "Objective Title Text", "Expand Your Knowledge");
+            SetExistingText(generated, "Ingredients Header Text", "Requirements");
+            string recipeStatus = objectiveManager.DiscoveredRecipeCount >= objectiveManager.KnowledgeRecipeGoal ? "[X]" : "[ ]";
+            TMP_Text recipeText = SetExistingText(generated, "Mission Row 1", $"{recipeStatus} Discover recipes {objectiveManager.DiscoveredRecipeCount}/{objectiveManager.KnowledgeRecipeGoal}");
+            string saleStatus = objectiveManager.SuccessfulProductSaleCount >= objectiveManager.KnowledgeProductSalesGoal ? "[X]" : "[ ]";
+            TMP_Text saleText = SetExistingText(generated, "Mission Row 2", $"{saleStatus} Sell products {objectiveManager.SuccessfulProductSaleCount}/{objectiveManager.KnowledgeProductSalesGoal}");
+            SetExistingText(generated, "Tasks Header Text", "Reward");
+            SetExistingText(generated, "Ingredient Row 1", $"{objectiveManager.KnowledgeReward} Coins");
+
+            if (recipeText != null)
+                recipeText.alpha = recipeStatus == "[X]" ? 0.62f : 1f;
+            if (saleText != null)
+                saleText.alpha = saleStatus == "[X]" ? 0.62f : 1f;
+
+            float titleY = YellowObjectiveTemplate.GetObjectiveTitleY(generated);
+            PositionObjectiveText(generated, "Objective Title Text", new Vector2(-24f, titleY), new Vector2(640f, 72.05f));
+            PositionObjectiveText(generated, "Ingredients Header Text", new Vector2(-162.5f, titleY - 82f), new Vector2(325f, 58f));
+            PositionObjectiveText(generated, "Mission Row 1", new Vector2(-45f, titleY - 132f), new Vector2(560f, 43.23f));
+            PositionObjectiveText(generated, "Mission Row 2", new Vector2(-45f, titleY - 172f), new Vector2(560f, 43.23f));
+            PositionObjectiveText(generated, "Tasks Header Text", new Vector2(-195f, titleY - 234f), new Vector2(325f, 45.29f));
+            PositionObjectiveText(generated, "Ingredient Row 1", new Vector2(-56f, titleY - 280f), new Vector2(520f, 39.12f));
+            return;
+        }
+
         Objective objective = objectiveManager.objectives[0];
-        SetExistingText(generated, "Objective Title Text", $"Ritual Order: {objective.potionDisplayName}");
-        SetExistingText(generated, "Ingredients Header Text", "Required Relics");
+        SetExistingText(generated, "Objective Title Text", $"Brew a {objective.potionDisplayName}");
+        SetExistingText(generated, "Ingredients Header Text", "Required Ingredients");
 
         for (int i = 0; i < objective.ingredients.Count; i++)
         {
@@ -220,6 +247,33 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             TMP_Text missionText = SetExistingText(generated, $"Mission Row {i + 1}", $"{status}{mission.missionText}{progress}");
             if (missionText != null)
                 missionText.alpha = mission.completed ? 0.62f : 1f;
+        }
+
+        LayoutObjectiveOne(generated, objective.ingredients.Count, objective.missions.Count);
+    }
+
+    private static void LayoutObjectiveOne(Transform generated, int ingredientCount, int missionCount)
+    {
+        const float objectiveOneContentOffset = 18f;
+        float titleY = YellowObjectiveTemplate.GetObjectiveTitleY(generated);
+        PositionObjectiveText(generated, "Objective Title Text", new Vector2(-24f, titleY), new Vector2(640f, 72.05f));
+
+        float y = titleY - 82f - objectiveOneContentOffset;
+        PositionObjectiveText(generated, "Ingredients Header Text", new Vector2(-162.5f, y), new Vector2(325f, 58f));
+        y -= 50f;
+        for (int i = 0; i < ingredientCount; i++)
+        {
+            PositionObjectiveText(generated, $"Ingredient Row {i + 1}", new Vector2(-56f, y), new Vector2(520f, 39.12f));
+            y -= 38f;
+        }
+
+        y -= 12f;
+        PositionObjectiveText(generated, "Tasks Header Text", new Vector2(-195f, y), new Vector2(325f, 45.29f));
+        y -= 46f;
+        for (int i = 0; i < missionCount; i++)
+        {
+            PositionObjectiveText(generated, $"Mission Row {i + 1}", new Vector2(-45f, y), new Vector2(560f, 43.23f));
+            y -= 40f;
         }
     }
 
@@ -505,6 +559,16 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         if (!Application.isPlaying || !preserveRightPanelTextEdits)
             AtmosphericObjectiveTextStyler.Apply(text, objectName);
         return text;
+    }
+
+    private static void PositionObjectiveText(Transform parent, string objectName, Vector2 position, Vector2 size)
+    {
+        RectTransform rect = parent != null ? parent.Find(objectName) as RectTransform : null;
+        if (rect == null)
+            return;
+
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
     }
 
     private static void SetChildrenActive(Transform parent, bool active)

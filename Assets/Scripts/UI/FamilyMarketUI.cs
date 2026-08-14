@@ -774,6 +774,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             generated = EnsureStretchChild(contentTransform, GeneratedObjectiveContentName);
         }
 
+        YellowObjectiveTemplate.Apply(generated);
         SetChildrenActive(generated, false);
 
         ObjectiveManager objectiveManager = gameManager != null ? gameManager.objectiveManager : null;
@@ -789,13 +790,19 @@ public sealed class FamilyMarketUI : MonoBehaviour
         if (Application.isPlaying && gameManager != null)
             objectiveManager.UpdateTasksFromInventory(gameManager.GetInventoryItems());
 
+        if (objectiveManager.IsKnowledgeObjectiveActive)
+        {
+            PopulateKnowledgeObjective(generated, objectiveManager);
+            return;
+        }
+
         Objective objective = objectiveManager.objectives[0];
         float y = -30f;
 
         SetPanelText(
             generated,
             "Objective Title Text",
-            $"Ritual Order: {objective.potionDisplayName}",
+            $"Brew a {objective.potionDisplayName}",
             new Vector2(0f, y),
             new Vector2(640f, 70f),
             32f,
@@ -805,7 +812,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
         SetPanelText(
             generated,
             "Ingredients Header Text",
-            "Required Relics",
+            "Required Ingredients",
             new Vector2(-245f, y),
             new Vector2(260f, 44f),
             24f,
@@ -864,6 +871,76 @@ public sealed class FamilyMarketUI : MonoBehaviour
                 missionText.alpha = mission.completed ? 0.62f : 1f;
             y -= 42f;
         }
+
+        LayoutObjectiveOne(generated, objective.ingredients.Count, objective.missions.Count);
+    }
+
+    private static void LayoutObjectiveOne(Transform generated, int ingredientCount, int missionCount)
+    {
+        const float objectiveOneContentOffset = 18f;
+        float titleY = YellowObjectiveTemplate.GetObjectiveTitleY(generated);
+        PositionObjectiveText(generated, "Objective Title Text", new Vector2(-24f, titleY), new Vector2(640f, 72.05f));
+
+        float y = titleY - 82f - objectiveOneContentOffset;
+        PositionObjectiveText(generated, "Ingredients Header Text", new Vector2(-162.5f, y), new Vector2(325f, 58f));
+        y -= 50f;
+        for (int i = 0; i < ingredientCount; i++)
+        {
+            PositionObjectiveText(generated, $"Ingredient Row {i + 1}", new Vector2(-56f, y), new Vector2(520f, 39.12f));
+            y -= 38f;
+        }
+
+        y -= 12f;
+        PositionObjectiveText(generated, "Tasks Header Text", new Vector2(-195f, y), new Vector2(325f, 45.29f));
+        y -= 46f;
+        for (int i = 0; i < missionCount; i++)
+        {
+            PositionObjectiveText(generated, $"Mission Row {i + 1}", new Vector2(-45f, y), new Vector2(560f, 43.23f));
+            y -= 40f;
+        }
+    }
+
+    private void PopulateKnowledgeObjective(Transform generated, ObjectiveManager objectiveManager)
+    {
+        float y = -30f;
+        SetPanelText(generated, "Objective Title Text", "Expand Your Knowledge", new Vector2(0f, y), new Vector2(640f, 70f), 32f, TextAlignmentOptions.Center);
+
+        y -= 82f;
+        SetPanelText(generated, "Ingredients Header Text", "Requirements", new Vector2(-245f, y), new Vector2(260f, 44f), 24f, TextAlignmentOptions.Left);
+        y -= 48f;
+        string recipeStatus = objectiveManager.DiscoveredRecipeCount >= objectiveManager.KnowledgeRecipeGoal ? "[X]" : "[ ]";
+        TMP_Text recipeText = SetPanelText(generated, "Mission Row 1", $"{recipeStatus} Discover recipes {objectiveManager.DiscoveredRecipeCount}/{objectiveManager.KnowledgeRecipeGoal}", new Vector2(-195f, y), new Vector2(560f, 42f), 20f, TextAlignmentOptions.Left);
+        if (recipeText != null)
+            recipeText.alpha = recipeStatus == "[X]" ? 0.62f : 1f;
+
+        y -= 42f;
+        string saleStatus = objectiveManager.SuccessfulProductSaleCount >= objectiveManager.KnowledgeProductSalesGoal ? "[X]" : "[ ]";
+        TMP_Text saleText = SetPanelText(generated, "Mission Row 2", $"{saleStatus} Sell products {objectiveManager.SuccessfulProductSaleCount}/{objectiveManager.KnowledgeProductSalesGoal}", new Vector2(-195f, y), new Vector2(560f, 42f), 20f, TextAlignmentOptions.Left);
+        if (saleText != null)
+            saleText.alpha = saleStatus == "[X]" ? 0.62f : 1f;
+
+        y -= 70f;
+        SetPanelText(generated, "Tasks Header Text", "Reward", new Vector2(-245f, y), new Vector2(260f, 44f), 24f, TextAlignmentOptions.Left);
+        y -= 48f;
+        SetPanelText(generated, "Ingredient Row 1", $"{objectiveManager.KnowledgeReward} Coins", new Vector2(-210f, y), new Vector2(520f, 38f), 21f, TextAlignmentOptions.Left);
+
+        float titleY = YellowObjectiveTemplate.GetObjectiveTitleY(generated);
+        PositionObjectiveText(generated, "Objective Title Text", new Vector2(-24f, titleY), new Vector2(640f, 72.05f));
+        PositionObjectiveText(generated, "Ingredients Header Text", new Vector2(-162.5f, titleY - 82f), new Vector2(325f, 58f));
+        PositionObjectiveText(generated, "Mission Row 1", new Vector2(-45f, titleY - 132f), new Vector2(560f, 43.23f));
+        PositionObjectiveText(generated, "Mission Row 2", new Vector2(-45f, titleY - 172f), new Vector2(560f, 43.23f));
+        PositionObjectiveText(generated, "Tasks Header Text", new Vector2(-195f, titleY - 234f), new Vector2(325f, 45.29f));
+        PositionObjectiveText(generated, "Ingredient Row 1", new Vector2(-56f, titleY - 280f), new Vector2(520f, 39.12f));
+    }
+
+    private static void PositionObjectiveText(Transform parent, string objectName, Vector2 position, Vector2 size)
+    {
+        RectTransform rect = parent != null ? parent.Find(objectName) as RectTransform : null;
+        if (rect == null)
+            return;
+
+        rect.anchoredPosition = position;
+        rect.sizeDelta = size;
     }
 
     private void PopulateInventoryTab()
@@ -2425,6 +2502,139 @@ public static class UltimatePotionAuraUtility
         };
         auraImage.material = material;
         return material;
+    }
+}
+
+public static class YellowObjectiveTemplate
+{
+    private const string ContentName = "Generated Objectives Content";
+    private const string OriginalFontName = "Voodoo Regular SDF";
+    private static Transform cachedTemplate;
+
+    public static void Apply(Transform targetRoot)
+    {
+        if (targetRoot == null || targetRoot.name != ContentName)
+            return;
+
+        Transform template = FindTemplate();
+        if (template == null)
+            return;
+
+        for (int i = 0; i < template.childCount; i++)
+        {
+            Transform source = template.GetChild(i);
+            Transform target = targetRoot.Find(source.name);
+            if (target == null)
+                continue;
+
+            CopyRect(source as RectTransform, target as RectTransform);
+            CopyTextStyle(source.GetComponent<TMP_Text>(), target.GetComponent<TMP_Text>());
+            CopyEffect<Shadow>(source, target);
+            CopyEffect<Outline>(source, target);
+        }
+    }
+
+    public static float GetObjectiveTitleY(Transform contentRoot)
+    {
+        const float subtitleCenterOffset = 46f;
+        if (contentRoot == null || contentRoot.parent == null)
+            return 250f;
+
+        TMP_Text panelHeading = null;
+        for (int i = 0; i < contentRoot.parent.childCount; i++)
+        {
+            TMP_Text candidate = contentRoot.parent.GetChild(i).GetComponent<TMP_Text>();
+            if (candidate != null && candidate.text.Trim() == "Objectives")
+            {
+                panelHeading = candidate;
+                break;
+            }
+        }
+
+        RectTransform headingRect = panelHeading != null ? panelHeading.rectTransform : null;
+        if (headingRect == null)
+            return 250f;
+
+        Vector3 headingCenterWorld = headingRect.TransformPoint(headingRect.rect.center);
+        float headingCenterY = contentRoot.InverseTransformPoint(headingCenterWorld).y;
+        return headingCenterY - subtitleCenterOffset;
+    }
+
+    private static Transform FindTemplate()
+    {
+        if (cachedTemplate != null)
+            return cachedTemplate;
+
+        RectTransform[] rects = Resources.FindObjectsOfTypeAll<RectTransform>();
+        foreach (RectTransform rect in rects)
+        {
+            if (rect == null || rect.name != ContentName)
+                continue;
+
+            TMP_Text title = rect.Find("Objective Title Text")?.GetComponent<TMP_Text>();
+            if (title != null && title.font != null && title.font.name == OriginalFontName)
+            {
+                cachedTemplate = rect;
+                break;
+            }
+        }
+
+        return cachedTemplate;
+    }
+
+    private static void CopyRect(RectTransform source, RectTransform target)
+    {
+        if (source == null || target == null || source == target)
+            return;
+
+        target.anchorMin = source.anchorMin;
+        target.anchorMax = source.anchorMax;
+        target.pivot = source.pivot;
+        target.anchoredPosition = source.anchoredPosition;
+        target.sizeDelta = source.sizeDelta;
+        target.localScale = source.localScale;
+        target.localRotation = source.localRotation;
+    }
+
+    private static void CopyTextStyle(TMP_Text source, TMP_Text target)
+    {
+        if (source == null || target == null || source == target)
+            return;
+
+        target.font = source.font;
+        target.fontSharedMaterial = source.fontSharedMaterial;
+        target.fontSize = source.fontSize;
+        target.fontStyle = source.fontStyle;
+        target.color = source.color;
+        target.alignment = source.alignment;
+        target.textWrappingMode = source.textWrappingMode;
+        target.overflowMode = source.overflowMode;
+        target.characterSpacing = source.characterSpacing;
+        target.wordSpacing = source.wordSpacing;
+        target.lineSpacing = source.lineSpacing;
+        target.margin = source.margin;
+        target.raycastTarget = false;
+    }
+
+    private static void CopyEffect<T>(Transform source, Transform target) where T : Shadow
+    {
+        T sourceEffect = source.GetComponent<T>();
+        T targetEffect = target.GetComponent<T>();
+
+        if (sourceEffect == null)
+        {
+            if (targetEffect != null)
+                targetEffect.enabled = false;
+            return;
+        }
+
+        if (targetEffect == null)
+            targetEffect = target.gameObject.AddComponent<T>();
+
+        targetEffect.enabled = sourceEffect.enabled;
+        targetEffect.effectColor = sourceEffect.effectColor;
+        targetEffect.effectDistance = sourceEffect.effectDistance;
+        targetEffect.useGraphicAlpha = sourceEffect.useGraphicAlpha;
     }
 }
 

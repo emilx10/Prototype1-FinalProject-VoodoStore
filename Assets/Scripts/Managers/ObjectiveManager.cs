@@ -41,7 +41,9 @@ public class Objective
 
 public class ObjectiveManager : MonoBehaviour
 {
-    private const int ResurrectionObjectiveDay = 19;
+    private const int KnowledgeRecipeTarget = 2;
+    private const int KnowledgeProductSalesTarget = 2;
+    private const int KnowledgeRewardCoins = 30;
 
     [Header("Objectives List")]
     [SerializeField] public List<Objective> objectives;
@@ -65,6 +67,24 @@ public class ObjectiveManager : MonoBehaviour
     [Header("Objective Rotation")]
     [SerializeField] private int completedObjectiveCount;
     [SerializeField] private bool hidePreparationsAfterFirstObjective = true;
+
+    [Header("Objective 2 - Expand Your Knowledge")]
+    [SerializeField] private bool knowledgeObjectiveActive;
+    [SerializeField] private int discoveredRecipeCount;
+    [SerializeField] private int successfulProductSaleCount;
+    [SerializeField] private bool knowledgeRewardGranted;
+    private readonly HashSet<string> recipesKnownBeforeObjectiveTwo = new HashSet<string>();
+    private readonly HashSet<string> recipesCountedForObjectiveTwo = new HashSet<string>();
+
+    public bool IsKnowledgeObjectiveActive => knowledgeObjectiveActive;
+    public int DiscoveredRecipeCount => Mathf.Min(discoveredRecipeCount, KnowledgeRecipeTarget);
+    public int SuccessfulProductSaleCount => Mathf.Min(successfulProductSaleCount, KnowledgeProductSalesTarget);
+    public int KnowledgeRecipeGoal => KnowledgeRecipeTarget;
+    public int KnowledgeProductSalesGoal => KnowledgeProductSalesTarget;
+    public int KnowledgeReward => KnowledgeRewardCoins;
+    public bool IsKnowledgeObjectiveComplete =>
+        DiscoveredRecipeCount >= KnowledgeRecipeTarget &&
+        SuccessfulProductSaleCount >= KnowledgeProductSalesTarget;
 
     [Header("SoundManager")]
     public AudioManager ad;
@@ -137,7 +157,7 @@ public class ObjectiveManager : MonoBehaviour
             if (i == 0)
             {
                 // First row = Potion title
-                row.objectiveText.text = $"Craft a {obj.potionDisplayName}";
+                row.objectiveText.text = $"Brew a {obj.potionDisplayName}";
             }
             else
             {
@@ -323,7 +343,7 @@ public class ObjectiveManager : MonoBehaviour
 
     public void CompleteBrewedPotion(string brewedPotionName)
     {
-        if (objectives == null || objectives.Count == 0)
+        if (knowledgeObjectiveActive || objectives == null || objectives.Count == 0)
             return;
 
         Objective currentObjective = objectives[0];
@@ -332,95 +352,102 @@ public class ObjectiveManager : MonoBehaviour
 
         CompleteMission(MissionType.MergeItems);
         completedObjectiveCount++;
-        AssignRandomNextObjective(brewedPotionName);
+        BeginKnowledgeObjective();
     }
 
-    private void AssignRandomNextObjective(string previousPotionName)
+    private void BeginKnowledgeObjective()
     {
-        if (gameManager == null || gameManager.recipes == null || gameManager.recipes.Count == 0)
+        if (knowledgeObjectiveActive)
             return;
 
-        List<Recipe> eligibleRecipes = new List<Recipe>();
-        string normalizedPrevious = NormalizeName(previousPotionName);
+        knowledgeObjectiveActive = true;
+        discoveredRecipeCount = 0;
+        successfulProductSaleCount = 0;
+        knowledgeRewardGranted = false;
+        recipesKnownBeforeObjectiveTwo.Clear();
+        recipesCountedForObjectiveTwo.Clear();
 
-        foreach (Recipe recipe in gameManager.recipes)
+        if (gameManager != null && gameManager.recipes != null)
         {
-            if (!IsEligibleNextObjective(recipe, normalizedPrevious))
-                continue;
-
-            eligibleRecipes.Add(recipe);
+            foreach (Recipe recipe in gameManager.recipes)
+            {
+                if (IsRecipeFullyRevealed(recipe))
+                    recipesKnownBeforeObjectiveTwo.Add(NormalizeName(recipe.potionName));
+            }
         }
 
-        if (eligibleRecipes.Count == 0)
-            return;
-
-        Recipe nextRecipe = eligibleRecipes[Random.Range(0, eligibleRecipes.Count)];
-        objectives[0] = CreateObjectiveFromRecipe(nextRecipe);
-        RefreshObjectivesUI();
-        RefreshTasksUI();
-        FamilyMarketUI.RefreshIfVisible();
-        SellPanelRightUIBinder.RefreshVisible();
+        RefreshAllObjectiveUI();
     }
 
-    private bool IsEligibleNextObjective(Recipe recipe, string normalizedPrevious)
+    public void NotifyRecipeDiscoveryChanged()
     {
-        if (recipe == null || string.IsNullOrWhiteSpace(recipe.potionName) || recipe.ingredients == null || recipe.ingredients.Count == 0)
+        if (!knowledgeObjectiveActive || knowledgeRewardGranted || gameManager == null || gameManager.recipes == null)
+            return;
+
+        bool changed = false;
+        foreach (Recipe recipe in gameManager.recipes)
+        {
+            if (!IsRecipeFullyRevealed(recipe))
+                continue;
+
+            string recipeKey = NormalizeName(recipe.potionName);
+            if (recipesKnownBeforeObjectiveTwo.Contains(recipeKey) ||
+                !recipesCountedForObjectiveTwo.Add(recipeKey))
+                continue;
+
+            discoveredRecipeCount = Mathf.Min(KnowledgeRecipeTarget, discoveredRecipeCount + 1);
+            changed = true;
+        }
+
+        if (changed)
+            EvaluateKnowledgeObjective();
+    }
+
+    public void NotifySuccessfulProductSale()
+    {
+        if (!knowledgeObjectiveActive || knowledgeRewardGranted)
+            return;
+
+        successfulProductSaleCount = Mathf.Min(
+            KnowledgeProductSalesTarget,
+            successfulProductSaleCount + 1);
+        EvaluateKnowledgeObjective();
+    }
+
+    private bool IsRecipeFullyRevealed(Recipe recipe)
+    {
+        if (recipe == null || recipe.ingredients == null || recipe.ingredients.Count == 0 || gameManager == null)
             return false;
 
-        string normalizedRecipeName = NormalizeName(recipe.potionName);
-        if (normalizedRecipeName == normalizedPrevious)
-            return false;
-
-        if (IsResurrectionObjectiveName(normalizedRecipeName) && (gameManager == null || gameManager.CurrentDay < ResurrectionObjectiveDay))
-            return false;
+        for (int ingredientIndex = 0; ingredientIndex < recipe.ingredients.Count; ingredientIndex++)
+        {
+            if (!gameManager.IsRecipeIngredientSlotDiscovered(recipe, ingredientIndex))
+                return false;
+        }
 
         return true;
     }
 
-    private Objective CreateObjectiveFromRecipe(Recipe recipe)
+    private void EvaluateKnowledgeObjective()
     {
-        Objective objective = new Objective
+        if (IsKnowledgeObjectiveComplete && !knowledgeRewardGranted)
         {
-            potionDisplayName = recipe.potionName,
-            ingredients = new List<string>(recipe.ingredients),
-            missions = ShouldShowPreparationsForNextObjective()
-                ? CreatePreparationMissions(recipe)
-                : new List<Mission>(),
-            discovered = new List<bool>()
-        };
-
-        for (int i = 0; i < objective.ingredients.Count; i++)
-            objective.discovered.Add(false);
-
-        return objective;
-    }
-
-    private bool ShouldShowPreparationsForNextObjective()
-    {
-        return !hidePreparationsAfterFirstObjective || completedObjectiveCount == 0;
-    }
-
-    private static List<Mission> CreatePreparationMissions(Recipe recipe)
-    {
-        List<Mission> missions = new List<Mission>();
-        foreach (string ingredient in recipe.ingredients)
-        {
-            missions.Add(new Mission
-            {
-                missionText = ingredient,
-                type = MissionType.BuyItems,
-                completed = false
-            });
+            knowledgeRewardGranted = true;
+            gameManager.coins += KnowledgeRewardCoins;
+            gameManager.UpdateCoinsUI();
+            if (ad != null)
+                ad.PlaySfx(0.2f, SFX.Objective, pitch);
         }
 
-        missions.Add(new Mission
-        {
-            missionText = "Brew potion",
-            type = MissionType.MergeItems,
-            completed = false
-        });
+        RefreshAllObjectiveUI();
+    }
 
-        return missions;
+    private void RefreshAllObjectiveUI()
+    {
+        RefreshObjectivesUI();
+        RefreshTasksUI();
+        FamilyMarketUI.RefreshIfVisible();
+        SellPanelRightUIBinder.RefreshVisible();
     }
 
     private static bool IsCurrentObjectivePotion(Objective objective, string brewedPotionName)
@@ -433,12 +460,6 @@ public class ObjectiveManager : MonoBehaviour
 
         return normalizedBrewed == normalizedDisplay ||
             normalizedBrewed == NormalizeName(objective.potionDisplayName + " Potion");
-    }
-
-    private static bool IsResurrectionObjectiveName(string normalizedPotionName)
-    {
-        return normalizedPotionName == "resurrection potion" ||
-            normalizedPotionName == "ultimate potion";
     }
 
     private void HideAllTaskRows()

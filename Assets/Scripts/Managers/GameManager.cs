@@ -813,6 +813,7 @@ public class GameManager : MonoBehaviour
 
         FamilyMarketUI.RefreshIfVisible();
         SellPanelRightUIBinder.RefreshVisible();
+        NotifyObjectiveRecipeDiscoveryChanged();
         return true;
     }
 
@@ -852,6 +853,7 @@ public class GameManager : MonoBehaviour
 
             FamilyMarketUI.RefreshIfVisible();
             SellPanelRightUIBinder.RefreshVisible();
+            NotifyObjectiveRecipeDiscoveryChanged();
         }
 
         return true;
@@ -866,6 +868,15 @@ public class GameManager : MonoBehaviour
 
         FamilyMarketUI.RefreshIfVisible();
         SellPanelRightUIBinder.RefreshVisible();
+        NotifyObjectiveRecipeDiscoveryChanged();
+    }
+
+    private void NotifyObjectiveRecipeDiscoveryChanged()
+    {
+        ObjectiveManager manager = objectiveManager != null
+            ? objectiveManager
+            : FindFirstObjectByType<ObjectiveManager>();
+        manager?.NotifyRecipeDiscoveryChanged();
     }
 
     public bool IsRecipeDiscovered(Recipe recipe)
@@ -2074,6 +2085,7 @@ public class GameManager : MonoBehaviour
     }
     void SellItem(InventoryItem item, int price)
     {
+        bool soldProduct = item != null && item.category == ItemCategory.Potion;
         coins += price;
         RemoveFromInventory(item.itemName);
 
@@ -2093,7 +2105,13 @@ public class GameManager : MonoBehaviour
             OnItemSold?.Invoke(false);
         }
 
-            FindObjectOfType<ObjectiveManager>().CompleteMission(MissionType.SellItems);
+        ObjectiveManager manager = FindFirstObjectByType<ObjectiveManager>();
+        if (manager != null)
+        {
+            manager.CompleteMission(MissionType.SellItems);
+            if (soldProduct)
+                manager.NotifySuccessfulProductSale();
+        }
         if (inventoryPanel.activeSelf)
             PopulateInventoryPanel();
     }
