@@ -24,7 +24,7 @@ public sealed class FTUEManager : MonoBehaviour
     private const int PopupSortingOrder = 32003;
     private const float DismissDelay = 3f;
     private static readonly Vector2 TutorialPopupSize = new Vector2(720f, 350f);
-    private static readonly Vector2 NightDayPopupSize = new Vector2(600f, 280f);
+    private static readonly Vector2 NightDayPopupSize = new Vector2(560f, 260f);
 
     private static FTUEManager instance;
 
@@ -233,7 +233,7 @@ public sealed class FTUEManager : MonoBehaviour
         yield return ShowStep(
             clock != null ? clock.transform as RectTransform : null,
             "This is the Night & Day icon.",
-            "Each day is divided into three phases, each with its own main activity. Every new day brings you one step closer to the 20-day deadline.",
+            "Each day is divided into three phases, each with its own main activity. Every new day brings you one step closer to the <b>20-day deadline</b>.",
             true,
             true);
 
@@ -763,22 +763,24 @@ public sealed class FTUEManager : MonoBehaviour
 
     private void PositionPopupNearTopLeftTarget(RectTransform target)
     {
-        if (target == null)
+        if (target == null || popupCanvas == null)
             return;
 
-        Canvas targetCanvas = target.GetComponentInParent<Canvas>();
-        Camera camera = targetCanvas != null && targetCanvas.renderMode != RenderMode.ScreenSpaceOverlay
-            ? targetCanvas.worldCamera
-            : null;
-        Vector2 targetScreen = RectTransformUtility.WorldToScreenPoint(camera, target.TransformPoint(target.rect.center));
-        Vector2 targetLocal = targetScreen - new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        RectTransform overlayRect = popupCanvas.transform as RectTransform;
+        if (overlayRect == null)
+            return;
 
-        float x = targetLocal.x + target.rect.width * 0.5f + NightDayPopupSize.x * 0.5f + 24f;
-        float y = targetLocal.y - target.rect.height * 0.5f - NightDayPopupSize.y * 0.5f - 18f;
+        const float edgeMargin = 10f;
         float halfWidth = NightDayPopupSize.x * 0.5f;
         float halfHeight = NightDayPopupSize.y * 0.5f;
-        x = Mathf.Clamp(x, -Screen.width * 0.5f + halfWidth + 20f, Screen.width * 0.5f - halfWidth - 20f);
-        y = Mathf.Clamp(y, -Screen.height * 0.5f + halfHeight + 20f, Screen.height * 0.5f - halfHeight - 20f);
+
+        // The clock root contains extra transparent layout space below the
+        // visible icon, so use a stable upper-left overlay position instead.
+        const float leftInset = 65f;
+        const float topInset = 140f;
+        float x = overlayRect.rect.xMin + halfWidth + leftInset;
+        float y = overlayRect.rect.yMax - halfHeight - topInset;
+        y = Mathf.Max(y, overlayRect.rect.yMin + halfHeight + edgeMargin);
         popupRect.anchoredPosition = new Vector2(x, y);
     }
 
