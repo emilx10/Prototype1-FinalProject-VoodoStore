@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public sealed class ButtonSfx : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    private const float ClickVolume = 0.1f;
+    private const float ClickVolume = 0.25f;
     private const float HoverPitch = 1.2f;
     private const float ClickPitch = 1f;
     private const float HoverScale = 1.1f;
