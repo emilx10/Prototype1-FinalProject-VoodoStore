@@ -149,6 +149,11 @@ public class GameManager : MonoBehaviour
     public Transform craftingItemsParent;
     public Transform sellItemsParent;
 
+    [Header("Sell Phase Customers")]
+    [SerializeField] private List<GameObject> sellPhaseCustomers = new List<GameObject>();
+    [SerializeField] private bool autoFindSellPhaseCustomers = true;
+    [SerializeField] private int sellItemCanvasSortingOrder = 40;
+
     [Header("Crafting Triangle Layout")]
     [SerializeField] private Vector2 triangleLeftTop;
     [SerializeField] private Vector2 triangleRightTop;
@@ -178,6 +183,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TMP_Text priceValueText;
     [SerializeField] private TMP_Text sellItemNameText;
     [SerializeField] private Button confirmSellButton;
+    [SerializeField] private int sellConfirmPanelSortingOrder = 60;
 
     [Header("Sell Offer Settings")]
     [SerializeField, Range(0f, 1f)] private float safeOfferChance = 1f;
@@ -268,6 +274,7 @@ public class GameManager : MonoBehaviour
     private bool sellPromptUnlockedByMergeScreen;
     private bool preserveSellPromptOnNextOpenSell;
     private bool cheatWinCutsceneAfterResurrectionMerge;
+    private GameObject activeSellPhaseCustomer;
     private Canvas purchaseCoinVfxCanvas;
     private CoroutineRunner purchaseCoinVfxRunner;
     private Sprite generatedPurchaseCoinSprite;
@@ -981,6 +988,7 @@ public class GameManager : MonoBehaviour
         DayNightCycleUI.SetPhase(dayNightStartingPhase, true);
         FamilyMarketUI.Attach(this);
         EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
+        EnsureSellConfirmPanelCanvas();
         EnsureSellPanelRightUI();
         RandomizeMarketStock();
         PopulateInventoryPanel();
@@ -2047,8 +2055,10 @@ public class GameManager : MonoBehaviour
         itemsPanel.SetActive(false);
         craftingPanel.SetActive(false);
         sellPanel.SetActive(true);
+        HideSellPhaseCustomers();
         SetBrewButtonVisible(true);
         EnsureSellPanelRightUI();
+        EnsureSellConfirmPanelCanvas();
         ReturnCraftingItemsToInventory();
         RefreshSellUI();
     }
@@ -2119,6 +2129,7 @@ public class GameManager : MonoBehaviour
     public void RefreshSellUI()
     {
         ClearChildren(sellItemsParent);
+        EnsureSellItemsRenderInFrontOfCustomer();
 
         foreach (InventoryItem item in inventory)
         {
@@ -2208,8 +2219,82 @@ public class GameManager : MonoBehaviour
         sellPromptUnlockedByMergeScreen = true;
         preserveSellPromptOnNextOpenSell = true;
         UpdatePhaseTitle(DayNightCycleUI.CurrentPhase);
+        if (DayNightCycleUI.CurrentPhase == DayNightPhase.Night)
+            ShowRandomSellPhaseCustomer();
+
         if (sellPanel != null && sellPanel.activeInHierarchy)
             RefreshSellUI();
+    }
+
+    private void HideSellPhaseCustomers()
+    {
+        EnsureSellPhaseCustomers();
+        activeSellPhaseCustomer = null;
+
+        for (int i = 0; i < sellPhaseCustomers.Count; i++)
+        {
+            GameObject customer = sellPhaseCustomers[i];
+            if (customer != null && customer.activeSelf)
+                customer.SetActive(false);
+        }
+
+        EnsureSellItemsRenderInFrontOfCustomer();
+    }
+
+    private void ShowRandomSellPhaseCustomer()
+    {
+        EnsureSellPhaseCustomers();
+        if (sellPhaseCustomers.Count == 0)
+            return;
+
+        int randomIndex = Random.Range(0, sellPhaseCustomers.Count);
+        activeSellPhaseCustomer = sellPhaseCustomers[randomIndex];
+
+        for (int i = 0; i < sellPhaseCustomers.Count; i++)
+        {
+            GameObject customer = sellPhaseCustomers[i];
+            if (customer != null)
+                customer.SetActive(customer == activeSellPhaseCustomer);
+        }
+
+        EnsureSellItemsRenderInFrontOfCustomer();
+    }
+
+    private void EnsureSellPhaseCustomers()
+    {
+        sellPhaseCustomers.RemoveAll(customer => customer == null);
+
+        if (!autoFindSellPhaseCustomers || sellPanel == null)
+            return;
+
+        for (int i = 0; i < sellPanel.transform.childCount; i++)
+        {
+            Transform child = sellPanel.transform.GetChild(i);
+            if (child != null && child.name.ToLowerInvariant().Contains("customer") && !sellPhaseCustomers.Contains(child.gameObject))
+                sellPhaseCustomers.Add(child.gameObject);
+        }
+    }
+
+    private void EnsureSellItemsRenderInFrontOfCustomer()
+    {
+        if (sellItemsParent == null)
+            return;
+
+        Canvas itemCanvas = sellItemsParent.GetComponent<Canvas>();
+        if (itemCanvas == null)
+            itemCanvas = sellItemsParent.gameObject.AddComponent<Canvas>();
+
+        itemCanvas.overrideSorting = true;
+        itemCanvas.sortingOrder = sellItemCanvasSortingOrder;
+
+        if (sellItemsParent.GetComponent<GraphicRaycaster>() == null)
+            sellItemsParent.gameObject.AddComponent<GraphicRaycaster>();
+
+        if (activeSellPhaseCustomer == null || activeSellPhaseCustomer.transform.parent != sellItemsParent.parent)
+            return;
+
+        int targetIndex = Mathf.Min(activeSellPhaseCustomer.transform.GetSiblingIndex() + 1, sellItemsParent.parent.childCount - 1);
+        sellItemsParent.SetSiblingIndex(targetIndex);
     }
 
     private bool IsSellableMergedProduct(InventoryItem item)
@@ -2250,8 +2335,14 @@ public class GameManager : MonoBehaviour
 
         pendingSellItem = item;
         sellItemNameText.text = item.itemName;
+        EnsureSellConfirmPanelCanvas();
         sellConfirmPanel.SetActive(true);
         ConfigureSellOffers(item);
+    }
+
+    private void EnsureSellConfirmPanelCanvas()
+    {
+        EnsureFrontCanvas(sellConfirmPanel, sellConfirmPanelSortingOrder);
     }
 
     private void EnsureSellOfferUI()
