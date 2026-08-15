@@ -371,6 +371,11 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float day20WinVivianShopHoldDuration = 7f;
     [SerializeField] private float day20WinStepFadeDuration = 0.45f;
     [SerializeField] private string day20WinUnknownIdentityText = "Identity of revived subject: Unknown";
+    [SerializeField] private Sprite day20WinVivianShopBackgroundSprite;
+    [SerializeField] private Sprite day20WinVivianShopNewspaperSprite;
+    [SerializeField] private Vector2 day20WinVivianShopNewspaperPosition = new Vector2(520f, -10f);
+    [SerializeField] private Vector2 day20WinVivianShopNewspaperSize = new Vector2(378f, 394f);
+    [SerializeField] private float day20WinVivianShopNewspaperRotation = -1.5f;
     [SerializeField] private AudioClip day20WinAmbience;
     [SerializeField] private AudioClip day20LoseAmbience;
     [SerializeField, Range(0f, 1f)] private float day20AmbienceVolume = 0.7f;
@@ -2681,7 +2686,7 @@ public class GameManager : MonoBehaviour
             sellOfferButtons[SellOfferType.Fair].gameObject.SetActive(false);
             sellOfferButtons[SellOfferType.TemptFate].gameObject.SetActive(false);
             SetOfferButtonText(SellOfferType.Safe, FormatOfferText("SAFE", "100%", "2 coins"));
-            SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "60%", "0Ã¢â‚¬â€œ5 coins"));
+            SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "60%", "0ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“5 coins"));
             return;
         }
 
@@ -3068,7 +3073,8 @@ public class GameManager : MonoBehaviour
             day20WinCutsceneRoot.transform,
             day20WinVivianShopRoot,
             "03 Vivian In Shop Unknown",
-            "Cinematics/Day20WinVivianShopUnknown");
+            "Cinematics/Day20WinVivianShopUnknown",
+            day20WinVivianShopBackgroundSprite);
 
         EnsureWinOutcomeNewspaper(day20WinVivianShopRoot != null ? day20WinVivianShopRoot.transform : null);
 
@@ -3184,7 +3190,8 @@ public class GameManager : MonoBehaviour
         Transform parent,
         GameObject assignedRoot,
         string rootName,
-        string resourceTexturePath)
+        string resourceTexturePath,
+        Sprite backgroundSprite = null)
     {
         if (parent == null)
             return assignedRoot;
@@ -3220,10 +3227,10 @@ public class GameManager : MonoBehaviour
             rect.offsetMin = Vector2.zero;
             rect.offsetMax = Vector2.zero;
 
-            CreateCutsceneBackground(root.transform, resourceTexturePath);
             root.SetActive(false);
         }
 
+        EnsureCutsceneBackground(root.transform, resourceTexturePath, backgroundSprite);
         return root;
     }
 
@@ -3302,33 +3309,55 @@ public class GameManager : MonoBehaviour
         if (oldFloatingText != null)
             oldFloatingText.gameObject.SetActive(false);
 
-        Transform existingPaper = FindDeepChild(parent, "Editable Revival Newspaper");
-        if (existingPaper != null)
-            return;
+        Transform oldGeneratedPaper = FindDeepChild(parent, "Editable Revival Newspaper");
+        if (oldGeneratedPaper != null)
+            oldGeneratedPaper.gameObject.SetActive(false);
 
-        GameObject newspaperObject = new GameObject("Editable Revival Newspaper", typeof(RectTransform), typeof(CanvasGroup));
+        Transform existingPaper = FindDeepChild(parent, "Editable Win Newspaper");
+        GameObject newspaperObject = existingPaper != null
+            ? existingPaper.gameObject
+            : new GameObject("Editable Win Newspaper", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+
         newspaperObject.transform.SetParent(parent, false);
 
         RectTransform paperRect = newspaperObject.GetComponent<RectTransform>();
+        if (paperRect == null)
+            paperRect = newspaperObject.AddComponent<RectTransform>();
+
         paperRect.anchorMin = new Vector2(0.5f, 0.5f);
         paperRect.anchorMax = new Vector2(0.5f, 0.5f);
         paperRect.pivot = new Vector2(0.5f, 0.5f);
-        paperRect.anchoredPosition = new Vector2(520f, -10f);
-        paperRect.sizeDelta = new Vector2(560f, 690f);
-        paperRect.localRotation = Quaternion.Euler(0f, 0f, -1.5f);
+        paperRect.anchoredPosition = day20WinVivianShopNewspaperPosition;
+        paperRect.sizeDelta = day20WinVivianShopNewspaperSize;
+        paperRect.localRotation = Quaternion.Euler(0f, 0f, day20WinVivianShopNewspaperRotation);
 
         CanvasGroup group = newspaperObject.GetComponent<CanvasGroup>();
+        if (group == null)
+            group = newspaperObject.AddComponent<CanvasGroup>();
+
         group.alpha = 1f;
         group.blocksRaycasts = false;
 
-        Image paper = newspaperObject.AddComponent<Image>();
-        paper.sprite = CreateCleanNewspaperPaperSprite(560, 690);
+        Image paper = newspaperObject.GetComponent<Image>();
+        if (paper == null)
+            paper = newspaperObject.AddComponent<Image>();
+
+        paper.sprite = day20WinVivianShopNewspaperSprite != null
+            ? day20WinVivianShopNewspaperSprite
+            : CreateCleanNewspaperPaperSprite(560, 690);
         paper.type = Image.Type.Simple;
+        paper.preserveAspect = true;
         paper.raycastTarget = false;
 
-        Shadow shadow = newspaperObject.AddComponent<Shadow>();
+        Shadow shadow = newspaperObject.GetComponent<Shadow>();
+        if (shadow == null)
+            shadow = newspaperObject.AddComponent<Shadow>();
+
         shadow.effectColor = new Color(0f, 0f, 0f, 0.48f);
         shadow.effectDistance = new Vector2(12f, -12f);
+
+        if (day20WinVivianShopNewspaperSprite != null)
+            return;
 
         TMP_Text masthead = CreateCutsceneText(
             newspaperObject.transform,
@@ -3394,6 +3423,67 @@ public class GameManager : MonoBehaviour
         image.texture = Resources.Load<Texture2D>(resourceTexturePath);
         image.color = Color.white;
         image.raycastTarget = false;
+    }
+
+    private void EnsureCutsceneBackground(Transform parent, string resourceTexturePath, Sprite backgroundSprite)
+    {
+        if (parent == null)
+            return;
+
+        Transform existing = parent.Find("Editable Background Image");
+        GameObject imageObject = existing != null ? existing.gameObject : new GameObject("Editable Background Image", typeof(RectTransform));
+        imageObject.transform.SetParent(parent, false);
+        imageObject.transform.SetAsFirstSibling();
+
+        RectTransform rect = imageObject.GetComponent<RectTransform>();
+        if (rect == null)
+            rect = imageObject.AddComponent<RectTransform>();
+
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        if (backgroundSprite != null)
+        {
+            RawImage rawImage = imageObject.GetComponent<RawImage>();
+            if (rawImage != null)
+            {
+                if (Application.isPlaying)
+                    Destroy(rawImage);
+                else
+                    DestroyImmediate(rawImage);
+            }
+
+            Image image = imageObject.GetComponent<Image>();
+            if (image == null)
+                image = imageObject.AddComponent<Image>();
+
+            image.sprite = backgroundSprite;
+            image.color = Color.white;
+            image.preserveAspect = false;
+            image.raycastTarget = false;
+            return;
+        }
+
+        Image oldImage = imageObject.GetComponent<Image>();
+        if (oldImage != null)
+        {
+            if (Application.isPlaying)
+                Destroy(oldImage);
+            else
+                DestroyImmediate(oldImage);
+        }
+
+        RawImage raw = imageObject.GetComponent<RawImage>();
+        if (raw == null)
+            raw = imageObject.AddComponent<RawImage>();
+
+        raw.texture = !string.IsNullOrEmpty(resourceTexturePath)
+            ? Resources.Load<Texture2D>(resourceTexturePath)
+            : null;
+        raw.color = Color.white;
+        raw.raycastTarget = false;
     }
 
     private Image CreateNewspaperRule(Transform parent, string objectName, Vector2 position, Vector2 size)
