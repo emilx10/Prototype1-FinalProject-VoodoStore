@@ -29183,7 +29183,7 @@ MonoBehaviour:
   day20WinVivianShopHoldDuration: 7
   day20WinStepFadeDuration: 0.45
   day20WinUnknownIdentityText: 'Identity of revived subject: Unknown'
-  day20WinAmbience: {fileID: 8300000, guid: f08c2c29e3c10b043ad7884c28e6fb95, type: 3}
+  day20WinAmbience: {fileID: 8300000, guid: ceb814d267a4ddf4fa1dc77287330560, type: 3}
   day20LoseAmbience: {fileID: 8300000, guid: ceb814d267a4ddf4fa1dc77287330560, type: 3}
   day20AmbienceVolume: 0.7
   day20LoseStartView:
