@@ -124,7 +124,7 @@ public class GameManager : MonoBehaviour
     private const string UltimatePotionRecipeName = "ultimate potion";
     private const int CheatMenuSortingOrder = 32100;
     private const int SellItemsVisiblePerPage = 3;
-    private const int SellItemsCanvasSortingOrder = 60;
+    private const int SellItemsCanvasSortingOrder = 63;
 
     private HashSet<string> discoveredRecipes = new HashSet<string>();
     private HashSet<string> discoveredRecipeIngredientSlots = new HashSet<string>();
@@ -162,6 +162,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Vector3 sellItemsArrowScale = Vector3.one;
     [SerializeField] private bool overrideSellItemButtonSize = true;
     [SerializeField] private Vector2 sellItemButtonSize = new Vector2(120f, 120f);
+    [SerializeField] private bool overrideSellItemsParentRect = true;
+    [SerializeField] private Vector2 sellItemsParentPosition = new Vector2(-409f, -395.58f);
+    [SerializeField] private Vector2 sellItemsParentSize = new Vector2(443.57f, 149.58f);
 
     [Header("Crafting Triangle Layout")]
     [SerializeField] private Vector2 triangleLeftTop;
@@ -2141,6 +2144,7 @@ public class GameManager : MonoBehaviour
 
     public void RefreshSellUI()
     {
+        ApplySellItemsParentRect();
         ClearChildren(sellItemsParent);
         EnsureSellItemsRenderInFrontOfCustomer();
         EnsureSellItemsPaginationArrows();
@@ -2238,6 +2242,19 @@ public class GameManager : MonoBehaviour
 
         layoutElement.preferredWidth = sellItemButtonSize.x;
         layoutElement.preferredHeight = sellItemButtonSize.y;
+    }
+
+    private void ApplySellItemsParentRect()
+    {
+        if (!overrideSellItemsParentRect || sellItemsParent == null)
+            return;
+
+        RectTransform rect = sellItemsParent as RectTransform;
+        if (rect == null)
+            return;
+
+        rect.anchoredPosition = sellItemsParentPosition;
+        rect.sizeDelta = sellItemsParentSize;
     }
 
     private void ApplySellItemsParentGridSize()
@@ -2664,7 +2681,7 @@ public class GameManager : MonoBehaviour
             sellOfferButtons[SellOfferType.Fair].gameObject.SetActive(false);
             sellOfferButtons[SellOfferType.TemptFate].gameObject.SetActive(false);
             SetOfferButtonText(SellOfferType.Safe, FormatOfferText("SAFE", "100%", "2 coins"));
-            SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "60%", "0–5 coins"));
+            SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "60%", "0Ã¢â‚¬â€œ5 coins"));
             return;
         }
 

@@ -86,6 +86,8 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         if (gameManager == null)
             gameManager = FindFirstObjectByType<GameManager>(FindObjectsInactive.Include);
 
+        EnsureOwnCanvasCanRaycast();
+
         objectivesButton = objectivesTabButton != null ? objectivesTabButton : FindButtonByNamePart("objective");
         inventoryButton = inventoryTabButton != null ? inventoryTabButton : FindButtonByNamePart("inventory");
         knownRecipesButton = knownRecipesPotionButton != null ? knownRecipesPotionButton : FindButtonByNamePart("recipe");
@@ -103,6 +105,16 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         }
 
         EnsureRightPanelScrollbars();
+    }
+
+    private void EnsureOwnCanvasCanRaycast()
+    {
+        Canvas canvas = GetComponent<Canvas>();
+        if (canvas == null)
+            return;
+
+        if (GetComponent<GraphicRaycaster>() == null)
+            gameObject.AddComponent<GraphicRaycaster>();
     }
 
     [ContextMenu("Build / Refresh Scrollbars")]
@@ -132,8 +144,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         if (button == null)
             return;
 
-        if (button.targetGraphic != null)
-            button.targetGraphic.raycastTarget = true;
+        EnsureButtonHitTarget(button);
 
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(() =>
@@ -156,6 +167,33 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             }
         });
         button.interactable = true;
+    }
+
+    private static void EnsureButtonHitTarget(Button button)
+    {
+        if (button == null)
+            return;
+
+        Graphic graphic = button.GetComponent<Graphic>();
+        if (graphic == null)
+        {
+            Image image = button.gameObject.AddComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, 0f);
+            graphic = image;
+        }
+
+        graphic.raycastTarget = true;
+        button.targetGraphic = graphic;
+
+        Graphic[] childGraphics = button.GetComponentsInChildren<Graphic>(true);
+        for (int i = 0; i < childGraphics.Length; i++)
+        {
+            Graphic childGraphic = childGraphics[i];
+            if (childGraphic == graphic)
+                childGraphic.raycastTarget = true;
+            else if (childGraphic.GetComponent<Button>() == null)
+                childGraphic.raycastTarget = false;
+        }
     }
 
     public void Refresh()
