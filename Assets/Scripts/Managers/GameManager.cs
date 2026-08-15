@@ -211,10 +211,11 @@ public class GameManager : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float junkRiskyChance = 0.6f;
     [SerializeField] private int junkRiskyMinReward = 0;
     [SerializeField] private int junkRiskyMaxReward = 5;
+    [SerializeField] private GameObject sellOfferChoicesRoot;
 
     private enum SellOfferType { Safe, Fair, Risky, TemptFate }
     private readonly Dictionary<SellOfferType, Button> sellOfferButtons = new Dictionary<SellOfferType, Button>();
-    private GameObject sellOfferChoicesRoot;
+    private bool sellOfferRuntimeListenersBound;
 
     [Header("Inventory Panel (Investigate)")]
     public GameObject inventoryPanel;
@@ -522,6 +523,14 @@ public class GameManager : MonoBehaviour
     {
         if (Application.isPlaying)
             ApplyDayNightCycleUISettings();
+
+#if UNITY_EDITOR
+        if (!Application.isPlaying && sellConfirmPanel != null)
+        {
+            UnityEditor.EditorApplication.delayCall -= BuildSellOfferChoicesEditablePreview;
+            UnityEditor.EditorApplication.delayCall += BuildSellOfferChoicesEditablePreview;
+        }
+#endif
 
         if (Application.isPlaying &&
             knownRecipesPanel != null &&
@@ -2615,60 +2624,154 @@ public class GameManager : MonoBehaviour
         EnsureFrontCanvas(sellConfirmPanel, sellConfirmPanelSortingOrder);
     }
 
-    private void EnsureSellOfferUI()
+    [ContextMenu("Build / Refresh Sell Offer Choices")]
+    public void BuildSellOfferChoicesEditablePreview()
     {
-        if (sellConfirmPanel == null || sellOfferChoicesRoot != null)
-            return;
+        EnsureSellOfferUI(true);
 
-        sellOfferChoicesRoot = new GameObject("Sell Offer Choices", typeof(RectTransform));
-        sellOfferChoicesRoot.transform.SetParent(sellConfirmPanel.transform, false);
-
-        RectTransform rootRect = sellOfferChoicesRoot.GetComponent<RectTransform>();
-        // The Book occupies the right side of the selling screen. Keep this
-        // compact grid inside the left selling area and above its Cancel button.
-        rootRect.anchorMin = new Vector2(0.10f, 0.34f);
-        rootRect.anchorMax = new Vector2(0.38f, 0.68f);
-        rootRect.offsetMin = Vector2.zero;
-        rootRect.offsetMax = Vector2.zero;
-
-        CreateSellOfferButton(SellOfferType.Safe, "SAFE", safeOfferColor);
-        CreateSellOfferButton(SellOfferType.Fair, "FAIR", fairOfferColor);
-        CreateSellOfferButton(SellOfferType.Risky, "RISKY", riskyOfferColor);
-        CreateSellOfferButton(SellOfferType.TemptFate, "TEMPT FATE", temptFateOfferColor);
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+        if (sellOfferChoicesRoot != null)
+            UnityEditor.EditorUtility.SetDirty(sellOfferChoicesRoot);
+        UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+#endif
     }
 
-    private void CreateSellOfferButton(SellOfferType offerType, string label, Color color)
+    private void EnsureSellOfferUI()
     {
-        GameObject buttonObject = new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button));
+        EnsureSellOfferUI(true);
+    }
+
+    private void EnsureSellOfferUI(bool createIfMissing)
+    {
+        if (sellConfirmPanel == null)
+            return;
+
+        if (sellOfferChoicesRoot == null)
+        {
+            Transform existingRoot = FindDirectChild(sellConfirmPanel.transform, "Sell Offer Choices");
+            if (existingRoot != null)
+                sellOfferChoicesRoot = existingRoot.gameObject;
+        }
+
+        bool createdRoot = false;
+        if (sellOfferChoicesRoot == null)
+        {
+            if (!createIfMissing)
+                return;
+
+            sellOfferChoicesRoot = new GameObject("Sell Offer Choices", typeof(RectTransform));
+            sellOfferChoicesRoot.transform.SetParent(sellConfirmPanel.transform, false);
+            createdRoot = true;
+        }
+
+        RectTransform rootRect = sellOfferChoicesRoot.GetComponent<RectTransform>();
+        if (rootRect == null)
+            rootRect = sellOfferChoicesRoot.AddComponent<RectTransform>();
+
+        if (createdRoot)
+        {
+            // Default placement only for the first build. After that, editor changes win.
+            rootRect.anchorMin = new Vector2(0.10f, 0.34f);
+            rootRect.anchorMax = new Vector2(0.38f, 0.68f);
+            rootRect.offsetMin = Vector2.zero;
+            rootRect.offsetMax = Vector2.zero;
+        }
+
+        if (sellOfferButtons.Count == 4 && (!Application.isPlaying || sellOfferRuntimeListenersBound))
+            return;
+
+        sellOfferButtons.Clear();
+        CreateOrBindSellOfferButton(SellOfferType.Safe, "SAFE", safeOfferColor);
+        CreateOrBindSellOfferButton(SellOfferType.Fair, "FAIR", fairOfferColor);
+        CreateOrBindSellOfferButton(SellOfferType.Risky, "RISKY", riskyOfferColor);
+        CreateOrBindSellOfferButton(SellOfferType.TemptFate, "TEMPT FATE", temptFateOfferColor);
+        sellOfferRuntimeListenersBound = Application.isPlaying;
+
+        if (!Application.isPlaying)
+        {
+            SetOfferButtonLayout(SellOfferType.Safe, 0.03f, 0.53f, 0.48f, 0.97f);
+            SetOfferButtonLayout(SellOfferType.Fair, 0.52f, 0.53f, 0.97f, 0.97f);
+            SetOfferButtonLayout(SellOfferType.Risky, 0.03f, 0.03f, 0.48f, 0.47f);
+            SetOfferButtonLayout(SellOfferType.TemptFate, 0.52f, 0.03f, 0.97f, 0.47f);
+        }
+    }
+
+    private void CreateOrBindSellOfferButton(SellOfferType offerType, string label, Color color)
+    {
+        Transform existingButton = FindDirectChild(sellOfferChoicesRoot.transform, label);
+        GameObject buttonObject = existingButton != null
+            ? existingButton.gameObject
+            : new GameObject(label, typeof(RectTransform), typeof(Image), typeof(Button));
+
         buttonObject.transform.SetParent(sellOfferChoicesRoot.transform, false);
 
+        RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+        if (buttonRect == null)
+            buttonRect = buttonObject.AddComponent<RectTransform>();
+
         Image background = buttonObject.GetComponent<Image>();
-        background.color = color;
+        if (background == null)
+            background = buttonObject.AddComponent<Image>();
+        if (existingButton == null)
+            background.color = color;
 
         Button button = buttonObject.GetComponent<Button>();
+        if (button == null)
+            button = buttonObject.AddComponent<Button>();
         button.targetGraphic = background;
-        button.onClick.AddListener(() => ResolveSellOffer(offerType));
 
-        GameObject textObject = new GameObject("Offer Text", typeof(RectTransform));
+        if (Application.isPlaying)
+            button.onClick.AddListener(() => ResolveSellOffer(offerType));
+
+        Transform existingText = FindDirectChild(buttonObject.transform, "Offer Text");
+        GameObject textObject = existingText != null
+            ? existingText.gameObject
+            : new GameObject("Offer Text", typeof(RectTransform));
         textObject.transform.SetParent(buttonObject.transform, false);
-        RectTransform textRect = textObject.GetComponent<RectTransform>();
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = new Vector2(8f, 5f);
-        textRect.offsetMax = new Vector2(-8f, -5f);
 
-        TextMeshProUGUI text = textObject.AddComponent<TextMeshProUGUI>();
-        text.text = label;
-        text.alignment = TextAlignmentOptions.Center;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 11f;
-        text.fontSizeMax = 24f;
-        text.fontStyle = FontStyles.Normal;
-        text.lineSpacing = -8f;
-        text.color = Color.white;
-        text.raycastTarget = false;
+        RectTransform textRect = textObject.GetComponent<RectTransform>();
+        if (textRect == null)
+            textRect = textObject.AddComponent<RectTransform>();
+        if (existingText == null)
+        {
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(8f, 5f);
+            textRect.offsetMax = new Vector2(-8f, -5f);
+        }
+
+        TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
+        if (text == null)
+            text = textObject.AddComponent<TextMeshProUGUI>();
+        if (existingText == null)
+        {
+            text.text = label;
+            text.alignment = TextAlignmentOptions.Center;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 11f;
+            text.fontSizeMax = 24f;
+            text.fontStyle = FontStyles.Normal;
+            text.lineSpacing = -8f;
+            text.color = Color.white;
+            text.raycastTarget = false;
+        }
 
         sellOfferButtons.Add(offerType, button);
+    }
+
+    private static Transform FindDirectChild(Transform parent, string childName)
+    {
+        if (parent == null)
+            return null;
+
+        foreach (Transform child in parent)
+        {
+            if (child.name == childName)
+                return child;
+        }
+
+        return null;
     }
 
     private void ConfigureSellOffers(InventoryItem item)
