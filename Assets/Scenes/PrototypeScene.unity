@@ -29187,8 +29187,8 @@ MonoBehaviour:
   day20WinVivianShopNewspaperPosition: {x: -500, y: -10}
   day20WinVivianShopNewspaperSize: {x: 900, y: 900}
   day20WinVivianShopNewspaperRotation: -1.5
-  day20WinAmbience: {fileID: 0}
-  day20LoseAmbience: {fileID: 0}
+  day20WinAmbience: {fileID: 8300000, guid: 5311167567e11d6459f42a9e6f6a2507, type: 3}
+  day20LoseAmbience: {fileID: 8300000, guid: 5311167567e11d6459f42a9e6f6a2507, type: 3}
   day20AmbienceVolume: 0.7
   day20LoseStartView:
     serializedVersion: 2

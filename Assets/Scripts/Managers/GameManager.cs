@@ -3013,7 +3013,6 @@ public class GameManager : MonoBehaviour
             yield return new WaitForSecondsRealtime(day20CutsceneHoldDuration);
         }
 
-        StopDay20Ambience();
         SetCutsceneVisible(selectedRoot, false, 0f);
 
         if (day20CutsceneCanvasRoot != null)
@@ -3964,6 +3963,7 @@ public class GameManager : MonoBehaviour
     private void RestartGame()
     {
         Time.timeScale = 1f;
+        StopDay20Ambience();
         currentDay = 1;
         isEndingDay = false;
         cheatWinCutsceneAfterResurrectionMerge = false;
@@ -4315,7 +4315,6 @@ public class GameManager : MonoBehaviour
         bool playerWon = HasResurrectionPotionInInventory();
 
         StopAllCoroutines();
-        StopDay20Ambience();
         SetCutsceneVisible(day20WinCutsceneRoot, false, 0f);
         SetCutsceneVisible(day20LoseCutsceneRoot, false, 0f);
         day20CutsceneCanvasRoot.SetActive(false);
