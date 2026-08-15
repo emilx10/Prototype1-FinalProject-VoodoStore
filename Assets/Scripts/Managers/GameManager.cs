@@ -123,6 +123,8 @@ public class GameManager : MonoBehaviour
     private const float BookOpenVolume = 0.5f;
     private const string UltimatePotionRecipeName = "ultimate potion";
     private const int CheatMenuSortingOrder = 32100;
+    private const int SellItemsVisiblePerPage = 3;
+    private const int SellItemsCanvasSortingOrder = 60;
 
     private HashSet<string> discoveredRecipes = new HashSet<string>();
     private HashSet<string> discoveredRecipeIngredientSlots = new HashSet<string>();
@@ -152,7 +154,14 @@ public class GameManager : MonoBehaviour
     [Header("Sell Phase Customers")]
     [SerializeField] private List<GameObject> sellPhaseCustomers = new List<GameObject>();
     [SerializeField] private bool autoFindSellPhaseCustomers = true;
-    [SerializeField] private int sellItemCanvasSortingOrder = 40;
+    [SerializeField] private Button sellItemsPreviousPageButton;
+    [SerializeField] private Button sellItemsNextPageButton;
+    [SerializeField] private Vector2 sellItemsPreviousArrowPosition = new Vector2(-245f, -405f);
+    [SerializeField] private Vector2 sellItemsNextArrowPosition = new Vector2(460f, -405f);
+    [SerializeField] private Vector2 sellItemsArrowSize = new Vector2(80f, 80f);
+    [SerializeField] private Vector3 sellItemsArrowScale = Vector3.one;
+    [SerializeField] private bool overrideSellItemButtonSize = true;
+    [SerializeField] private Vector2 sellItemButtonSize = new Vector2(120f, 120f);
 
     [Header("Crafting Triangle Layout")]
     [SerializeField] private Vector2 triangleLeftTop;
@@ -275,9 +284,11 @@ public class GameManager : MonoBehaviour
     private bool preserveSellPromptOnNextOpenSell;
     private bool cheatWinCutsceneAfterResurrectionMerge;
     private GameObject activeSellPhaseCustomer;
+    private int sellItemsPageIndex;
     private Canvas purchaseCoinVfxCanvas;
     private CoroutineRunner purchaseCoinVfxRunner;
     private Sprite generatedPurchaseCoinSprite;
+    private Sprite sellItemsArrowSprite;
 
 
     private HashSet<string> discoveredItems = new HashSet<string>();
@@ -990,6 +1001,7 @@ public class GameManager : MonoBehaviour
         EnsureFrontCanvas(itemsPanel, ShopItemsSortingOrder);
         EnsureSellConfirmPanelCanvas();
         EnsureSellPanelRightUI();
+        EnsureSellItemsPaginationArrows();
         RandomizeMarketStock();
         PopulateInventoryPanel();
         UpdateCoinsUI();
@@ -2059,6 +2071,7 @@ public class GameManager : MonoBehaviour
         SetBrewButtonVisible(true);
         EnsureSellPanelRightUI();
         EnsureSellConfirmPanelCanvas();
+        EnsureSellItemsPaginationArrows();
         ReturnCraftingItemsToInventory();
         RefreshSellUI();
     }
@@ -2130,13 +2143,31 @@ public class GameManager : MonoBehaviour
     {
         ClearChildren(sellItemsParent);
         EnsureSellItemsRenderInFrontOfCustomer();
+        EnsureSellItemsPaginationArrows();
+        ApplySellItemsParentGridSize();
+        ClampSellItemsPageIndex();
+        RefreshSellItemsPaginationArrowState();
 
+        int displayedItems = 0;
+        int skippedItems = 0;
+        int startIndex = sellItemsPageIndex * SellItemsVisiblePerPage;
         foreach (InventoryItem item in inventory)
         {
             if (item == null || item.count <= 0)
                 continue;
 
+            if (skippedItems < startIndex)
+            {
+                skippedItems++;
+                continue;
+            }
+
+            if (displayedItems >= SellItemsVisiblePerPage)
+                break;
+
             GameObject btn = Instantiate(buttonPrefab, sellItemsParent);
+            ApplySellItemButtonSize(btn);
+            displayedItems++;
 
             var tooltip = btn.GetComponent<ItemHoverTooltip>();
             tooltip.inventoryItem = item;
@@ -2184,6 +2215,223 @@ public class GameManager : MonoBehaviour
                 button.onClick.AddListener(() => OnSellClicked(item));
             }
         }
+    }
+
+    [ContextMenu("Build Editable Sell Item Arrows")]
+    private void BuildRefreshSellItemArrows()
+    {
+        EnsureSellItemsPaginationArrows(true);
+    }
+
+    private void ApplySellItemButtonSize(GameObject buttonObject)
+    {
+        if (!overrideSellItemButtonSize || buttonObject == null)
+            return;
+
+        RectTransform rect = buttonObject.GetComponent<RectTransform>();
+        if (rect != null)
+            rect.sizeDelta = sellItemButtonSize;
+
+        LayoutElement layoutElement = buttonObject.GetComponent<LayoutElement>();
+        if (layoutElement == null)
+            layoutElement = buttonObject.AddComponent<LayoutElement>();
+
+        layoutElement.preferredWidth = sellItemButtonSize.x;
+        layoutElement.preferredHeight = sellItemButtonSize.y;
+    }
+
+    private void ApplySellItemsParentGridSize()
+    {
+        if (!overrideSellItemButtonSize || sellItemsParent == null)
+            return;
+
+        GridLayoutGroup grid = sellItemsParent.GetComponent<GridLayoutGroup>();
+        if (grid != null)
+            grid.cellSize = sellItemButtonSize;
+    }
+
+    private void EnsureSellItemsPaginationArrows(bool allowCreate = false)
+    {
+        if (sellPanel == null)
+            return;
+
+        Transform arrowParent = sellItemsParent != null && sellItemsParent.parent != null
+            ? sellItemsParent.parent
+            : sellPanel.transform;
+
+        sellItemsPreviousPageButton = EnsureSellItemsPageArrow(
+            sellItemsPreviousPageButton,
+            "Sell Items Arrow Left",
+            arrowParent,
+            sellItemsPreviousArrowPosition,
+            true,
+            allowCreate);
+
+        sellItemsNextPageButton = EnsureSellItemsPageArrow(
+            sellItemsNextPageButton,
+            "Sell Items Arrow Right",
+            arrowParent,
+            sellItemsNextArrowPosition,
+            false,
+            allowCreate);
+
+        WireSellItemsPaginationArrows();
+        RefreshSellItemsPaginationArrowState();
+    }
+
+    private Button EnsureSellItemsPageArrow(Button button, string objectName, Transform parent, Vector2 position, bool flipHorizontal, bool allowCreate)
+    {
+        bool createdArrow = false;
+        if (button == null)
+        {
+            Transform existing = parent != null ? parent.Find(objectName) : null;
+            if (existing != null)
+                button = existing.GetComponent<Button>();
+        }
+
+        if (button == null && allowCreate)
+        {
+            GameObject arrowObject = new GameObject(objectName, typeof(RectTransform), typeof(Image), typeof(Button));
+            arrowObject.transform.SetParent(parent, false);
+
+            Image image = arrowObject.GetComponent<Image>();
+            image.sprite = LoadSellItemsArrowSprite();
+            image.preserveAspect = true;
+            image.raycastTarget = true;
+            image.color = Color.white;
+
+            button = arrowObject.GetComponent<Button>();
+            button.targetGraphic = image;
+            createdArrow = true;
+        }
+
+        if (button == null)
+            return null;
+
+        Image arrowImage = button.GetComponent<Image>();
+        if (arrowImage != null && arrowImage.sprite == null)
+        {
+            arrowImage.sprite = LoadSellItemsArrowSprite();
+            arrowImage.preserveAspect = true;
+            arrowImage.raycastTarget = true;
+        }
+
+        RectTransform rect = button.GetComponent<RectTransform>();
+        if (createdArrow && rect != null)
+        {
+            rect.anchorMin = new Vector2(0.5f, 0.5f);
+            rect.anchorMax = new Vector2(0.5f, 0.5f);
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = position;
+            rect.sizeDelta = sellItemsArrowSize;
+            rect.localScale = new Vector3(
+                Mathf.Abs(sellItemsArrowScale.x) * (flipHorizontal ? -1f : 1f),
+                sellItemsArrowScale.y,
+                sellItemsArrowScale.z);
+        }
+
+        EnsureFrontCanvas(button.gameObject, SellItemsCanvasSortingOrder);
+        return button;
+    }
+
+    private void WireSellItemsPaginationArrows()
+    {
+        WireSellItemsPageArrow(sellItemsPreviousPageButton, PreviousSellItemsPage);
+        WireSellItemsPageArrow(sellItemsNextPageButton, NextSellItemsPage);
+    }
+
+    private static void WireSellItemsPageArrow(Button button, UnityAction action)
+    {
+        if (button == null || action == null)
+            return;
+
+        button.onClick.RemoveListener(action);
+        button.onClick.AddListener(action);
+    }
+
+    private void PreviousSellItemsPage()
+    {
+        if (!IsSellItemsPaginationVisible())
+            return;
+
+        sellItemsPageIndex--;
+        ClampSellItemsPageIndex();
+        RefreshSellUI();
+    }
+
+    private void NextSellItemsPage()
+    {
+        if (!IsSellItemsPaginationVisible())
+            return;
+
+        sellItemsPageIndex++;
+        ClampSellItemsPageIndex();
+        RefreshSellUI();
+    }
+
+    private void RefreshSellItemsPaginationArrowState()
+    {
+        int maxPageIndex = GetMaxSellItemsPageIndex();
+        bool hasMultiplePages = maxPageIndex > 0;
+        bool visible = hasMultiplePages && IsSellItemsPaginationVisible();
+
+        if (sellItemsPreviousPageButton != null)
+        {
+            sellItemsPreviousPageButton.gameObject.SetActive(visible);
+            sellItemsPreviousPageButton.interactable = visible && sellItemsPageIndex > 0;
+        }
+
+        if (sellItemsNextPageButton != null)
+        {
+            sellItemsNextPageButton.gameObject.SetActive(visible);
+            sellItemsNextPageButton.interactable = visible && sellItemsPageIndex < maxPageIndex;
+        }
+    }
+
+    private bool IsSellItemsPaginationVisible()
+    {
+        return sellPanel != null &&
+            sellPanel.activeInHierarchy &&
+            DayNightCycleUI.CurrentPhase == DayNightPhase.Night;
+    }
+
+    private Sprite LoadSellItemsArrowSprite()
+    {
+        if (sellItemsArrowSprite != null)
+            return sellItemsArrowSprite;
+
+        sellItemsArrowSprite = Resources.Load<Sprite>("FamilyMarket/Arrow");
+        if (sellItemsArrowSprite != null)
+            return sellItemsArrowSprite;
+
+        Sprite[] sprites = Resources.LoadAll<Sprite>("FamilyMarket/Arrow");
+        if (sprites != null && sprites.Length > 0)
+            sellItemsArrowSprite = sprites[0];
+
+        return sellItemsArrowSprite;
+    }
+
+    private void ClampSellItemsPageIndex()
+    {
+        sellItemsPageIndex = Mathf.Clamp(sellItemsPageIndex, 0, GetMaxSellItemsPageIndex());
+    }
+
+    private int GetMaxSellItemsPageIndex()
+    {
+        int sellableInventoryCount = GetVisibleSellInventoryCount();
+        return Mathf.Max(0, Mathf.CeilToInt(sellableInventoryCount / (float)SellItemsVisiblePerPage) - 1);
+    }
+
+    private int GetVisibleSellInventoryCount()
+    {
+        int count = 0;
+        foreach (InventoryItem item in inventory)
+        {
+            if (item != null && item.count > 0)
+                count++;
+        }
+
+        return count;
     }
 
     private static void AddRejectedSaleIndicator(Transform sellItemTransform)
@@ -2285,7 +2533,7 @@ public class GameManager : MonoBehaviour
             itemCanvas = sellItemsParent.gameObject.AddComponent<Canvas>();
 
         itemCanvas.overrideSorting = true;
-        itemCanvas.sortingOrder = sellItemCanvasSortingOrder;
+        itemCanvas.sortingOrder = SellItemsCanvasSortingOrder;
 
         if (sellItemsParent.GetComponent<GraphicRaycaster>() == null)
             sellItemsParent.gameObject.AddComponent<GraphicRaycaster>();
