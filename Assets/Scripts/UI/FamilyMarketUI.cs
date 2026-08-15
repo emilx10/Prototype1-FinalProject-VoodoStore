@@ -45,14 +45,17 @@ public sealed class FamilyMarketUI : MonoBehaviour
     private const string InventoryScrollViewName = "Inventory Scroll View";
     private const string InventoryScrollViewportName = "Inventory Scroll Viewport";
     private const string InventoryScrollContentName = "Inventory Scroll Content";
+    private const string InventoryScrollbarName = "Inventory Vertical Scrollbar";
     private const string GeneratedKnownRecipesContentName = "Generated Known Recipes Content";
     private const string KnownRecipesScrollViewName = "Known Recipes Scroll View";
     private const string KnownRecipesScrollViewportName = "Known Recipes Scroll Viewport";
     private const string KnownRecipesScrollContentName = "Known Recipes Scroll Content";
+    private const string KnownRecipesScrollbarName = "Known Recipes Vertical Scrollbar";
     private const int DefaultEditableInventoryRowCount = 12;
     private const int DefaultEditableKnownRecipeCardCount = 12;
     private const float InventoryRowSpacing = 86f;
     private const float KnownRecipeCardSpacing = 230f;
+    private const float RightPanelScrollbarWidth = 18f;
     private const int RightPanelSortingOrder = 220;
     private const int RightPanelButtonSortingOrder = 240;
 
@@ -1096,6 +1099,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
             scrollRect.viewport = viewport;
             scrollRect.content = content;
+            EnsureVerticalScrollbar(scrollRect, scrollObject.transform, InventoryScrollbarName);
             return content;
         }
 
@@ -1112,6 +1116,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
             existingScrollRect.scrollSensitivity = 35f;
             existingScrollRect.content = existingContent;
             existingScrollRect.viewport = viewportTransform as RectTransform;
+            EnsureVerticalScrollbar(existingScrollRect, scrollView, InventoryScrollbarName);
         }
 
         return existingContent;
@@ -1359,6 +1364,7 @@ public sealed class FamilyMarketUI : MonoBehaviour
 
             scrollRect.viewport = viewport;
             scrollRect.content = content;
+            EnsureVerticalScrollbar(scrollRect, scrollObject.transform, KnownRecipesScrollbarName);
             return content;
         }
 
@@ -1375,9 +1381,61 @@ public sealed class FamilyMarketUI : MonoBehaviour
             existingScrollRect.scrollSensitivity = 35f;
             existingScrollRect.content = existingContent;
             existingScrollRect.viewport = viewportTransform as RectTransform;
+            EnsureVerticalScrollbar(existingScrollRect, scrollView, KnownRecipesScrollbarName);
         }
 
         return existingContent;
+    }
+
+    private static Scrollbar EnsureVerticalScrollbar(ScrollRect scrollRect, Transform scrollView, string scrollbarName)
+    {
+        if (scrollRect == null || scrollView == null)
+            return null;
+
+        Scrollbar scrollbar = scrollRect.verticalScrollbar;
+        if (scrollbar == null)
+        {
+            Transform existing = scrollView.Find(scrollbarName);
+            scrollbar = existing != null ? existing.GetComponent<Scrollbar>() : null;
+        }
+
+        if (scrollbar == null)
+        {
+            GameObject scrollbarObject = CreateRect(scrollbarName, scrollView, Vector2.zero, Vector2.zero);
+            RectTransform scrollbarRect = scrollbarObject.GetComponent<RectTransform>();
+            scrollbarRect.anchorMin = new Vector2(1f, 0f);
+            scrollbarRect.anchorMax = new Vector2(1f, 1f);
+            scrollbarRect.pivot = new Vector2(1f, 0.5f);
+            scrollbarRect.anchoredPosition = new Vector2(-8f, 0f);
+            scrollbarRect.sizeDelta = new Vector2(RightPanelScrollbarWidth, -22f);
+
+            Image track = scrollbarObject.AddComponent<Image>();
+            track.color = new Color(0.16f, 0.07f, 0.045f, 0.42f);
+            track.raycastTarget = true;
+
+            scrollbar = scrollbarObject.AddComponent<Scrollbar>();
+
+            GameObject handleObject = CreateRect("Handle", scrollbarObject.transform, Vector2.zero, Vector2.zero);
+            RectTransform handleRect = handleObject.GetComponent<RectTransform>();
+            handleRect.anchorMin = Vector2.zero;
+            handleRect.anchorMax = Vector2.one;
+            handleRect.offsetMin = new Vector2(2f, 2f);
+            handleRect.offsetMax = new Vector2(-2f, -2f);
+
+            Image handleImage = handleObject.AddComponent<Image>();
+            handleImage.color = new Color(0.55f, 0.35f, 0.18f, 0.9f);
+            handleImage.raycastTarget = true;
+
+            scrollbar.targetGraphic = handleImage;
+            scrollbar.handleRect = handleRect;
+        }
+
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+        scrollbar.gameObject.SetActive(true);
+        scrollRect.verticalScrollbar = scrollbar;
+        scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+        scrollRect.verticalScrollbarSpacing = 0f;
+        return scrollbar;
     }
 
     private Transform EnsureKnownRecipeCard(Transform parent, int cardIndex)

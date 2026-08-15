@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
 
-public class ContextBlocker : MonoBehaviour
+public class ContextBlocker : MonoBehaviour, IPointerClickHandler, IPointerDownHandler, ICanvasRaycastFilter
 {
     private static int ignoreCloseFrame = -1;
 
@@ -29,13 +29,44 @@ public class ContextBlocker : MonoBehaviour
             gameManager = manager;
     }
 
+    private void Update()
+    {
+        if (!Input.GetMouseButtonDown(0))
+            return;
+
+        CloseContext();
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        CloseContext();
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        CloseContext();
+    }
+
+    public bool IsRaycastLocationValid(Vector2 screenPoint, Camera eventCamera)
+    {
+        return !IsScreenPointInsideContext(screenPoint, eventCamera);
+    }
+
     public void CloseContext()
     {
         if (Time.frameCount == ignoreCloseFrame)
             return;
-        if (gameManager != null &&
-            (gameManager.IsKnownRecipesOpen() || IsPointerOverBookControl()))
-            return;
+        bool isCraftingContext = gameManager != null &&
+            gameManager.craftingPanel != null &&
+            TargetsContext(gameManager.craftingPanel);
+
+        if (gameManager != null)
+        {
+            if (!isCraftingContext &&
+                (gameManager.IsKnownRecipesOpen() || IsPointerOverBookControl()))
+                return;
+        }
+
         if (IsPointerInsideContext())
             return;
 
@@ -99,6 +130,11 @@ public class ContextBlocker : MonoBehaviour
 
     private bool IsPointerInsideContext()
     {
+        return IsScreenPointInsideContext(Input.mousePosition, null);
+    }
+
+    private bool IsScreenPointInsideContext(Vector2 screenPoint, Camera eventCamera)
+    {
         if (contextMenu == null)
             return false;
 
@@ -107,9 +143,9 @@ public class ContextBlocker : MonoBehaviour
             return false;
 
         Canvas canvas = contextMenu.GetComponentInParent<Canvas>();
-        Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
-            ? canvas.worldCamera
-            : null;
+        Camera contextCamera = eventCamera;
+        if (contextCamera == null && canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            contextCamera = canvas.worldCamera;
 
         foreach (Transform child in contextMenu.transform)
         {
@@ -118,7 +154,7 @@ public class ContextBlocker : MonoBehaviour
 
             RectTransform childRect = child as RectTransform;
             if (childRect != null &&
-                RectTransformUtility.RectangleContainsScreenPoint(childRect, Input.mousePosition, eventCamera))
+                RectTransformUtility.RectangleContainsScreenPoint(childRect, screenPoint, contextCamera))
             {
                 return true;
             }

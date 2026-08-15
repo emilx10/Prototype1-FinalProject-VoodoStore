@@ -346,7 +346,9 @@ public sealed class OpeningCinematic : MonoBehaviour
 
     private void CreateCemeteryImage(Transform parent)
     {
-        Texture2D cemeteryTexture = Resources.Load<Texture2D>("Cinematics/OpeningVivianFlamel");
+        Texture2D cemeteryTexture = Resources.Load<Texture2D>("Cinematics/OpeningVivianFlamelEngraved");
+        if (cemeteryTexture == null)
+            cemeteryTexture = Resources.Load<Texture2D>("Cinematics/OpeningVivianFlamel");
         if (cemeteryTexture == null)
         {
             return;
@@ -422,125 +424,15 @@ public sealed class OpeningCinematic : MonoBehaviour
         newspaperGroup.alpha = 0f;
         newspaperGroup.blocksRaycasts = false;
 
-        Image paper = newspaperObject.AddComponent<Image>();
-        paper.sprite = CreateNewspaperPaperSprite(660, 770);
-        paper.type = Image.Type.Simple;
+        RawImage paper = newspaperObject.AddComponent<RawImage>();
+        paper.texture = Resources.Load<Texture2D>("Cinematics/News Pepper");
+        paper.uvRect = new Rect(658f / 1920f, 1f - (962f / 1080f), (1200f - 658f) / 1920f, (962f - 238f) / 1080f);
         paper.color = Color.white;
         paper.raycastTarget = false;
 
         Shadow shadow = newspaperObject.AddComponent<Shadow>();
-        shadow.effectColor = new Color(0f, 0f, 0f, 0.72f);
-        shadow.effectDistance = new Vector2(20f, -20f);
-
-        TextMeshProUGUI masthead = CreateNewspaperText(
-            "Masthead",
-            newspaperObject.transform,
-            "THE VOODOO GAZETTE",
-            46f,
-            FontStyles.Bold,
-            TextAlignmentOptions.Center);
-        SetNewspaperRect(masthead.rectTransform, new Vector2(0f, 330f), new Vector2(570f, 58f));
-
-        Image topRule = CreateImage("Top Rule", newspaperObject.transform, new Color32(55, 43, 32, 255));
-        SetNewspaperRect(topRule.rectTransform, new Vector2(0f, 288f), new Vector2(550f, 4f));
-
-        TextMeshProUGUI issueLine = CreateNewspaperText(
-            "Issue Line",
-            newspaperObject.transform,
-            "No. 47                         New Bordeaux, April 17, 1927                         Price: 5 Cents",
-            15f,
-            FontStyles.Normal,
-            TextAlignmentOptions.Center);
-        SetNewspaperRect(issueLine.rectTransform, new Vector2(0f, 268f), new Vector2(550f, 28f));
-
-        Image issueRule = CreateImage("Issue Rule", newspaperObject.transform, new Color32(55, 43, 32, 255));
-        SetNewspaperRect(issueRule.rectTransform, new Vector2(0f, 248f), new Vector2(550f, 3f));
-
-        TextMeshProUGUI headline = CreateNewspaperText(
-            "Headline",
-            newspaperObject.transform,
-            "CAN IT\nACTUALLY REVIVE?",
-            62f,
-            FontStyles.Bold,
-            TextAlignmentOptions.Left);
-        headline.enableAutoSizing = true;
-        headline.fontSizeMin = 44f;
-        headline.fontSizeMax = 62f;
-        headline.lineSpacing = -18f;
-        SetNewspaperRect(headline.rectTransform, new Vector2(-4f, 174f), new Vector2(540f, 128f));
-
-        Image columnRule = CreateImage("Headline Underline", newspaperObject.transform, new Color32(55, 43, 32, 255));
-        SetNewspaperRect(columnRule.rectTransform, new Vector2(-154f, 86f), new Vector2(256f, 4f));
-
-        TextMeshProUGUI subHeadline = CreateNewspaperText(
-            "Sub Headline",
-            newspaperObject.transform,
-            "A FORBIDDEN POTION\nSPARKS CONTROVERSY",
-            24f,
-            FontStyles.Bold,
-            TextAlignmentOptions.Left);
-        subHeadline.lineSpacing = -6f;
-        SetNewspaperRect(subHeadline.rectTransform, new Vector2(-170f, 34f), new Vector2(300f, 74f));
-
-        TextMeshProUGUI storyLeft = CreateNewspaperText(
-            "Story Left",
-            newspaperObject.transform,
-            "Whispers among alchemists and occultists speak of a potion unlike any other - said to defy death itself.\n\nThe formula remains a secret, guarded by those who claim it holds the power to return a soul to the living world.",
-            18f,
-            FontStyles.Normal,
-            TextAlignmentOptions.Left);
-        storyLeft.enableAutoSizing = true;
-        storyLeft.fontSizeMin = 14f;
-        storyLeft.fontSizeMax = 18f;
-        storyLeft.lineSpacing = 2f;
-        SetNewspaperRect(storyLeft.rectTransform, new Vector2(-172f, -100f), new Vector2(300f, 188f));
-
-        Texture2D potionTexture = Resources.Load<Texture2D>("Cinematics/Poison");
-        if (potionTexture != null)
-        {
-            Image photoFrame = CreateImage("Potion Photo Frame", newspaperObject.transform, new Color32(65, 50, 35, 255));
-            SetNewspaperRect(photoFrame.rectTransform, new Vector2(173f, -30f), new Vector2(235f, 280f));
-
-            Image photoPaper = CreateImage("Potion Photo Paper", newspaperObject.transform, new Color32(188, 165, 124, 255));
-            SetNewspaperRect(photoPaper.rectTransform, new Vector2(173f, -30f), new Vector2(223f, 268f));
-
-            GameObject potionObject = new GameObject("Potion Illustration", typeof(RectTransform));
-            potionObject.transform.SetParent(newspaperObject.transform, false);
-            RawImage potionImage = potionObject.AddComponent<RawImage>();
-            potionImage.texture = potionTexture;
-            potionImage.color = Color.white;
-            potionImage.raycastTarget = false;
-            potionImage.uvRect = new Rect(0.02f, 0.13f, 0.96f, 0.74f);
-            SetNewspaperRect(potionImage.rectTransform, new Vector2(173f, -30f), new Vector2(205f, 210f));
-        }
-
-        Image factBox = CreateImage("Fact Box", newspaperObject.transform, new Color32(165, 140, 100, 70));
-        SetNewspaperRect(factBox.rectTransform, new Vector2(-4f, -244f), new Vector2(520f, 88f));
-
-        TextMeshProUGUI fact = CreateNewspaperText(
-            "Fact",
-            newspaperObject.transform,
-            "According to the accounts, the potion's effects can only take hold\nWITHIN 20 DAYS AFTER DYING.",
-            20f,
-            FontStyles.Bold,
-            TextAlignmentOptions.Center);
-        fact.enableAutoSizing = true;
-        fact.fontSizeMin = 15f;
-        fact.fontSizeMax = 20f;
-        SetNewspaperRect(fact.rectTransform, new Vector2(30f, -244f), new Vector2(468f, 70f));
-
-        TextMeshProUGUI body = CreateNewspaperText(
-            "Story",
-            newspaperObject.transform,
-            "Many have tried. None have succeeded.\nIs this the key to life... or the greatest illusion of all?",
-            19f,
-            FontStyles.Normal,
-            TextAlignmentOptions.Left);
-        body.enableAutoSizing = true;
-        body.fontSizeMin = 15f;
-        body.fontSizeMax = 19f;
-        body.lineSpacing = 2f;
-        SetNewspaperRect(body.rectTransform, new Vector2(6f, -326f), new Vector2(520f, 74f));
+        shadow.effectColor = new Color(0f, 0f, 0f, 0.58f);
+        shadow.effectDistance = new Vector2(18f, -18f);
     }
 
     private static TextMeshProUGUI CreateNewspaperText(

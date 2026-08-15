@@ -14,11 +14,16 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
 
     private const string GeneratedObjectiveContentName = "Generated Objectives Content";
     private const string GeneratedInventoryContentName = "Generated Inventory Content";
+    private const string InventoryScrollViewName = "Inventory Scroll View";
     private const string InventoryScrollContentName = "Inventory Scroll Content";
+    private const string InventoryScrollbarName = "Inventory Vertical Scrollbar";
     private const string GeneratedKnownRecipesContentName = "Generated Known Recipes Content";
+    private const string KnownRecipesScrollViewName = "Known Recipes Scroll View";
     private const string KnownRecipesScrollContentName = "Known Recipes Scroll Content";
+    private const string KnownRecipesScrollbarName = "Known Recipes Vertical Scrollbar";
     private const float InventoryRowSpacing = 86f;
     private const float KnownRecipeCardSpacing = 230f;
+    private const float RightPanelScrollbarWidth = 18f;
 
     private static readonly List<SellPanelRightUIBinder> instances = new List<SellPanelRightUIBinder>();
 
@@ -81,6 +86,8 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         if (gameManager == null)
             gameManager = FindFirstObjectByType<GameManager>(FindObjectsInactive.Include);
 
+        EnsureOwnCanvasCanRaycast();
+
         objectivesButton = objectivesTabButton != null ? objectivesTabButton : FindButtonByNamePart("objective");
         inventoryButton = inventoryTabButton != null ? inventoryTabButton : FindButtonByNamePart("inventory");
         knownRecipesButton = knownRecipesPotionButton != null ? knownRecipesPotionButton : FindButtonByNamePart("recipe");
@@ -96,6 +103,25 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
             inventoryContent = contentRoot.Find("Inventory Tab Content")?.gameObject;
             knownRecipesContent = contentRoot.Find("Known Recipes Tab Content")?.gameObject;
         }
+
+        EnsureRightPanelScrollbars();
+    }
+
+    private void EnsureOwnCanvasCanRaycast()
+    {
+        Canvas canvas = GetComponent<Canvas>();
+        if (canvas == null)
+            return;
+
+        if (GetComponent<GraphicRaycaster>() == null)
+            gameObject.AddComponent<GraphicRaycaster>();
+    }
+
+    [ContextMenu("Build / Refresh Scrollbars")]
+    private void BuildRefreshScrollbars()
+    {
+        Bind();
+        EnsureRightPanelScrollbars();
     }
 
     private Button FindButtonByNamePart(string namePart)
@@ -118,8 +144,7 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         if (button == null)
             return;
 
-        if (button.targetGraphic != null)
-            button.targetGraphic.raycastTarget = true;
+        EnsureButtonHitTarget(button);
 
         button.onClick.RemoveAllListeners();
         button.onClick.AddListener(() =>
@@ -144,8 +169,37 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         button.interactable = true;
     }
 
+    private static void EnsureButtonHitTarget(Button button)
+    {
+        if (button == null)
+            return;
+
+        Graphic graphic = button.GetComponent<Graphic>();
+        if (graphic == null)
+        {
+            Image image = button.gameObject.AddComponent<Image>();
+            image.color = new Color(1f, 1f, 1f, 0f);
+            graphic = image;
+        }
+
+        graphic.raycastTarget = true;
+        button.targetGraphic = graphic;
+
+        Graphic[] childGraphics = button.GetComponentsInChildren<Graphic>(true);
+        for (int i = 0; i < childGraphics.Length; i++)
+        {
+            Graphic childGraphic = childGraphics[i];
+            if (childGraphic == graphic)
+                childGraphic.raycastTarget = true;
+            else if (childGraphic.GetComponent<Button>() == null)
+                childGraphic.raycastTarget = false;
+        }
+    }
+
     public void Refresh()
     {
+        EnsureRightPanelScrollbars();
+
         SetContentActive(objectivesContent, activeTab == RightPanelTab.Objectives);
         SetContentActive(inventoryContent, activeTab == RightPanelTab.Inventory);
         SetContentActive(knownRecipesContent, activeTab == RightPanelTab.KnownRecipes);
@@ -610,6 +664,101 @@ public sealed class SellPanelRightUIBinder : MonoBehaviour
         float viewportHeight = viewport != null ? viewport.rect.height : 0f;
         float contentHeight = Mathf.Max(viewportHeight, 32f + (Mathf.Max(visibleCount, 1) * spacing));
         content.sizeDelta = new Vector2(content.sizeDelta.x, contentHeight);
+    }
+
+    private void EnsureRightPanelScrollbars()
+    {
+        EnsureVerticalScrollbar(inventoryContent, InventoryScrollViewName, InventoryScrollContentName, InventoryScrollbarName);
+        EnsureVerticalScrollbar(knownRecipesContent, KnownRecipesScrollViewName, KnownRecipesScrollContentName, KnownRecipesScrollbarName);
+    }
+
+    private static Scrollbar EnsureVerticalScrollbar(GameObject tabContent, string scrollViewName, string contentName, string scrollbarName)
+    {
+        if (tabContent == null)
+            return null;
+
+        Transform scrollView = FindDeepChild(tabContent.transform, scrollViewName);
+        Transform content = FindDeepChild(tabContent.transform, contentName);
+        ScrollRect scrollRect = scrollView != null ? scrollView.GetComponent<ScrollRect>() : FindParentScrollRect(content);
+        if (scrollRect == null)
+            return null;
+
+        RectTransform contentRect = content as RectTransform;
+        RectTransform viewportRect = contentRect != null ? contentRect.parent as RectTransform : scrollRect.viewport;
+        if (contentRect != null)
+            scrollRect.content = contentRect;
+        if (viewportRect != null)
+            scrollRect.viewport = viewportRect;
+
+        scrollRect.horizontal = false;
+        scrollRect.vertical = true;
+        scrollRect.movementType = ScrollRect.MovementType.Clamped;
+        scrollRect.scrollSensitivity = 35f;
+
+        Transform scrollbarParent = scrollView != null ? scrollView : scrollRect.transform;
+        Scrollbar scrollbar = scrollRect.verticalScrollbar;
+        if (scrollbar == null)
+        {
+            Transform existing = scrollbarParent.Find(scrollbarName);
+            scrollbar = existing != null ? existing.GetComponent<Scrollbar>() : null;
+        }
+
+        if (scrollbar == null)
+        {
+            GameObject scrollbarObject = new GameObject(scrollbarName, typeof(RectTransform), typeof(Image), typeof(Scrollbar));
+            scrollbarObject.transform.SetParent(scrollbarParent, false);
+
+            RectTransform scrollbarRect = scrollbarObject.GetComponent<RectTransform>();
+            scrollbarRect.anchorMin = new Vector2(1f, 0f);
+            scrollbarRect.anchorMax = new Vector2(1f, 1f);
+            scrollbarRect.pivot = new Vector2(1f, 0.5f);
+            scrollbarRect.anchoredPosition = new Vector2(-8f, 0f);
+            scrollbarRect.sizeDelta = new Vector2(RightPanelScrollbarWidth, -22f);
+
+            Image track = scrollbarObject.GetComponent<Image>();
+            track.color = new Color(0.16f, 0.07f, 0.045f, 0.42f);
+            track.raycastTarget = true;
+
+            scrollbar = scrollbarObject.GetComponent<Scrollbar>();
+
+            GameObject handleObject = new GameObject("Handle", typeof(RectTransform), typeof(Image));
+            handleObject.transform.SetParent(scrollbarObject.transform, false);
+
+            RectTransform handleRect = handleObject.GetComponent<RectTransform>();
+            handleRect.anchorMin = Vector2.zero;
+            handleRect.anchorMax = Vector2.one;
+            handleRect.offsetMin = new Vector2(2f, 2f);
+            handleRect.offsetMax = new Vector2(-2f, -2f);
+
+            Image handleImage = handleObject.GetComponent<Image>();
+            handleImage.color = new Color(0.55f, 0.35f, 0.18f, 0.9f);
+            handleImage.raycastTarget = true;
+
+            scrollbar.targetGraphic = handleImage;
+            scrollbar.handleRect = handleRect;
+        }
+
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+        scrollbar.gameObject.SetActive(true);
+        scrollRect.verticalScrollbar = scrollbar;
+        scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
+        scrollRect.verticalScrollbarSpacing = 0f;
+        return scrollbar;
+    }
+
+    private static ScrollRect FindParentScrollRect(Transform child)
+    {
+        Transform current = child;
+        while (current != null)
+        {
+            ScrollRect scrollRect = current.GetComponent<ScrollRect>();
+            if (scrollRect != null)
+                return scrollRect;
+
+            current = current.parent;
+        }
+
+        return null;
     }
 
     private static Transform FindDeepChild(Transform root, string objectName)
