@@ -29422,7 +29422,7 @@ MonoBehaviour:
     riskySellMin: 61
     riskySellMax: 75
     temptFateReward: 150
-  - potionName: Resurrection Potion
+  - potionName: Resurrection Elixir
     category: 3
     ingredients:
     - Love Potion
