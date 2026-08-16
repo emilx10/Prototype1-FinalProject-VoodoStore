@@ -293,6 +293,7 @@ public class ObjectiveManager : MonoBehaviour
         investigationsLeftToday--;
         gameManager.coins -= investigationCost;
         gameManager.UpdateCoinsUI();
+        gameManager.ShowFloatingCoins(-investigationCost);
 
         string key = itemName.ToLower().Trim();
         bool revealedSomething = false;

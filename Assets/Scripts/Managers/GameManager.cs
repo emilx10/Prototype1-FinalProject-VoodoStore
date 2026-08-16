@@ -230,6 +230,19 @@ public class GameManager : MonoBehaviour
     [Header("Coin Floating Text")]
     [SerializeField] private GameObject floatingCoinTextPrefab;
     [SerializeField] private Transform floatingTextSpawnPoint;
+    [Tooltip("Local offset from the spawn point when coins are deducted by a purchase.")]
+    [SerializeField] private Vector2 floatingCoinBuyOffset = new Vector2(0f, -20f);
+    [Tooltip("Local offset from the spawn point when coins are added by a sale.")]
+    [SerializeField] private Vector2 floatingCoinSellOffset = new Vector2(0f, 20f);
+    [SerializeField] private Vector2 floatingCoinTextSize = new Vector2(200f, 50f);
+    [SerializeField] private TMP_FontAsset floatingCoinFont;
+    [SerializeField, Min(1f)] private float floatingCoinFontSize = 40f;
+    [SerializeField] private Color floatingCoinAddedColor = Color.yellow;
+    [SerializeField] private Color floatingCoinDeductedColor = Color.red;
+    [Tooltip("Canvas sorting order used by floating coin text so it renders above shop and sell panels.")]
+    [SerializeField] private int floatingCoinSortingOrder = 20000;
+    [SerializeField, Min(0f)] private float floatingCoinFloatSpeed = 50f;
+    [SerializeField, Min(0.05f)] private float floatingCoinLifetime = 1f;
     [Header("Purchase Coin Burst VFX")]
     [SerializeField] private Sprite purchaseCoinSprite;
     [SerializeField] private int purchaseCoinBurstCount = 10;
@@ -2744,6 +2757,10 @@ public class GameManager : MonoBehaviour
         TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
         if (text == null)
             text = textObject.AddComponent<TextMeshProUGUI>();
+
+        // Offer labels use TMP markup for emphasis and per-line sizing.
+        // Apply this to existing scene objects too, not only newly-created labels.
+        text.richText = true;
         if (existingText == null)
         {
             text.text = label;
@@ -2789,7 +2806,7 @@ public class GameManager : MonoBehaviour
             sellOfferButtons[SellOfferType.Fair].gameObject.SetActive(false);
             sellOfferButtons[SellOfferType.TemptFate].gameObject.SetActive(false);
             SetOfferButtonText(SellOfferType.Safe, FormatOfferText("SAFE", "100%", "2 coins"));
-            SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "60%", "0ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“5 coins"));
+            SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "60%", "0-5 coins"));
             return;
         }
 
@@ -4217,14 +4234,50 @@ public class GameManager : MonoBehaviour
         if (floatingCoinTextPrefab == null || floatingTextSpawnPoint == null)
             return;
 
-        GameObject obj = Instantiate(floatingCoinTextPrefab, floatingTextSpawnPoint.position, Quaternion.identity, floatingTextSpawnPoint);
+        GameObject obj = Instantiate(floatingCoinTextPrefab, floatingTextSpawnPoint, false);
+        Vector2 offset = amount < 0 ? floatingCoinBuyOffset : floatingCoinSellOffset;
+
+        Canvas floatingCanvas = obj.GetComponent<Canvas>();
+        if (floatingCanvas == null)
+            floatingCanvas = obj.AddComponent<Canvas>();
+        floatingCanvas.overrideSorting = true;
+        floatingCanvas.sortingOrder = floatingCoinSortingOrder;
+
+        RectTransform rect = obj.transform as RectTransform;
+        if (rect != null)
+        {
+            rect.anchoredPosition = offset;
+            rect.sizeDelta = floatingCoinTextSize;
+        }
+        else
+        {
+            obj.transform.localPosition = new Vector3(offset.x, offset.y, 0f);
+        }
 
         FloatingCoinText floatText = obj.GetComponent<FloatingCoinText>();
+        TMP_Text tmpText = obj.GetComponent<TMP_Text>();
+
+        if (tmpText != null)
+        {
+            if (floatingCoinFont != null)
+                tmpText.font = floatingCoinFont;
+            tmpText.fontSize = floatingCoinFontSize;
+        }
+
+        if (floatText == null)
+        {
+            Debug.LogWarning("The floating coin text prefab needs a FloatingCoinText component.", obj);
+            Destroy(obj);
+            return;
+        }
+
+        floatText.floatSpeed = floatingCoinFloatSpeed;
+        floatText.lifetime = floatingCoinLifetime;
 
         if (amount < 0)
-            floatText.SetText(amount.ToString(), Color.red);
+            floatText.SetText(amount.ToString(), floatingCoinDeductedColor);
         else
-            floatText.SetText("+" + amount.ToString(), Color.yellow);
+            floatText.SetText("+" + amount.ToString(), floatingCoinAddedColor);
     }
 
     private void PlayPurchaseCoinBurst()

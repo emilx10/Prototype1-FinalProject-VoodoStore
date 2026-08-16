@@ -29469,6 +29469,16 @@ MonoBehaviour:
   inventoryStarVisibleSeconds: 2
   floatingCoinTextPrefab: {fileID: 8783089039603764162, guid: 88c2f7603144b2a4e9ea35e4a6b90947, type: 3}
   floatingTextSpawnPoint: {fileID: 1967546052}
+  floatingCoinBuyOffset: {x: 0, y: -20}
+  floatingCoinSellOffset: {x: 0, y: 20}
+  floatingCoinTextSize: {x: 200, y: 50}
+  floatingCoinFont: {fileID: 0}
+  floatingCoinFontSize: 40
+  floatingCoinAddedColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  floatingCoinDeductedColor: {r: 1, g: 0, b: 0, a: 1}
+  floatingCoinSortingOrder: 20000
+  floatingCoinFloatSpeed: 5
+  floatingCoinLifetime: 1
   purchaseCoinSprite: {fileID: 0}
   purchaseCoinBurstCount: 10
   purchaseCoinBurstDuration: 0.7
