@@ -398,7 +398,16 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float day20LoseZoomOutDuration = 4.2f;
     [SerializeField] private Color day20LoseTint = new Color(0.58f, 0.64f, 0.78f, 1f);
     [Tooltip("Any of these inventory item names count as the resurrection potion for the day 20 ending.")]
-    [SerializeField] private string[] resurrectionPotionNames = { "Resurrection Potion", "Ressuruction Potion", "Ultimate Potion" };
+    [SerializeField] private string[] resurrectionPotionNames =
+    {
+        "Resurrection Potion",
+        "Ressuruction Potion",
+        "Resurrection Elixir",
+        "Resurrection Elixar",
+        "Ressuruction Elixir",
+        "Ressuruction Elixar",
+        "Ultimate Potion"
+    };
 
     private bool isEndingDay;
     private Canvas dayTransitionCanvas;
@@ -3164,12 +3173,8 @@ public class GameManager : MonoBehaviour
             if (item == null || item.count <= 0)
                 continue;
 
-            string itemName = NormalizeName(item.itemName);
-            for (int j = 0; j < resurrectionPotionNames.Length; j++)
-            {
-                if (itemName == NormalizeName(resurrectionPotionNames[j]))
-                    return true;
-            }
+            if (IsResurrectionPotionName(item.itemName))
+                return true;
         }
 
         return false;
