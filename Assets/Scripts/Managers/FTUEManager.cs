@@ -27,6 +27,14 @@ public sealed class FTUEManager : MonoBehaviour
     private static readonly Vector2 NightDayPopupSize = new Vector2(560f, 260f);
 
     private static FTUEManager instance;
+    private static bool tutorialsDisabled;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        instance = null;
+        tutorialsDisabled = false;
+    }
 
     public bool HasShownObjectivesFTUE { get; private set; }
     public bool HasShownKnownRecipesFTUE { get; private set; }
@@ -129,7 +137,7 @@ public sealed class FTUEManager : MonoBehaviour
         ButtonBreather marketBreather)
     {
         EnsureInstance();
-        if (instance == null || instance.tutorialActive || instance.HasShownObjectivesFTUE)
+        if (tutorialsDisabled || instance == null || instance.tutorialActive || instance.HasShownObjectivesFTUE)
             return;
 
         instance.objectivesPanel = panel;
@@ -142,7 +150,7 @@ public sealed class FTUEManager : MonoBehaviour
     public static void RegisterMarketControl(Button button, ButtonBreather breather)
     {
         EnsureInstance();
-        if (instance == null || button == null || instance.initialFTUEComplete)
+        if (tutorialsDisabled || instance == null || button == null || instance.initialFTUEComplete)
             return;
 
         instance.marketButton = button;
@@ -163,7 +171,7 @@ public sealed class FTUEManager : MonoBehaviour
     public static void NotifyInventoryOpened(RectTransform inventoryPanel)
     {
         EnsureInstance();
-        if (instance == null || inventoryPanel == null)
+        if (tutorialsDisabled || instance == null || inventoryPanel == null)
             return;
 
         instance.visibleInventoryPanel = inventoryPanel;
@@ -180,7 +188,7 @@ public sealed class FTUEManager : MonoBehaviour
     public static void NotifyKnownRecipesOpened(RectTransform panel)
     {
         EnsureInstance();
-        if (instance == null || instance.state != TutorialState.WaitingForKnownRecipesIconClick)
+        if (tutorialsDisabled || instance == null || instance.state != TutorialState.WaitingForKnownRecipesIconClick)
             return;
 
         Debug.Log("FTUE: Known Recipes potion icon clicked");
@@ -190,6 +198,9 @@ public sealed class FTUEManager : MonoBehaviour
 
     private void HandleIngredientPurchased()
     {
+        if (tutorialsDisabled)
+            return;
+
         hasPurchasedIngredient = true;
         Debug.Log("FTUE: First ingredient purchase detected; Inventory tutorial is ready.");
         TryStartInventoryTutorial();
@@ -197,7 +208,7 @@ public sealed class FTUEManager : MonoBehaviour
 
     private void TryStartInventoryTutorial()
     {
-        if (tutorialActive || HasShownInventoryFTUE || !hasPurchasedIngredient ||
+        if (tutorialsDisabled || tutorialActive || HasShownInventoryFTUE || !hasPurchasedIngredient ||
             visibleInventoryPanel == null || !visibleInventoryPanel.gameObject.activeInHierarchy)
         {
             return;
@@ -205,6 +216,71 @@ public sealed class FTUEManager : MonoBehaviour
 
         Debug.Log("FTUE: Starting Inventory tutorial.");
         StartCoroutine(RunInventoryTutorial(visibleInventoryPanel));
+    }
+
+    /// <summary>
+    /// Permanently disables all FTUE steps for the current game session and
+    /// safely releases any UI state owned by a tutorial that is already active.
+    /// </summary>
+    public static void DisableAllTutorials()
+    {
+        tutorialsDisabled = true;
+        EnsureInstance();
+        if (instance == null)
+            return;
+
+        instance.DisableAllTutorialsInternal();
+    }
+
+    private void DisableAllTutorialsInternal()
+    {
+        StopAllCoroutines();
+
+        Button potionButton = knownRecipesButton != null
+            ? knownRecipesButton.GetComponent<Button>()
+            : null;
+        if (potionButton != null)
+        {
+            potionButton.onClick.RemoveListener(DebugKnownRecipesPotionClick);
+            if (allowedTargetGroup != null || allowedTargetGraphic != null)
+                RestoreAllowedButtonInteraction(potionButton);
+
+            ButtonBreather potionBreather = potionButton.GetComponent<ButtonBreather>();
+            if (potionBreather != null && potionBreather != bookAttentionAnimation)
+                StopPotionAttentionAnimation(potionBreather);
+        }
+
+        RestoreAllowedTargetParent(knownRecipesButton != null ? knownRecipesButton : highlightedTarget);
+        if (clickCatcher != null)
+        {
+            clickCatcher.SetAllowedTarget(null);
+            clickCatcher.SetDismissEnabled(false);
+        }
+
+        RemoveHighlight();
+        ResumeMarketAttentionAnimation();
+
+        HasShownObjectivesFTUE = true;
+        HasShownKnownRecipesFTUE = true;
+        HasShownNightDayFTUE = true;
+        HasShownInventoryFTUE = true;
+        initialFTUEComplete = true;
+        tutorialActive = false;
+        knownRecipesIconClicked = true;
+        state = TutorialState.Idle;
+
+        if (dimCanvas != null)
+            dimCanvas.gameObject.SetActive(false);
+        if (inputCanvas != null)
+            inputCanvas.gameObject.SetActive(false);
+        if (popupCanvas != null)
+            popupCanvas.gameObject.SetActive(false);
+
+        GameManager gameManager = FindFirstObjectByType<GameManager>();
+        if (gameManager != null)
+            gameManager.RefreshBrewButtonVisibility();
+
+        Debug.Log("F2 cheat: all FTUE tutorials disabled for this session.");
     }
 
     private IEnumerator RunInitialSequence()

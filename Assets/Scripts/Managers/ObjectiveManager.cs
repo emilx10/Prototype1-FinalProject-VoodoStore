@@ -300,6 +300,13 @@ public class ObjectiveManager : MonoBehaviour
         bool isProduct = gameManager.TryDiscoverProductRecipe(itemName, out bool revealedProductRecipe);
         bool revealedRecipeIngredient = revealedProductRecipe;
 
+        // If this product's own recipe is already known, use the investigation
+        // to discover an unrevealed recipe slot that uses the product instead.
+        // Example: investigating a known Love Potion reveals it as an ingredient
+        // of the Ultimate Potion.
+        if (isProduct && !revealedProductRecipe)
+            revealedRecipeIngredient = gameManager.DiscoverRecipeIngredient(itemName);
+
         if (!isProduct)
         {
             revealedRecipeIngredient = gameManager.DiscoverRecipeIngredient(itemName);

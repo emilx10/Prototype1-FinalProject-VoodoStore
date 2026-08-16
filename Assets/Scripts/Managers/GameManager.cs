@@ -299,7 +299,6 @@ public class GameManager : MonoBehaviour
     private bool craftingExitRequired;
     private bool sellPromptUnlockedByMergeScreen;
     private bool preserveSellPromptOnNextOpenSell;
-    private bool cheatWinCutsceneAfterResurrectionMerge;
     private GameObject activeSellPhaseCustomer;
     private int sellItemsPageIndex;
     private Canvas purchaseCoinVfxCanvas;
@@ -1014,6 +1013,13 @@ public class GameManager : MonoBehaviour
     private void OnDisable()
     {
         DayNightCycleUI.PhaseChanged -= UpdatePhaseTitle;
+
+#if UNITY_EDITOR
+        // OnValidate can queue an editor preview immediately before entering
+        // Play Mode. Remove it when this scene object is disabled/destroyed so
+        // the delayed callback cannot target a stale SerializedObject.
+        UnityEditor.EditorApplication.delayCall -= BuildSellOfferChoicesEditablePreview;
+#endif
     }
 
     void Start()
@@ -2017,10 +2023,11 @@ public class GameManager : MonoBehaviour
         if (manager != null && !string.IsNullOrWhiteSpace(craftedPotionName))
             manager.CompleteBrewedPotion(craftedPotionName);
 
-        if (cheatWinCutsceneAfterResurrectionMerge && !string.IsNullOrWhiteSpace(craftedPotionName) && IsResurrectionPotionName(craftedPotionName))
+        if (!isEndingDay &&
+            !string.IsNullOrWhiteSpace(craftedPotionName) &&
+            IsResurrectionPotionName(craftedPotionName))
         {
-            cheatWinCutsceneAfterResurrectionMerge = false;
-            StartCoroutine(ShowCheatWinCutsceneAfterMergeRoutine());
+            StartCoroutine(ShowImmediateWinCutsceneAfterMergeRoutine());
         }
     }
 
@@ -2640,6 +2647,11 @@ public class GameManager : MonoBehaviour
     [ContextMenu("Build / Refresh Sell Offer Choices")]
     public void BuildSellOfferChoicesEditablePreview()
     {
+#if UNITY_EDITOR
+        if (this == null || Application.isPlaying)
+            return;
+#endif
+
         EnsureSellOfferUI(true);
 
 #if UNITY_EDITOR
@@ -4086,8 +4098,8 @@ public class GameManager : MonoBehaviour
         StopDay20Ambience();
         currentDay = 1;
         isEndingDay = false;
-        cheatWinCutsceneAfterResurrectionMerge = false;
         DestroyDayTransitionCanvas();
+        AudioManager.Instance?.PlayGameplayMusicImmediately();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
@@ -4461,6 +4473,9 @@ public class GameManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.F1))
             SkipDay20CutsceneCheat();
+
+        if (Input.GetKeyDown(KeyCode.F2))
+            FTUEManager.DisableAllTutorials();
     }
 
     private void SkipDay20CutsceneCheat()
@@ -4519,7 +4534,6 @@ public class GameManager : MonoBehaviour
         foreach (string ingredientName in resurrectionRecipe.ingredients)
             AddExactInventoryItemForCheat(ingredientName);
 
-        cheatWinCutsceneAfterResurrectionMerge = true;
         OpenCrafting();
         RefreshInventoryDependentUI();
     }
@@ -4529,7 +4543,6 @@ public class GameManager : MonoBehaviour
         PrepareDay19MergeCheatState();
         inventory.Clear();
         selectedCraftingItems.Clear();
-        cheatWinCutsceneAfterResurrectionMerge = false;
 
         string junkIngredient = FindLoseCheatIngredient();
         if (!string.IsNullOrWhiteSpace(junkIngredient))
@@ -4608,16 +4621,18 @@ public class GameManager : MonoBehaviour
         DestroyDayTransitionCanvas();
     }
 
-    private IEnumerator ShowCheatWinCutsceneAfterMergeRoutine()
+    private IEnumerator ShowImmediateWinCutsceneAfterMergeRoutine()
     {
         isEndingDay = true;
-        currentDay = gameOverDay;
+        craftingExitRequired = false;
+        pendingSellItem = null;
 
         if (marketPanel != null) marketPanel.SetActive(false);
         if (itemsPanel != null) itemsPanel.SetActive(false);
         if (craftingPanel != null) craftingPanel.SetActive(false);
         if (sellPanel != null) sellPanel.SetActive(false);
         if (inventoryPanel != null) inventoryPanel.SetActive(false);
+        if (sellConfirmPanel != null) sellConfirmPanel.SetActive(false);
 
         yield return null;
         yield return ShowDay20OutcomeCutsceneRoutine(true);

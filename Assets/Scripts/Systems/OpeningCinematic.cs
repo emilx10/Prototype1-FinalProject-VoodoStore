@@ -81,15 +81,21 @@ public sealed class OpeningCinematic : MonoBehaviour
 
     private void Update()
     {
+        if (Input.GetKeyDown(KeyCode.F2))
+        {
+            FTUEManager.DisableAllTutorials();
+            SkipImmediately();
+            return;
+        }
+
         if (Input.GetKeyDown(KeyCode.F1))
             SkipImmediately();
     }
 
     private void SkipImmediately()
     {
-        if (overlayCanvas == null)
-            return;
-
+        // The skip key can arrive during the first frame, before BuildOverlay.
+        // Always complete the audio handoff even when no overlay exists yet.
         skipRequested = true;
         StopAllCoroutines();
         ClearSelectedUI();
