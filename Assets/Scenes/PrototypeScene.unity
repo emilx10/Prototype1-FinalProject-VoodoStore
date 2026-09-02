@@ -30061,6 +30061,10 @@ MonoBehaviour:
   resurrectionPotionNames:
   - Resurrection Potion
   - Ressuruction Potion
+  - Resurrection Elixir
+  - Resurrection Elixar
+  - Ressuruction Elixir
+  - Ressuruction Elixar
   - Ultimate Potion
   familyMarketInventoryIcon: {fileID: 739905185230883310, guid: f5bf9e9ba4e061440b9e3cc9714d35d4, type: 3}
   objectiveManager: {fileID: 1945514260}
