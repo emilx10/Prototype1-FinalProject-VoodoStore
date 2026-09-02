@@ -196,6 +196,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private TMP_Text sellItemNameText;
     [SerializeField] private Button confirmSellButton;
     [SerializeField] private int sellConfirmPanelSortingOrder = 60;
+    [SerializeField] private SellConfirmPanelVisual sellConfirmPanelVisual;
 
     [Header("Sell Offer Settings")]
     [SerializeField, Range(0f, 1f)] private float safeOfferChance = 1f;
@@ -535,14 +536,6 @@ public class GameManager : MonoBehaviour
     {
         if (Application.isPlaying)
             ApplyDayNightCycleUISettings();
-
-#if UNITY_EDITOR
-        if (!Application.isPlaying && sellConfirmPanel != null)
-        {
-            UnityEditor.EditorApplication.delayCall -= BuildSellOfferChoicesEditablePreview;
-            UnityEditor.EditorApplication.delayCall += BuildSellOfferChoicesEditablePreview;
-        }
-#endif
 
         if (Application.isPlaying &&
             knownRecipesPanel != null &&
@@ -2637,11 +2630,31 @@ public class GameManager : MonoBehaviour
         EnsureSellConfirmPanelCanvas();
         sellConfirmPanel.SetActive(true);
         ConfigureSellOffers(item);
+        if (sellConfirmPanelVisual == null)
+            sellConfirmPanelVisual = sellConfirmPanel.GetComponent<SellConfirmPanelVisual>();
+        if (sellConfirmPanelVisual != null)
+        {
+            sellConfirmPanelVisual.BindRuntime(CloseSellConfirmPanel);
+            sellConfirmPanelVisual.SetItem(item.itemName, item.icon);
+            sellConfirmPanelVisual.PlayOpen();
+        }
     }
 
     private void EnsureSellConfirmPanelCanvas()
     {
         EnsureFrontCanvas(sellConfirmPanel, sellConfirmPanelSortingOrder);
+        if (sellConfirmPanel == null) return;
+        if (sellConfirmPanelVisual == null)
+            sellConfirmPanelVisual = sellConfirmPanel.GetComponent<SellConfirmPanelVisual>();
+        if (sellConfirmPanelVisual != null)
+            sellConfirmPanelVisual.ApplySorting();
+    }
+
+    public void CloseSellConfirmPanel()
+    {
+        if (sellConfirmPanel != null)
+            sellConfirmPanel.SetActive(false);
+        pendingSellItem = null;
     }
 
     [ContextMenu("Build / Refresh Sell Offer Choices")]
@@ -2713,13 +2726,7 @@ public class GameManager : MonoBehaviour
         CreateOrBindSellOfferButton(SellOfferType.TemptFate, "TEMPT FATE", temptFateOfferColor);
         sellOfferRuntimeListenersBound = Application.isPlaying;
 
-        if (!Application.isPlaying)
-        {
-            SetOfferButtonLayout(SellOfferType.Safe, 0.03f, 0.53f, 0.48f, 0.97f);
-            SetOfferButtonLayout(SellOfferType.Fair, 0.52f, 0.53f, 0.97f, 0.97f);
-            SetOfferButtonLayout(SellOfferType.Risky, 0.03f, 0.03f, 0.48f, 0.47f);
-            SetOfferButtonLayout(SellOfferType.TemptFate, 0.52f, 0.03f, 0.97f, 0.47f);
-        }
+        // RectTransforms are authored and saved in the scene. Never rewrite them here.
     }
 
     private void CreateOrBindSellOfferButton(SellOfferType offerType, string label, Color color)
@@ -2770,9 +2777,9 @@ public class GameManager : MonoBehaviour
         if (text == null)
             text = textObject.AddComponent<TextMeshProUGUI>();
 
-        // Offer labels use TMP markup for emphasis and per-line sizing.
-        // Apply this to existing scene objects too, not only newly-created labels.
-        text.richText = true;
+        // Offer labels are plain single-line text. GameManager supplies the
+        // current chance and reward values without TMP/XML-style markup.
+        text.richText = false;
         if (existingText == null)
         {
             text.text = label;
@@ -2813,19 +2820,12 @@ public class GameManager : MonoBehaviour
 
         if (isJunk)
         {
-            SetOfferButtonLayout(SellOfferType.Safe, 0.08f, 0.28f, 0.48f, 0.72f);
-            SetOfferButtonLayout(SellOfferType.Risky, 0.52f, 0.28f, 0.92f, 0.72f);
             sellOfferButtons[SellOfferType.Fair].gameObject.SetActive(false);
             sellOfferButtons[SellOfferType.TemptFate].gameObject.SetActive(false);
             SetOfferButtonText(SellOfferType.Safe, FormatOfferText("SAFE", "100%", "2 coins"));
             SetOfferButtonText(SellOfferType.Risky, FormatOfferText("RISKY", "60%", "0-5 coins"));
             return;
         }
-
-        SetOfferButtonLayout(SellOfferType.Safe, 0.03f, 0.53f, 0.48f, 0.97f);
-        SetOfferButtonLayout(SellOfferType.Fair, 0.52f, 0.53f, 0.97f, 0.97f);
-        SetOfferButtonLayout(SellOfferType.Risky, 0.03f, 0.03f, 0.48f, 0.47f);
-        SetOfferButtonLayout(SellOfferType.TemptFate, 0.52f, 0.03f, 0.97f, 0.47f);
 
         if (!TryGetRecipe(item.itemName, out Recipe recipe))
         {
@@ -2857,7 +2857,7 @@ public class GameManager : MonoBehaviour
 
     private static string FormatOfferText(string offerName, string chance, string reward)
     {
-        return $"<b><size=112%>{offerName}</size></b>\n<size=96%>{chance}</size>\n<nobr><size=88%>{reward}</size></nobr>";
+        return $"{offerName}  •  {chance}  •  {reward}";
     }
 
     private void SetLegacySellControlsVisible(bool visible)
